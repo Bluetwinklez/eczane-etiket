@@ -46,3 +46,17 @@ def test_build_label_pdf_without_optional_fields():
         output_path = os.path.join(tmp_dir, "basit.pdf")
         build_label_pdf(SAMPLE_PROFILE, [entry], output_path)
         assert os.path.getsize(output_path) > 0
+
+
+def test_build_label_pdf_with_patient_note_and_storage():
+    entry = LabelEntry(
+        drug_name="PAROL 500MG 20 TABLET",
+        instructions="Günde 3x1 tok karnına yutulacak",
+        patient_name="Ahmet Yılmaz",
+        patient_note="Penisilin alerjisi (çok uzun bir not olsa bile satır taşmamalı ve kesilmeli test testtest)",
+        storage_note="25°C altında saklayınız.",
+    )
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        output_path = os.path.join(tmp_dir, "not_test.pdf")
+        build_label_pdf(SAMPLE_PROFILE, [entry], output_path)
+        assert os.path.getsize(output_path) > 0

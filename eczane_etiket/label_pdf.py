@@ -72,6 +72,7 @@ class LabelEntry:
     detail_note: Optional[str] = None
     storage_note: Optional[str] = None
     patient_name: Optional[str] = None
+    patient_note: Optional[str] = None
     end_date: Optional[str] = None
     staff_name: Optional[str] = None
     copies: int = 1
@@ -139,6 +140,16 @@ def _draw_single_label(c: canvas.Canvas, ox: float, oy: float, w: float, h: floa
         size = 4.5
         c.setFont(FONT_REGULAR, size)
         c.drawString(ox + pad, cursor_y - size, "Hasta: " + entry.patient_name)
+        cursor_y -= (size + 1.0)
+
+    # Hasta notu / bilinen alerji (varsa) — bilgi amaçlıdır, otomatik kontrol yapılmaz.
+    if entry.patient_note:
+        size = 4.3
+        note_text = "Not: " + entry.patient_note
+        while c.stringWidth(note_text, FONT_BOLD, size) > w - pad * 2 and len(note_text) > 5:
+            note_text = note_text[:-2] + "…"
+        c.setFont(FONT_BOLD, size)
+        c.drawString(ox + pad, cursor_y - size, note_text)
         cursor_y -= (size + 1.0)
 
     # Üst satır: ilaç adı (sola) + tarih (sağa)
