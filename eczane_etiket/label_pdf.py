@@ -130,64 +130,72 @@ def _draw_single_label(c: canvas.Canvas, ox: float, oy: float, w: float, h: floa
     if entry.end_date:
         date_str += f"  Bitiş: {entry.end_date}"
 
+    footer_h = 3.6 * mm
+    footer_top = oy + pad * 0.5 + footer_h + 1.3  # bu çizginin üstüne taşılmaz
+
     # Üst satır: hasta adı (varsa)
     if entry.patient_name:
-        size = 5.5
+        size = 4.5
         c.setFont(FONT_REGULAR, size)
         c.drawString(ox + pad, cursor_y - size, "Hasta: " + entry.patient_name)
-        cursor_y -= (size + 1.2)
+        cursor_y -= (size + 1.0)
 
     # Üst satır: ilaç adı (sola) + tarih (sağa)
-    date_font_size = 5
+    date_font_size = 4.3
     date_width = c.stringWidth(date_str, FONT_REGULAR, date_font_size)
-    header_font_size = 7
+    header_font_size = 6
     max_header_width = w - pad * 2 - date_width - 2 * mm
-    c.setFont(FONT_BOLD, header_font_size)
-    while c.stringWidth(header, FONT_BOLD, header_font_size) > max_header_width and header_font_size > 4.5:
+    while c.stringWidth(header, FONT_BOLD, header_font_size) > max_header_width and header_font_size > 4:
         header_font_size -= 0.5
+    c.setFont(FONT_BOLD, header_font_size)
     c.drawString(ox + pad, cursor_y - header_font_size, header)
     c.setFont(FONT_REGULAR, date_font_size)
     c.drawString(ox + w - pad - date_width, cursor_y - header_font_size, date_str)
-    cursor_y -= (header_font_size + 1.8)
+    cursor_y -= (header_font_size + 1.4)
 
     # Koyu bant: kullanım amacı / tanı
     if entry.kullanim_amaci_tani:
-        banner_h = 4.2 * mm
+        banner_h = 3.6 * mm
         cursor_y -= banner_h
-        _draw_banner(c, ox + pad, cursor_y, w - pad * 2, banner_h, entry.kullanim_amaci_tani, 6)
-        cursor_y -= 1.2
+        _draw_banner(c, ox + pad, cursor_y, w - pad * 2, banner_h, entry.kullanim_amaci_tani, 5.2)
+        cursor_y -= 1.0
 
-    # Ana talimat (kalın, büyük, vurgulu)
+    # Ana talimat (kalın, büyük, vurgulu) — gerekirse sığana kadar küçültülür
     if entry.instructions:
         instr = _vurgula_doz_zamani(entry.instructions.upper())
-        font_size = 6.5
-        lines = _wrap_text(c, instr, FONT_BOLD, font_size, w - pad * 2)
+        font_size = 5.8
+        while font_size > 4:
+            lines = _wrap_text(c, instr, FONT_BOLD, font_size, w - pad * 2)
+            if len(lines) <= 3 or font_size <= 4:
+                break
+            font_size -= 0.3
         c.setFont(FONT_BOLD, font_size)
         for line in lines:
             cursor_y -= font_size
             line_width = c.stringWidth(line, FONT_BOLD, font_size)
             c.drawString(ox + (w - line_width) / 2, cursor_y, line)
-            cursor_y -= 0.8
-        cursor_y -= 1.2
+            cursor_y -= 0.5
+        cursor_y -= 1.0
 
-    # Detay paragrafı (normal punto)
+    # Detay paragrafı (normal punto) — alt banta taşmayacak kadar satır basılır
     if entry.detail_note:
-        font_size = 5
+        font_size = 4.3
         lines = _wrap_text(c, entry.detail_note, FONT_REGULAR, font_size, w - pad * 2)
         c.setFont(FONT_REGULAR, font_size)
         for line in lines:
+            if cursor_y - font_size < footer_top:
+                break
             cursor_y -= font_size
             c.drawString(ox + pad, cursor_y, line)
-            cursor_y -= 0.6
+            cursor_y -= 0.4
 
     # Alt koyu bant: eczane adı + telefon (adres YOK) [+ personel]
-    footer_h = 4.2 * mm
     footer_text = profile.get("name", "")
     if profile.get("phone"):
         footer_text += f"  /  {profile['phone']}"
     if entry.staff_name:
         footer_text += f"   ({entry.staff_name})"
-    _draw_banner(c, ox + pad, oy + pad * 0.5, w - pad * 2, footer_h, footer_text, 6)
+    _draw_banner(c, ox + pad, oy + pad * 0.5, w - pad * 2, footer_h, footer_text, 5.2)
 
 
 def build_label_pdf(profile: dict, entries: list, output_path: str) -> str:
@@ -218,12 +226,16 @@ def _build_thermal_pdf(profile: dict, entries: list, output_path: str, size_mm: 
     c.save()
 
 
+A4_CONTENT_HEIGHT = 34 * mm  # her etiketin gerçek içerik yüksekliği (hücre bundan uzun olsa da içerik üstte kalır)
+
+
 def _build_a4_grid_pdf(profile: dict, entries: list, output_path: str) -> None:
     page_w, page_h = A4
     cols, rows = 2, 3
     margin = 8 * mm
     cell_w = (page_w - 2 * margin) / cols
     cell_h = (page_h - 2 * margin) / rows
+    content_h = min(cell_h - 4 * mm, A4_CONTENT_HEIGHT)
 
     c = canvas.Canvas(output_path, pagesize=A4)
     for i, entry in enumerate(entries):
@@ -233,8 +245,13 @@ def _build_a4_grid_pdf(profile: dict, entries: list, output_path: str) -> None:
         col = idx_in_page % cols
         row = idx_in_page // cols
         ox = margin + col * cell_w
-        oy = page_h - margin - (row + 1) * cell_h
-        _draw_single_label(c, ox + 2 * mm, oy + 2 * mm, cell_w - 4 * mm, cell_h - 4 * mm, profile, entry)
+        cell_top = page_h - margin - row * cell_h
+        # İçerik hücrenin ÜSTÜNE hizalanır (sabit yükseklik) — hücre daha uzun
+        # olsa bile etiket gereksiz uzamaz, altında boş kesim payı kalır.
+        oy = cell_top - 2 * mm - content_h
+        _draw_single_label(c, ox + 2 * mm, oy, cell_w - 4 * mm, content_h, profile, entry)
+        c.setStrokeColorRGB(0.75, 0.75, 0.75)
+        c.rect(ox + 2 * mm, oy, cell_w - 4 * mm, content_h, fill=0, stroke=1)
     c.save()
 
 
