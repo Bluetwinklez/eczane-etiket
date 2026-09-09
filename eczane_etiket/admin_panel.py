@@ -164,11 +164,12 @@ def _build_drugs_tab(notebook):
     frame = ttk.Frame(notebook, padding=8)
     notebook.add(frame, text="İlaç Listesi")
 
-    columns = ("name", "form", "purpose", "prospektus", "use_count")
+    columns = ("name", "form", "purpose", "prospektus", "saklama", "use_count")
     tree = ttk.Treeview(frame, columns=columns, show="headings", height=16)
-    for col, label in zip(columns, ("İlaç Adı", "Form", "Ne İçin Kullanılır", "Kısa Prospektüs", "Kullanım Sayısı")):
+    for col, label in zip(columns, ("İlaç Adı", "Form", "Ne İçin Kullanılır", "Kısa Prospektüs", "Saklama Koşulu", "Kullanım Sayısı")):
         tree.heading(col, text=label)
-    tree.column("prospektus", width=260)
+    tree.column("prospektus", width=220)
+    tree.column("saklama", width=220)
     tree.pack(fill="both", expand=True)
 
     def refresh():
@@ -179,6 +180,7 @@ def _build_drugs_tab(notebook):
                 data.FORM_LABELS.get(d.get("form", ""), d.get("form", "")),
                 d.get("kullanim_amaci") or "",
                 d.get("kisa_prospektus") or "",
+                d.get("saklama_kosulu") or "",
                 d.get("use_count", 0),
             ))
 
@@ -191,12 +193,16 @@ def _build_drugs_tab(notebook):
         prospektus = simpledialog.askstring(
             "Kısa Prospektüs", "Hastaya yönelik 1-2 cümlelik açıklama (opsiyonel):"
         )
+        saklama = simpledialog.askstring(
+            "Saklama Koşulu", "Saklama koşulu (boş bırakılırsa standart uyarı kullanılır):"
+        )
         drugs = data.load_drug_list()
         drugs.append({
             "name": name,
             "form": form or "tablet",
             "kullanim_amaci": purpose or None,
             "kisa_prospektus": prospektus or None,
+            "saklama_kosulu": saklama or data.DEFAULT_SAKLAMA_KOSULU,
             "use_count": 0,
         })
         data.save_drug_list(drugs)

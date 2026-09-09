@@ -131,11 +131,16 @@ class App(tk.Tk):
         self.instructions_text.pack(fill="x")
         self.instructions_text.bind("<KeyRelease>", lambda e: self._refresh_preview())
 
-        detail_frame = ttk.LabelFrame(parent, text="Kısa Prospektüs / Ek Not (ilaç seçilince otomatik dolar, düzenlenebilir)", padding=8)
+        detail_frame = ttk.LabelFrame(parent, text="Neden Kullanılır? — Kısa Prospektüs (ilaç seçilince otomatik dolar, düzenlenebilir)", padding=8)
         detail_frame.pack(fill="both", pady=(8, 0))
         self.detail_text = tk.Text(detail_frame, height=3, wrap="word")
         self.detail_text.pack(fill="x")
         self.detail_text.bind("<KeyRelease>", lambda e: self._refresh_preview())
+
+        storage_frame = ttk.LabelFrame(parent, text="Saklama Koşulu (ilaç seçilince otomatik dolar, düzenlenebilir)", padding=8)
+        storage_frame.pack(fill="x", pady=(8, 0))
+        self.storage_var = tk.StringVar()
+        ttk.Entry(storage_frame, textvariable=self.storage_var).pack(fill="x")
 
         self.batch_frame = ttk.LabelFrame(parent, text="Toplu Etiket Listesi", padding=8)
         columns = ("drug", "instructions", "copies")
@@ -153,7 +158,7 @@ class App(tk.Tk):
         ttk.Button(action_frame, text="Yazdır (Ctrl+P)", command=self._on_print).pack(side="left")
         ttk.Button(action_frame, text="PDF Olarak Kaydet", command=self._on_save_pdf).pack(side="left", padx=(6, 0))
 
-        for var in (self.purpose_var, self.diagnosis_var, self.patient_var, self.end_date_var):
+        for var in (self.purpose_var, self.diagnosis_var, self.patient_var, self.end_date_var, self.storage_var):
             var.trace_add("write", lambda *a: self._refresh_preview())
 
     def _build_preview_and_history(self, parent):
@@ -207,6 +212,11 @@ class App(tk.Tk):
                 new_text = f"{current}\n{drug['kisa_prospektus']}" if current else drug["kisa_prospektus"]
                 self.detail_text.delete("1.0", "end")
                 self.detail_text.insert("1.0", new_text)
+        if drug.get("saklama_kosulu"):
+            current_storage = self.storage_var.get().strip()
+            if drug["saklama_kosulu"] not in current_storage:
+                new_storage = f"{current_storage} {drug['saklama_kosulu']}".strip() if current_storage else drug["saklama_kosulu"]
+                self.storage_var.set(new_storage)
         self._refresh_instruction_buttons(drug.get("form", "tablet"))
         self._refresh_preview()
 
@@ -237,6 +247,7 @@ class App(tk.Tk):
             kullanim_amaci_tani=banner,
             instructions=self.instructions_text.get("1.0", "end").strip(),
             detail_note=self.detail_text.get("1.0", "end").strip() or None,
+            storage_note=self.storage_var.get().strip() or None,
             patient_name=self.patient_var.get().strip() or None,
             end_date=self.end_date_var.get().strip() or None,
             staff_name=self.staff_var.get().strip() or None,
@@ -258,10 +269,12 @@ class App(tk.Tk):
         widget.insert("end", f"{date_str}\n\n", "small")
         if entry.kullanim_amaci_tani:
             widget.insert("end", f" {entry.kullanim_amaci_tani.upper()} \n\n", "banner")
-        if entry.instructions:
-            widget.insert("end", f"{entry.instructions.upper()}\n\n", "bold_center")
         if entry.detail_note:
             widget.insert("end", f"{entry.detail_note}\n\n", "normal")
+        if entry.instructions:
+            widget.insert("end", f"{entry.instructions.upper()}\n\n", "bold_center")
+        if entry.storage_note:
+            widget.insert("end", f"Saklama: {entry.storage_note}\n\n", "small")
         footer = self.active_profile.get("name", "")
         if self.active_profile.get("phone"):
             footer += f"  /  {self.active_profile['phone']}"

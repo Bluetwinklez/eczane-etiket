@@ -24,12 +24,19 @@ FORM_LABELS = {
 }
 
 
+DEFAULT_SAKLAMA_KOSULU = (
+    "Çocukların göremeyeceği, erişemeyeceği yerlerde ve ambalajında saklayınız. "
+    "25°C'nin altındaki oda sıcaklığında saklayınız."
+)
+
+
 @dataclass
 class Drug:
     name: str
     form: str = "tablet"
     kullanim_amaci: Optional[str] = None
     kisa_prospektus: Optional[str] = None
+    saklama_kosulu: Optional[str] = None
     use_count: int = 0
 
     def to_dict(self) -> dict:
@@ -98,6 +105,15 @@ DRUGS_SEED = [
     Drug("DULCOLAX 5MG SÜPOZİTUVAR 6 ADET", "supozituvar", "Kabızlık giderici",
          "Kabızlığı gidermeye yardımcı, rektal yolla uygulanan bir müshildir."),
 ]
+
+# Saklama koşulu ayrıca belirtilmemiş ürünlere Türkiye'de ilaç ambalajlarında
+# standart olarak yer alan genel saklama uyarısı uygulanır (ilaca özgü bir
+# istisna biliniyorsa yukarıda Drug(...) çağrısına `saklama_kosulu=...`
+# eklenip buradaki varsayılanın önüne geçirilebilir).
+for _drug in DRUGS_SEED:
+    if _drug.saklama_kosulu is None:
+        _drug.saklama_kosulu = DEFAULT_SAKLAMA_KOSULU
+del _drug
 
 # Farmasötik şekle göre varsayılan hızlı talimat butonları. Kullanıcı bunları
 # Admin Panelinden (templates.json aracılığıyla) düzenleyebilir.
