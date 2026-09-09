@@ -70,6 +70,7 @@ class LabelEntry:
     kullanim_amaci_tani: Optional[str] = None
     instructions: str = ""
     detail_note: Optional[str] = None
+    storage_note: Optional[str] = None
     patient_name: Optional[str] = None
     end_date: Optional[str] = None
     staff_name: Optional[str] = None
@@ -153,14 +154,31 @@ def _draw_single_label(c: canvas.Canvas, ox: float, oy: float, w: float, h: floa
     c.drawString(ox + w - pad - date_width, cursor_y - header_font_size, date_str)
     cursor_y -= (header_font_size + 1.4)
 
-    # Koyu bant: kullanım amacı / tanı
+    # Koyu bant: kullanım amacı / tanı — "NEDEN kullanılır" (kısa)
     if entry.kullanim_amaci_tani:
         banner_h = 3.6 * mm
         cursor_y -= banner_h
         _draw_banner(c, ox + pad, cursor_y, w - pad * 2, banner_h, entry.kullanim_amaci_tani, 5.2)
         cursor_y -= 1.0
 
-    # Ana talimat (kalın, büyük, vurgulu) — gerekirse sığana kadar küçültülür
+    # Neden kullanıldığının uzun anlatımı (kısa prospektüs / ek not) —
+    # talimattan ÖNCE gelir, yer açmak için en fazla 2 satırla sınırlanır.
+    if entry.detail_note:
+        font_size = 4.3
+        lines = _wrap_text(c, entry.detail_note, FONT_REGULAR, font_size, w - pad * 2)
+        c.setFont(FONT_REGULAR, font_size)
+        max_lines = 2
+        for i, line in enumerate(lines[:max_lines]):
+            if i == max_lines - 1 and len(lines) > max_lines:
+                while c.stringWidth(line + "…", FONT_REGULAR, font_size) > w - pad * 2 and len(line) > 1:
+                    line = line[:-1]
+                line += "…"
+            cursor_y -= font_size
+            c.drawString(ox + pad, cursor_y, line)
+            cursor_y -= 0.4
+        cursor_y -= 0.6
+
+    # Ana talimat (kalın, büyük, vurgulu) — "NASIL kullanılır"; gerekirse sığana kadar küçültülür
     if entry.instructions:
         instr = _vurgula_doz_zamani(entry.instructions.upper())
         font_size = 5.8
@@ -177,17 +195,18 @@ def _draw_single_label(c: canvas.Canvas, ox: float, oy: float, w: float, h: floa
             cursor_y -= 0.5
         cursor_y -= 1.0
 
-    # Detay paragrafı (normal punto) — alt banta taşmayacak kadar satır basılır
-    if entry.detail_note:
-        font_size = 4.3
-        lines = _wrap_text(c, entry.detail_note, FONT_REGULAR, font_size, w - pad * 2)
+    # Saklama koşulu — alt banta taşmayacak kadar satır basılır
+    if entry.storage_note:
+        font_size = 4
+        text = "Saklama: " + entry.storage_note
+        lines = _wrap_text(c, text, FONT_REGULAR, font_size, w - pad * 2)
         c.setFont(FONT_REGULAR, font_size)
         for line in lines:
             if cursor_y - font_size < footer_top:
                 break
             cursor_y -= font_size
             c.drawString(ox + pad, cursor_y, line)
-            cursor_y -= 0.4
+            cursor_y -= 0.3
 
     # Alt koyu bant: eczane adı + telefon (adres YOK) [+ personel]
     footer_text = profile.get("name", "")

@@ -9,12 +9,13 @@ import csv
 from pathlib import Path
 from typing import Optional
 
-from .data import Drug, save_drug_list
+from .data import DEFAULT_SAKLAMA_KOSULU, Drug, save_drug_list
 
 NAME_HEADER_HINTS = ["ilaç adı", "ilac adi", "ürün adı", "urun adi", "name", "ad"]
 FORM_HEADER_HINTS = ["form", "farmasötik şekil", "farmasotik sekil", "şekil", "sekil"]
 PURPOSE_HEADER_HINTS = ["kullanım amacı", "kullanim amaci", "endikasyon"]
 PROSPEKTUS_HEADER_HINTS = ["prospektüs", "prospektus", "kısa bilgi", "kisa bilgi", "açıklama", "aciklama"]
+SAKLAMA_HEADER_HINTS = ["saklama", "storage"]
 
 FORM_KEYWORDS = {
     "tablet": ["TABLET", "DRAJE", "ÇİĞNEME", "CIGNEME"],
@@ -48,6 +49,7 @@ def guess_column_mapping(headers: list) -> dict:
         ("form", FORM_HEADER_HINTS),
         ("kullanim_amaci", PURPOSE_HEADER_HINTS),
         ("kisa_prospektus", PROSPEKTUS_HEADER_HINTS),
+        ("saklama_kosulu", SAKLAMA_HEADER_HINTS),
     ):
         for norm_header, original in normalized.items():
             if any(hint in norm_header for hint in hints):
@@ -102,6 +104,7 @@ def import_drug_list(path: str, column_map: Optional[dict] = None, save: bool = 
     form_col = mapping.get("form")
     purpose_col = mapping.get("kullanim_amaci")
     prospektus_col = mapping.get("kisa_prospektus")
+    saklama_col = mapping.get("saklama_kosulu")
 
     drugs = []
     for row in rows:
@@ -116,7 +119,12 @@ def import_drug_list(path: str, column_map: Optional[dict] = None, save: bool = 
         purpose = str(purpose).strip() if purpose else None
         prospektus = row.get(prospektus_col) if prospektus_col else None
         prospektus = str(prospektus).strip() if prospektus else None
-        drugs.append(Drug(name=name, form=form, kullanim_amaci=purpose, kisa_prospektus=prospektus).to_dict())
+        saklama = row.get(saklama_col) if saklama_col else None
+        saklama = str(saklama).strip() if saklama else DEFAULT_SAKLAMA_KOSULU
+        drugs.append(Drug(
+            name=name, form=form, kullanim_amaci=purpose,
+            kisa_prospektus=prospektus, saklama_kosulu=saklama,
+        ).to_dict())
 
     if save:
         save_drug_list(drugs)
