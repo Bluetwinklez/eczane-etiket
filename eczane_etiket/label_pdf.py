@@ -4,6 +4,11 @@ Sayfa düzeni, kullanıcının referans gösterdiği piyasa eczane etiketinden
 esinlenilen "banner" stilini takip eder: üst satır (ilaç + ambalaj + tarih),
 koyu bant (tedavi amacı/tanı), kalın büyük ana talimat, normal punto detay
 paragrafı, alt koyu bant (eczane adı + telefon). Adres YOK, emoji YOK.
+
+Türkçe karakterler (ı, İ, ş, Ş, ğ, Ğ) standart PDF fontlarında (Helvetica)
+doğru basılmadığından, `fonts/` altında gömülü DejaVu Sans kullanılır —
+bu sayede yazıcı çıktısı, kullanıcının bilgisayarında hangi fontların
+kurulu olduğundan bağımsız olarak her zaman doğru görünür.
 """
 
 import datetime as _dt
@@ -15,6 +20,8 @@ from typing import Optional
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
 BANNER_COLOR = (0.10, 0.16, 0.30)  # koyu lacivert
@@ -27,6 +34,33 @@ LABEL_SIZES_MM = {
     "thermal_50x30": (50, 30),
     "thermal_60x40": (60, 40),
 }
+
+_FONTS_DIR = os.path.join(os.path.dirname(__file__), "fonts")
+FONT_REGULAR = "Helvetica"
+FONT_BOLD = "Helvetica-Bold"
+
+
+def _register_turkish_fonts() -> None:
+    """Türkçe karakterleri tam destekleyen DejaVu Sans fontunu kaydeder.
+
+    Font dosyaları (beklenmedik şekilde) bulunamazsa sessizce standart
+    Helvetica'ya düşer — program yine çalışır, sadece ı/ş/ğ gibi harfler
+    hatalı görünebilir.
+    """
+    global FONT_REGULAR, FONT_BOLD
+    regular_path = os.path.join(_FONTS_DIR, "DejaVuSans.ttf")
+    bold_path = os.path.join(_FONTS_DIR, "DejaVuSans-Bold.ttf")
+    try:
+        pdfmetrics.registerFont(TTFont("TurkishSans", regular_path))
+        pdfmetrics.registerFont(TTFont("TurkishSans-Bold", bold_path))
+        FONT_REGULAR = "TurkishSans"
+        FONT_BOLD = "TurkishSans-Bold"
+    except Exception:
+        FONT_REGULAR = "Helvetica"
+        FONT_BOLD = "Helvetica-Bold"
+
+
+_register_turkish_fonts()
 
 
 @dataclass
@@ -75,12 +109,11 @@ def _draw_banner(c: canvas.Canvas, x: float, y: float, width: float, height: flo
     c.setFillColorRGB(*BANNER_COLOR)
     c.rect(x, y, width, height, fill=1, stroke=0)
     c.setFillColorRGB(*WHITE)
-    font_name = "Helvetica-Bold"
     display_text = text.upper()
-    while c.stringWidth(display_text, font_name, font_size) > width - 4 * mm and font_size > 5:
+    while c.stringWidth(display_text, FONT_BOLD, font_size) > width - 4 * mm and font_size > 4:
         font_size -= 0.5
-    c.setFont(font_name, font_size)
-    text_width = c.stringWidth(display_text, font_name, font_size)
+    c.setFont(FONT_BOLD, font_size)
+    text_width = c.stringWidth(display_text, FONT_BOLD, font_size)
     c.drawString(x + (width - text_width) / 2, y + height / 2 - font_size / 3, display_text)
     c.setFillColorRGB(*BLACK)
 
@@ -90,10 +123,6 @@ def _draw_single_label(c: canvas.Canvas, ox: float, oy: float, w: float, h: floa
     pad = 1.5 * mm
     cursor_y = oy + h - pad
 
-    top_lines = []
-    if entry.patient_name:
-        top_lines.append(("Hasta: " + entry.patient_name, "Helvetica", 6.5))
-
     header = entry.drug_name
     if entry.package_info:
         header = f"{entry.drug_name} {entry.package_info}"
@@ -102,61 +131,63 @@ def _draw_single_label(c: canvas.Canvas, ox: float, oy: float, w: float, h: floa
         date_str += f"  Bitiş: {entry.end_date}"
 
     # Üst satır: hasta adı (varsa)
-    c.setFont("Helvetica", 6.5)
-    for text, font, size in top_lines:
-        c.setFont(font, size)
-        c.drawString(ox + pad, cursor_y - size, text)
-        cursor_y -= (size + 1.5)
+    if entry.patient_name:
+        size = 5.5
+        c.setFont(FONT_REGULAR, size)
+        c.drawString(ox + pad, cursor_y - size, "Hasta: " + entry.patient_name)
+        cursor_y -= (size + 1.2)
 
     # Üst satır: ilaç adı (sola) + tarih (sağa)
-    header_font_size = 8.5
-    c.setFont("Helvetica-Bold", header_font_size)
-    while c.stringWidth(header, "Helvetica-Bold", header_font_size) > w - pad * 2 - 26 * mm and header_font_size > 5:
+    date_font_size = 5
+    date_width = c.stringWidth(date_str, FONT_REGULAR, date_font_size)
+    header_font_size = 7
+    max_header_width = w - pad * 2 - date_width - 2 * mm
+    c.setFont(FONT_BOLD, header_font_size)
+    while c.stringWidth(header, FONT_BOLD, header_font_size) > max_header_width and header_font_size > 4.5:
         header_font_size -= 0.5
     c.drawString(ox + pad, cursor_y - header_font_size, header)
-    c.setFont("Helvetica", 6)
-    date_width = c.stringWidth(date_str, "Helvetica", 6)
+    c.setFont(FONT_REGULAR, date_font_size)
     c.drawString(ox + w - pad - date_width, cursor_y - header_font_size, date_str)
-    cursor_y -= (header_font_size + 2)
+    cursor_y -= (header_font_size + 1.8)
 
     # Koyu bant: kullanım amacı / tanı
     if entry.kullanim_amaci_tani:
-        banner_h = 5 * mm
+        banner_h = 4.2 * mm
         cursor_y -= banner_h
-        _draw_banner(c, ox + pad, cursor_y, w - pad * 2, banner_h, entry.kullanim_amaci_tani, 7)
-        cursor_y -= 1.5
+        _draw_banner(c, ox + pad, cursor_y, w - pad * 2, banner_h, entry.kullanim_amaci_tani, 6)
+        cursor_y -= 1.2
 
     # Ana talimat (kalın, büyük, vurgulu)
     if entry.instructions:
         instr = _vurgula_doz_zamani(entry.instructions.upper())
-        font_size = 8
-        lines = _wrap_text(c, instr, "Helvetica-Bold", font_size, w - pad * 2)
-        c.setFont("Helvetica-Bold", font_size)
+        font_size = 6.5
+        lines = _wrap_text(c, instr, FONT_BOLD, font_size, w - pad * 2)
+        c.setFont(FONT_BOLD, font_size)
         for line in lines:
             cursor_y -= font_size
-            line_width = c.stringWidth(line, "Helvetica-Bold", font_size)
+            line_width = c.stringWidth(line, FONT_BOLD, font_size)
             c.drawString(ox + (w - line_width) / 2, cursor_y, line)
-            cursor_y -= 1
-        cursor_y -= 1.5
+            cursor_y -= 0.8
+        cursor_y -= 1.2
 
     # Detay paragrafı (normal punto)
     if entry.detail_note:
-        font_size = 6
-        lines = _wrap_text(c, entry.detail_note, "Helvetica", font_size, w - pad * 2)
-        c.setFont("Helvetica", font_size)
+        font_size = 5
+        lines = _wrap_text(c, entry.detail_note, FONT_REGULAR, font_size, w - pad * 2)
+        c.setFont(FONT_REGULAR, font_size)
         for line in lines:
             cursor_y -= font_size
             c.drawString(ox + pad, cursor_y, line)
-            cursor_y -= 0.8
+            cursor_y -= 0.6
 
     # Alt koyu bant: eczane adı + telefon (adres YOK) [+ personel]
-    footer_h = 5 * mm
+    footer_h = 4.2 * mm
     footer_text = profile.get("name", "")
     if profile.get("phone"):
         footer_text += f"  /  {profile['phone']}"
     if entry.staff_name:
         footer_text += f"   ({entry.staff_name})"
-    _draw_banner(c, ox + pad, oy + pad * 0.5, w - pad * 2, footer_h, footer_text, 7)
+    _draw_banner(c, ox + pad, oy + pad * 0.5, w - pad * 2, footer_h, footer_text, 6)
 
 
 def build_label_pdf(profile: dict, entries: list, output_path: str) -> str:
