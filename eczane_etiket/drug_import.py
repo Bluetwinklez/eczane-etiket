@@ -13,7 +13,8 @@ from .data import Drug, save_drug_list
 
 NAME_HEADER_HINTS = ["ilaç adı", "ilac adi", "ürün adı", "urun adi", "name", "ad"]
 FORM_HEADER_HINTS = ["form", "farmasötik şekil", "farmasotik sekil", "şekil", "sekil"]
-PURPOSE_HEADER_HINTS = ["kullanım amacı", "kullanim amaci", "endikasyon", "açıklama", "aciklama"]
+PURPOSE_HEADER_HINTS = ["kullanım amacı", "kullanim amaci", "endikasyon"]
+PROSPEKTUS_HEADER_HINTS = ["prospektüs", "prospektus", "kısa bilgi", "kisa bilgi", "açıklama", "aciklama"]
 
 FORM_KEYWORDS = {
     "tablet": ["TABLET", "DRAJE", "ÇİĞNEME", "CIGNEME"],
@@ -46,6 +47,7 @@ def guess_column_mapping(headers: list) -> dict:
         ("name", NAME_HEADER_HINTS),
         ("form", FORM_HEADER_HINTS),
         ("kullanim_amaci", PURPOSE_HEADER_HINTS),
+        ("kisa_prospektus", PROSPEKTUS_HEADER_HINTS),
     ):
         for norm_header, original in normalized.items():
             if any(hint in norm_header for hint in hints):
@@ -99,6 +101,7 @@ def import_drug_list(path: str, column_map: Optional[dict] = None, save: bool = 
         )
     form_col = mapping.get("form")
     purpose_col = mapping.get("kullanim_amaci")
+    prospektus_col = mapping.get("kisa_prospektus")
 
     drugs = []
     for row in rows:
@@ -111,7 +114,9 @@ def import_drug_list(path: str, column_map: Optional[dict] = None, save: bool = 
             form = guess_form_from_name(name)
         purpose = row.get(purpose_col) if purpose_col else None
         purpose = str(purpose).strip() if purpose else None
-        drugs.append(Drug(name=name, form=form, kullanim_amaci=purpose).to_dict())
+        prospektus = row.get(prospektus_col) if prospektus_col else None
+        prospektus = str(prospektus).strip() if prospektus else None
+        drugs.append(Drug(name=name, form=form, kullanim_amaci=purpose, kisa_prospektus=prospektus).to_dict())
 
     if save:
         save_drug_list(drugs)
