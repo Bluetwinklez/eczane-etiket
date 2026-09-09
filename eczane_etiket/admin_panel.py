@@ -164,16 +164,23 @@ def _build_drugs_tab(notebook):
     frame = ttk.Frame(notebook, padding=8)
     notebook.add(frame, text="İlaç Listesi")
 
-    columns = ("name", "form", "purpose", "use_count")
+    columns = ("name", "form", "purpose", "prospektus", "use_count")
     tree = ttk.Treeview(frame, columns=columns, show="headings", height=16)
-    for col, label in zip(columns, ("İlaç Adı", "Form", "Ne İçin Kullanılır", "Kullanım Sayısı")):
+    for col, label in zip(columns, ("İlaç Adı", "Form", "Ne İçin Kullanılır", "Kısa Prospektüs", "Kullanım Sayısı")):
         tree.heading(col, text=label)
+    tree.column("prospektus", width=260)
     tree.pack(fill="both", expand=True)
 
     def refresh():
         tree.delete(*tree.get_children())
         for d in data.load_drug_list():
-            tree.insert("", "end", values=(d["name"], data.FORM_LABELS.get(d.get("form", ""), d.get("form", "")), d.get("kullanim_amaci") or "", d.get("use_count", 0)))
+            tree.insert("", "end", values=(
+                d["name"],
+                data.FORM_LABELS.get(d.get("form", ""), d.get("form", "")),
+                d.get("kullanim_amaci") or "",
+                d.get("kisa_prospektus") or "",
+                d.get("use_count", 0),
+            ))
 
     def add_drug():
         name = simpledialog.askstring("Yeni İlaç", "İlaç adı:")
@@ -181,8 +188,17 @@ def _build_drugs_tab(notebook):
             return
         form = _ask_choice("Form", "Farmasötik şekil:", list(data.FORM_LABELS.keys()), "tablet")
         purpose = simpledialog.askstring("Ne İçin Kullanılır", "Kısa özet (opsiyonel):")
+        prospektus = simpledialog.askstring(
+            "Kısa Prospektüs", "Hastaya yönelik 1-2 cümlelik açıklama (opsiyonel):"
+        )
         drugs = data.load_drug_list()
-        drugs.append({"name": name, "form": form or "tablet", "kullanim_amaci": purpose or None, "use_count": 0})
+        drugs.append({
+            "name": name,
+            "form": form or "tablet",
+            "kullanim_amaci": purpose or None,
+            "kisa_prospektus": prospektus or None,
+            "use_count": 0,
+        })
         data.save_drug_list(drugs)
         refresh()
 

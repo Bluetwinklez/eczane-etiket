@@ -131,7 +131,7 @@ class App(tk.Tk):
         self.instructions_text.pack(fill="x")
         self.instructions_text.bind("<KeyRelease>", lambda e: self._refresh_preview())
 
-        detail_frame = ttk.LabelFrame(parent, text="Detay / Ek Not (opsiyonel)", padding=8)
+        detail_frame = ttk.LabelFrame(parent, text="Kısa Prospektüs / Ek Not (ilaç seçilince otomatik dolar, düzenlenebilir)", padding=8)
         detail_frame.pack(fill="both", pady=(8, 0))
         self.detail_text = tk.Text(detail_frame, height=3, wrap="word")
         self.detail_text.pack(fill="x")
@@ -200,6 +200,9 @@ class App(tk.Tk):
             return
         if drug.get("kullanim_amaci") and not self.purpose_var.get():
             self.purpose_var.set(drug["kullanim_amaci"])
+        if drug.get("kisa_prospektus") and not self.detail_text.get("1.0", "end").strip():
+            self.detail_text.delete("1.0", "end")
+            self.detail_text.insert("1.0", drug["kisa_prospektus"])
         self._refresh_instruction_buttons(drug.get("form", "tablet"))
         self._refresh_preview()
 

@@ -29,44 +29,74 @@ class Drug:
     name: str
     form: str = "tablet"
     kullanim_amaci: Optional[str] = None
+    kisa_prospektus: Optional[str] = None
     use_count: int = 0
 
     def to_dict(self) -> dict:
         return asdict(self)
 
 
-# Küçük örnek/seed liste. `kullanim_amaci` yalnızca genel bilinirlikte,
-# tartışmasız olan kısa özetlerle dolduruldu; emin olunmayan alanlar
-# uydurulmadı ve boş (None) bırakıldı.
+# Küçük örnek/seed liste. `kullanim_amaci` (tek satır özet) ve
+# `kisa_prospektus` (hastaya yönelik 1-2 cümlelik "ne işe yarar" açıklaması)
+# yalnızca genel bilinirlikte, tartışmasız bilgilerle dolduruldu; emin
+# olunmayan alanlar uydurulmadı ve boş (None) bırakıldı. Bu alan resmi bir
+# kısa ürün bilgisi/kullanma talimatının (KÜB/KT) yerine geçmez — sadece
+# hastanın ilacı tanımasına yardımcı, bilgilendirici kısa bir nottur.
 DRUGS_SEED = [
-    Drug("PAROL 500MG 20 TABLET", "tablet", "Ağrı ve ateş düşürücü"),
-    Drug("MAJEZIK 100MG 10 TABLET", "tablet", "Ağrı kesici"),
-    Drug("ARVELES 25MG 20 FILM TABLET", "tablet", "Ağrı kesici"),
-    Drug("NUROFEN 400MG 20 TABLET", "tablet", "Ağrı ve ateş düşürücü"),
-    Drug("AUGMENTIN BID 1000MG 14 TABLET", "tablet", "Antibiyotik"),
-    Drug("CORASPIN 100MG 30 TABLET", "tablet", "Kan sulandırıcı"),
-    Drug("CONCOR 5MG 28 TABLET", "tablet", "Tansiyon / kalp ritmi düzenleyici"),
-    Drug("CIPRO 500MG 10 TABLET", "tablet", "Antibiyotik"),
-    Drug("CATAFLAM 50MG 20 DRAJE", "tablet", "Ağrı ve iltihap giderici"),
-    Drug("RENNIE 24 ÇİĞNEME TABLETİ", "tablet", "Mide ekşimesi giderici"),
-    Drug("ZYRTEC 10MG 20 TABLET", "tablet", "Alerji giderici (antihistaminik)"),
-    Drug("METPAMID 10MG 30 TABLET", "tablet", None),
-    Drug("NEXIUM 40MG 14 KAPSÜL", "kapsul", "Mide asidini azaltıcı"),
-    Drug("DEPRIM FORTE 30 KAPSÜL", "kapsul", None),
-    Drug("PROSPAN ÖKSÜRÜK ŞURUBU 100ML", "surup", "Öksürük giderici (bitkisel)"),
-    Drug("CALPOL 120MG/5ML ŞURUP 100ML", "surup", "Ağrı ve ateş düşürücü (pediatrik)"),
-    Drug("NOTUSSIN ÖKSÜRÜK ŞURUBU 100ML", "surup", "Öksürük giderici"),
-    Drug("D VİTAMİNİ DAMLA 15ML", "damla", "D vitamini takviyesi"),
-    Drug("BEBEKOL GAZ DAMLASI 30ML", "damla", "Bebeklerde gaz sancısını giderici"),
-    Drug("OPTIVE GÖZ DAMLASI 10ML", "damla", "Göz kuruluğunu giderici"),
-    Drug("OTRIVINE BURUN SPREYİ 10ML", "sprey", "Nazal konjesyonu (burun tıkanıklığını) açıcı"),
-    Drug("COLDAMIN BOĞAZ SPREYİ", "sprey", "Boğaz ağrısını giderici"),
-    Drug("VOLTAREN EMULGEL 100GR", "merhem_krem", "Ağrı ve iltihap giderici jel"),
-    Drug("BEPANTHEN KREM 30GR", "merhem_krem", "Cilt tahrişini/pişiği önleyici"),
-    Drug("FUCIDIN KREM 15GR", "merhem_krem", "Bakteriyel cilt enfeksiyonu tedavisi"),
-    Drug("WILKINSON POMAD %12,5 100GR", "merhem_krem", "Kaşıntı, kızarıklık ve uyuz tedavisi"),
-    Drug("DOLOREX FORT SÜPOZİTUVAR 10 ADET", "supozituvar", "Ağrı kesici"),
-    Drug("DULCOLAX 5MG SÜPOZİTUVAR 6 ADET", "supozituvar", "Kabızlık giderici"),
+    Drug("PAROL 500MG 20 TABLET", "tablet", "Ağrı ve ateş düşürücü",
+         "Baş ağrısı, adet ağrısı, kas-eklem ağrısı ve ateşli durumlarda kullanılan bir ağrı kesici/ateş düşürücüdür."),
+    Drug("MAJEZIK 100MG 10 TABLET", "tablet", "Ağrı kesici",
+         "Kas, eklem ve adet ağrıları gibi orta şiddetli ağrılarda kullanılan bir ağrı kesicidir."),
+    Drug("ARVELES 25MG 20 FILM TABLET", "tablet", "Ağrı kesici",
+         "Ağrı ve iltihabı azaltan, kas-iskelet sistemi ağrılarında sık kullanılan bir ilaçtır."),
+    Drug("NUROFEN 400MG 20 TABLET", "tablet", "Ağrı ve ateş düşürücü",
+         "Ağrı, ateş ve iltihabı azaltmak için kullanılan bir ağrı kesici/ateş düşürücüdür."),
+    Drug("AUGMENTIN BID 1000MG 14 TABLET", "tablet", "Antibiyotik",
+         "Bakteri kaynaklı enfeksiyonları tedavi etmek için kullanılan bir antibiyotiktir; doktorun belirttiği süre boyunca düzenli kullanılmalıdır."),
+    Drug("CORASPIN 100MG 30 TABLET", "tablet", "Kan sulandırıcı",
+         "Kalp-damar hastalıklarında pıhtı oluşumunu önlemeye yardımcı, düşük doz kan sulandırıcı bir ilaçtır."),
+    Drug("CONCOR 5MG 28 TABLET", "tablet", "Tansiyon / kalp ritmi düzenleyici",
+         "Yüksek tansiyon ve bazı kalp ritmi bozukluklarının tedavisinde kullanılan bir ilaçtır."),
+    Drug("CIPRO 500MG 10 TABLET", "tablet", "Antibiyotik",
+         "Bakteri kaynaklı enfeksiyonları tedavi etmek için kullanılan bir antibiyotiktir; doktorun belirttiği süre boyunca düzenli kullanılmalıdır."),
+    Drug("CATAFLAM 50MG 20 DRAJE", "tablet", "Ağrı ve iltihap giderici",
+         "Ağrı ve iltihabı azaltmak için kullanılan bir ilaçtır."),
+    Drug("RENNIE 24 ÇİĞNEME TABLETİ", "tablet", "Mide ekşimesi giderici",
+         "Mide ekşimesi ve hazımsızlık şikayetlerini hafifletmek için kullanılan bir antasittir."),
+    Drug("ZYRTEC 10MG 20 TABLET", "tablet", "Alerji giderici (antihistaminik)",
+         "Alerjik rahatsızlıklara bağlı kaşıntı, hapşırma ve burun akıntısı gibi belirtileri hafifletmek için kullanılır."),
+    Drug("METPAMID 10MG 30 TABLET", "tablet", None, None),
+    Drug("NEXIUM 40MG 14 KAPSÜL", "kapsul", "Mide asidini azaltıcı",
+         "Mide asidinin fazla salgılanmasına bağlı reflü ve yanma şikayetlerinde kullanılan bir ilaçtır."),
+    Drug("DEPRIM FORTE 30 KAPSÜL", "kapsul", None, None),
+    Drug("PROSPAN ÖKSÜRÜK ŞURUBU 100ML", "surup", "Öksürük giderici (bitkisel)",
+         "Bitkisel içerikli, öksürüğü yumuşatmaya yardımcı bir şuruptur."),
+    Drug("CALPOL 120MG/5ML ŞURUP 100ML", "surup", "Ağrı ve ateş düşürücü (pediatrik)",
+         "Çocuklarda ağrı ve ateşi düşürmek için kullanılan bir şuruptur."),
+    Drug("NOTUSSIN ÖKSÜRÜK ŞURUBU 100ML", "surup", "Öksürük giderici",
+         "Öksürüğü hafifletmeye yardımcı bir şuruptur."),
+    Drug("D VİTAMİNİ DAMLA 15ML", "damla", "D vitamini takviyesi",
+         "D vitamini eksikliğini desteklemek amacıyla kullanılan bir takviyedir."),
+    Drug("BEBEKOL GAZ DAMLASI 30ML", "damla", "Bebeklerde gaz sancısını giderici",
+         "Bebeklerde sindirim kaynaklı gaz sancısını hafifletmeye yardımcı bir damladır."),
+    Drug("OPTIVE GÖZ DAMLASI 10ML", "damla", "Göz kuruluğunu giderici",
+         "Göz kuruluğu şikayetlerini hafifletmek için kullanılan yapay gözyaşı damlasıdır."),
+    Drug("OTRIVINE BURUN SPREYİ 10ML", "sprey", "Nazal konjesyonu (burun tıkanıklığını) açıcı",
+         "Burun tıkanıklığını geçici olarak açmaya yardımcı bir burun spreyidir."),
+    Drug("COLDAMIN BOĞAZ SPREYİ", "sprey", "Boğaz ağrısını giderici",
+         "Boğaz ağrısı ve tahrişini hafifletmeye yardımcı bir boğaz spreyidir."),
+    Drug("VOLTAREN EMULGEL 100GR", "merhem_krem", "Ağrı ve iltihap giderici jel",
+         "Kas ve eklem ağrılarında cilt üzerine uygulanan, ağrı ve iltihabı azaltan bir jeldir."),
+    Drug("BEPANTHEN KREM 30GR", "merhem_krem", "Cilt tahrişini/pişiği önleyici",
+         "Cilt tahrişi ve bebek pişiğini önlemeye/iyileştirmeye yardımcı bir kremdir."),
+    Drug("FUCIDIN KREM 15GR", "merhem_krem", "Bakteriyel cilt enfeksiyonu tedavisi",
+         "Ciltte bakteri kaynaklı enfeksiyonları tedavi etmek için kullanılan bir antibiyotikli kremdir."),
+    Drug("WILKINSON POMAD %12,5 100GR", "merhem_krem", "Kaşıntı, kızarıklık ve uyuz tedavisi",
+         "Uyuz gibi cilt parazitlerine bağlı kaşıntı ve kızarıklığın tedavisinde kullanılan bir pomaddır."),
+    Drug("DOLOREX FORT SÜPOZİTUVAR 10 ADET", "supozituvar", "Ağrı kesici",
+         "Ağız yoluyla ilaç alınamadığında kullanılabilen bir ağrı kesici süpozituvardır."),
+    Drug("DULCOLAX 5MG SÜPOZİTUVAR 6 ADET", "supozituvar", "Kabızlık giderici",
+         "Kabızlığı gidermeye yardımcı, rektal yolla uygulanan bir müshildir."),
 ]
 
 # Farmasötik şekle göre varsayılan hızlı talimat butonları. Kullanıcı bunları
