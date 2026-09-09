@@ -200,9 +200,13 @@ class App(tk.Tk):
             return
         if drug.get("kullanim_amaci") and not self.purpose_var.get():
             self.purpose_var.set(drug["kullanim_amaci"])
-        if drug.get("kisa_prospektus") and not self.detail_text.get("1.0", "end").strip():
-            self.detail_text.delete("1.0", "end")
-            self.detail_text.insert("1.0", drug["kisa_prospektus"])
+        if drug.get("kisa_prospektus"):
+            current = self.detail_text.get("1.0", "end").strip()
+            if drug["kisa_prospektus"] not in current:
+                # Eski yazı silinmez, yeni prospektüs metni altına eklenir.
+                new_text = f"{current}\n{drug['kisa_prospektus']}" if current else drug["kisa_prospektus"]
+                self.detail_text.delete("1.0", "end")
+                self.detail_text.insert("1.0", new_text)
         self._refresh_instruction_buttons(drug.get("form", "tablet"))
         self._refresh_preview()
 
