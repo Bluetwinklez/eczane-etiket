@@ -190,6 +190,7 @@ class App(tk.Tk):
         widget.tag_configure("header", font=("Segoe UI", 10, "bold"))
         widget.tag_configure("small", font=("Segoe UI", 8), foreground="gray20")
         widget.tag_configure("normal", font=("Segoe UI", 9))
+        widget.tag_configure("warning", font=("Segoe UI", 8, "bold"), foreground="#8a1f11")
 
     # ------------------------------------------------------------------
     # Etkileşim
@@ -276,6 +277,7 @@ class App(tk.Tk):
             detail_note=self.detail_text.get("1.0", "end").strip() or None,
             storage_note=self.storage_var.get().strip() or None,
             patient_name=self.patient_var.get().strip() or None,
+            patient_note=self.note_var.get().strip() or None,
             end_date=self.end_date_var.get().strip() or None,
             staff_name=self.staff_var.get().strip() or None,
             copies=self.copies_var.get(),
@@ -290,6 +292,8 @@ class App(tk.Tk):
         widget.delete("1.0", "end")
         if entry.patient_name:
             widget.insert("end", f"Hasta: {entry.patient_name}\n", "small")
+        if entry.patient_note:
+            widget.insert("end", f"Not: {entry.patient_note}\n", "warning")
         header = entry.drug_name or "(ilaç seçilmedi)"
         date_str = _dt.datetime.now().strftime("%d.%m.%Y %H:%M")
         widget.insert("end", f"{header}\n", "header")
@@ -409,12 +413,22 @@ class App(tk.Tk):
         if not selection:
             return
         record = self._history_records[selection[0]]
+        # Önce eski girişten kalma alanları temizle, aksi halde farklı bir
+        # ilaca ait tanı/prospektüs/saklama bilgisi yanlışlıkla kalabilir.
+        self.diagnosis_var.set("")
+        self.purpose_var.set("")
+        self.note_var.set("")
+        self.storage_var.set("")
+        self.detail_text.delete("1.0", "end")
+
         self.patient_var.set(record.get("patient_name") or "")
         self.drug_var.set(record.get("drug_name") or "")
+        self._on_drug_selected()  # formu ilaca göre hazırlar (butonlar, prospektüs, saklama)
+
+        self.purpose_var.set(record.get("kullanim_amaci_tani") or self.purpose_var.get())
         self.instructions_text.delete("1.0", "end")
         self.instructions_text.insert("1.0", record.get("instructions") or "")
-        banner = record.get("kullanim_amaci_tani") or ""
-        self.purpose_var.set(banner)
+        self.staff_var.set(record.get("staff_name") or "")
         self._refresh_preview()
 
     def _open_admin_panel(self):

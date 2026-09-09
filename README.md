@@ -10,7 +10,8 @@ kendi bilgisayarında saklanır.
 
 - Forma (tablet, kapsül, şurup, damla, merhem/krem, süpozituvar, sprey) göre
   otomatik değişen hızlı kullanım talimatı butonları
-- Hasta adı, tanı, tedavi bitiş tarihi gibi opsiyonel alanlar
+- Hasta adı, tanı, hasta notu/bilinen alerji, tedavi bitiş tarihi gibi opsiyonel alanlar
+- Etikette sıra: önce neden kullanıldığı, sonra nasıl kullanılacağı, sonra saklama koşulu
 - Tekli ve toplu (bir reçetedeki birden fazla ilaç) etiket modu
 - Büyütülebilir canlı önizleme, yazdırma (`Ctrl+P`) ve PDF olarak kaydetme
 - Etiket geçmişi (hasta adına göre arama/gruplama, CSV dışa aktarım)
