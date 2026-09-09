@@ -34,6 +34,7 @@ class App(tk.Tk):
         self._refresh_instruction_buttons(data.DEFAULT_FORM)
         self._refresh_history_list()
         self._refresh_preview()
+        self._barcode_entry.focus_set()
         self.bind("<Control-p>", lambda e: self._on_print())
 
     # ------------------------------------------------------------------
@@ -71,6 +72,14 @@ class App(tk.Tk):
         form.pack(fill="x")
 
         row = 0
+        ttk.Label(form, text="Barkod Oku (okuyucuyla okutun, Enter'a basın):").grid(row=row, column=0, sticky="w", pady=2)
+        self.barcode_var = tk.StringVar()
+        barcode_entry = ttk.Entry(form, textvariable=self.barcode_var, width=40)
+        barcode_entry.grid(row=row, column=1, sticky="we", pady=2)
+        barcode_entry.bind("<Return>", self._on_barcode_scanned)
+        self._barcode_entry = barcode_entry
+        row += 1
+
         ttk.Label(form, text="Hasta Adı (opsiyonel):").grid(row=row, column=0, sticky="w", pady=2)
         self.patient_var = tk.StringVar()
         ttk.Entry(form, textvariable=self.patient_var, width=40).grid(row=row, column=1, sticky="we", pady=2)
@@ -219,6 +228,24 @@ class App(tk.Tk):
                 self.storage_var.set(new_storage)
         self._refresh_instruction_buttons(drug.get("form", "tablet"))
         self._refresh_preview()
+
+    def _on_barcode_scanned(self, event=None):
+        """USB barkod okuyucu klavye gibi davranır: kodu yazıp Enter'a basar."""
+        code = self.barcode_var.get().strip()
+        self.barcode_var.set("")
+        if not code:
+            return
+        drug = data.find_drug_by_barcode(code, self.drug_list)
+        if not drug:
+            messagebox.showwarning(
+                "Barkod Bulunamadı",
+                f"'{code}' barkoduyla eşleşen bir ilaç bulunamadı.\n\n"
+                "İlacı Admin Panelinden barkod ekleyerek kaydedebilir ya da adını elle girebilirsiniz.",
+            )
+            return
+        self.drug_var.set(drug["name"])
+        self._on_drug_selected()
+        self._barcode_entry.focus_set()
 
     def _refresh_instruction_buttons(self, form):
         for child in self.instr_buttons_frame.winfo_children():

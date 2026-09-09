@@ -164,12 +164,13 @@ def _build_drugs_tab(notebook):
     frame = ttk.Frame(notebook, padding=8)
     notebook.add(frame, text="İlaç Listesi")
 
-    columns = ("name", "form", "purpose", "prospektus", "saklama", "use_count")
+    columns = ("name", "form", "purpose", "prospektus", "saklama", "barcode", "use_count")
     tree = ttk.Treeview(frame, columns=columns, show="headings", height=16)
-    for col, label in zip(columns, ("İlaç Adı", "Form", "Ne İçin Kullanılır", "Kısa Prospektüs", "Saklama Koşulu", "Kullanım Sayısı")):
+    for col, label in zip(columns, ("İlaç Adı", "Form", "Ne İçin Kullanılır", "Kısa Prospektüs", "Saklama Koşulu", "Barkod", "Kullanım Sayısı")):
         tree.heading(col, text=label)
-    tree.column("prospektus", width=220)
-    tree.column("saklama", width=220)
+    tree.column("prospektus", width=200)
+    tree.column("saklama", width=200)
+    tree.column("barcode", width=110)
     tree.pack(fill="both", expand=True)
 
     def refresh():
@@ -181,6 +182,7 @@ def _build_drugs_tab(notebook):
                 d.get("kullanim_amaci") or "",
                 d.get("kisa_prospektus") or "",
                 d.get("saklama_kosulu") or "",
+                d.get("barcode") or "",
                 d.get("use_count", 0),
             ))
 
@@ -196,6 +198,9 @@ def _build_drugs_tab(notebook):
         saklama = simpledialog.askstring(
             "Saklama Koşulu", "Saklama koşulu (boş bırakılırsa standart uyarı kullanılır):"
         )
+        barcode = simpledialog.askstring(
+            "Barkod", "Ürün barkodu (opsiyonel — barkod okuyucuyla otomatik seçim için):"
+        )
         drugs = data.load_drug_list()
         drugs.append({
             "name": name,
@@ -203,6 +208,7 @@ def _build_drugs_tab(notebook):
             "kullanim_amaci": purpose or None,
             "kisa_prospektus": prospektus or None,
             "saklama_kosulu": saklama or data.DEFAULT_SAKLAMA_KOSULU,
+            "barcode": barcode or None,
             "use_count": 0,
         })
         data.save_drug_list(drugs)

@@ -19,6 +19,7 @@ kendi bilgisayarında saklanır.
   personel listesi, yedekleme/geri yükleme (opsiyonel PIN korumalı)
 - İlaç listesi: küçük bir örnek liste + CSV/Excel içe aktarma + yapılandırılabilir
   (opsiyonel) API kaynağı — Medula'ya canlı bağlanmaz (kapalı bir sistemdir)
+- Barkod okuyucu desteği: USB barkod okuyucuyla ürün okutulunca ilaç otomatik seçilir
 
 ## Kurulum
 
@@ -51,6 +52,23 @@ yine de örnek liste + CSV/Excel içe aktarma ile tam çalışır.
 pip install pytest
 python -m pytest tests/
 ```
+
+## Windows İçin Tek Dosya .exe Oluşturma
+
+Eczacının Python kurmadan çift tıkla açabileceği bağımsız bir `.exe` üretmek
+için, **Windows bilgisayarda** (PyInstaller çapraz derleme yapmaz — hangi
+işletim sisteminde çalıştırılırsa o sistemin çalıştırılabilir dosyasını üretir):
+
+```bat
+pip install -r requirements-dev.txt
+pyinstaller eczane_etiket.spec
+```
+
+Çıktı `dist\EczaneEtiket.exe` olarak oluşur; Türkçe karakter desteği için
+gömülü DejaVu Sans fontları otomatik olarak pakete dahil edilir
+(`eczane_etiket.spec` içindeki `datas` ayarı). Bu adım Linux ortamında da
+denenip (aynı spec ile Linux çalıştırılabilir dosyası üreterek) doğrulandı;
+gerçek `.exe` için Windows üzerinde çalıştırılması gerekir.
 
 ## Veri Saklama
 

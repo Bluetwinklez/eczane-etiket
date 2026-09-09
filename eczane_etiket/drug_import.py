@@ -16,11 +16,12 @@ FORM_HEADER_HINTS = ["form", "farmasötik şekil", "farmasotik sekil", "şekil",
 PURPOSE_HEADER_HINTS = ["kullanım amacı", "kullanim amaci", "endikasyon"]
 PROSPEKTUS_HEADER_HINTS = ["prospektüs", "prospektus", "kısa bilgi", "kisa bilgi", "açıklama", "aciklama"]
 SAKLAMA_HEADER_HINTS = ["saklama", "storage"]
+BARCODE_HEADER_HINTS = ["barkod", "barcode", "gtin"]
 
 FORM_KEYWORDS = {
     "tablet": ["TABLET", "DRAJE", "ÇİĞNEME", "CIGNEME"],
     "kapsul": ["KAPSUL", "KAPSÜL"],
-    "surup": ["ŞURUP", "SURUP"],
+    "surup": ["ŞURU", "SURU"],  # "şurup"/"şurubu" gibi çekimli halleri de yakalar
     "damla": ["DAMLA"],
     "merhem_krem": ["KREM", "MERHEM", "POMAD", "JEL", "GEL"],
     "supozituvar": ["SUPOZITUVAR", "SÜPOZİTUVAR", "FITIL"],
@@ -50,6 +51,7 @@ def guess_column_mapping(headers: list) -> dict:
         ("kullanim_amaci", PURPOSE_HEADER_HINTS),
         ("kisa_prospektus", PROSPEKTUS_HEADER_HINTS),
         ("saklama_kosulu", SAKLAMA_HEADER_HINTS),
+        ("barcode", BARCODE_HEADER_HINTS),
     ):
         for norm_header, original in normalized.items():
             if any(hint in norm_header for hint in hints):
@@ -105,6 +107,7 @@ def import_drug_list(path: str, column_map: Optional[dict] = None, save: bool = 
     purpose_col = mapping.get("kullanim_amaci")
     prospektus_col = mapping.get("kisa_prospektus")
     saklama_col = mapping.get("saklama_kosulu")
+    barcode_col = mapping.get("barcode")
 
     drugs = []
     for row in rows:
@@ -121,9 +124,11 @@ def import_drug_list(path: str, column_map: Optional[dict] = None, save: bool = 
         prospektus = str(prospektus).strip() if prospektus else None
         saklama = row.get(saklama_col) if saklama_col else None
         saklama = str(saklama).strip() if saklama else DEFAULT_SAKLAMA_KOSULU
+        barcode = row.get(barcode_col) if barcode_col else None
+        barcode = str(barcode).strip() if barcode else None
         drugs.append(Drug(
             name=name, form=form, kullanim_amaci=purpose,
-            kisa_prospektus=prospektus, saklama_kosulu=saklama,
+            kisa_prospektus=prospektus, saklama_kosulu=saklama, barcode=barcode,
         ).to_dict())
 
     if save:

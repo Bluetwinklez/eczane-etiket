@@ -37,6 +37,7 @@ class Drug:
     kullanim_amaci: Optional[str] = None
     kisa_prospektus: Optional[str] = None
     saklama_kosulu: Optional[str] = None
+    barcode: Optional[str] = None
     use_count: int = 0
 
     def to_dict(self) -> dict:
@@ -221,5 +222,23 @@ def find_drug(name: str, drugs: Optional[list] = None) -> Optional[dict]:
         drugs = load_drug_list()
     for d in drugs:
         if d["name"] == name:
+            return d
+    return None
+
+
+def find_drug_by_barcode(barcode: str, drugs: Optional[list] = None) -> Optional[dict]:
+    """Barkod okuyucudan gelen kodla eşleşen ilacı bulur.
+
+    Seed listedeki örnek ilaçların gerçek barkodu bilinmediği için `barcode`
+    alanı boştur — eşleşme yalnızca kullanıcının Admin Panelinden elle
+    girdiği ya da CSV/Excel/API'den içe aktarılan barkodlu kayıtlarda çalışır.
+    """
+    barcode = barcode.strip()
+    if not barcode:
+        return None
+    if drugs is None:
+        drugs = load_drug_list()
+    for d in drugs:
+        if d.get("barcode") and d["barcode"] == barcode:
             return d
     return None
