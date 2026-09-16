@@ -56,6 +56,8 @@ herkes indirip kullanabilir, değiştirebilir ve dağıtabilir (MIT lisansı).
 - Türkçe karakterler (ı, İ, ş, Ş, ğ, Ğ) gömülü font sayesinde her bilgisayarda
   doğru basılır
 - Adres ve emoji **yok** — etiket sade ve düzenli kalır
+- İlk çalıştırmada kısa bir kurulum penceresiyle eczane adı/telefonu sorulur;
+  uygulama ikonu ve "Hakkında" penceresi (sürüm bilgisi) mevcuttur
 
 ## Kurulum
 
@@ -204,3 +206,5 @@ Hata bildirimi veya özellik önerisi için GitHub Issues kullanabilirsiniz.
 
 [MIT](LICENSE) — bu yazılımı ücretsiz olarak kullanabilir, değiştirebilir ve
 dağıtabilirsiniz.
+
+Sürüm geçmişi için [CHANGELOG.md](CHANGELOG.md) dosyasına bakabilirsiniz.
