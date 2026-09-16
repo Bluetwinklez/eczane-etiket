@@ -6,16 +6,19 @@ Admin Panelinde toplanır (bkz. admin_panel.py).
 """
 
 import datetime as _dt
+import os
 import tempfile
 import tkinter as tk
 import uuid
 from tkinter import messagebox, filedialog, simpledialog, ttk
 
-from . import data, history, prescription_parser, profiles, staff
+from . import __version__, data, history, prescription_parser, profiles, staff
 from .label_pdf import LabelEntry, build_label_pdf, print_pdf
 
 PREVIEW_BG = "#1a2a4d"
 PREVIEW_FG = "white"
+
+_ICON_PNG = os.path.join(os.path.dirname(__file__), "icons", "app_icon.png")
 
 
 class App(tk.Tk):
@@ -24,6 +27,8 @@ class App(tk.Tk):
         self.title("Eczane İlaç Etiketi Programı")
         self.geometry("980x680")
         self.minsize(880, 600)
+
+        self._set_app_icon()
 
         self.active_profile = profiles.get_active_profile()
         self.drug_list = data.load_drug_list()
@@ -36,6 +41,65 @@ class App(tk.Tk):
         self._refresh_preview()
         self._barcode_entry.focus_set()
         self.bind("<Control-p>", lambda e: self._on_print())
+        self.after(150, self._maybe_first_run_setup)
+
+    def _set_app_icon(self):
+        """Pencere ikonunu ayarlar; ikon dosyası bulunamazsa/yüklenemezse
+        sessizce standart Tk ikonuna düşer — program yine çalışır."""
+        try:
+            icon_image = tk.PhotoImage(file=_ICON_PNG)
+            self.iconphoto(True, icon_image)
+            self._icon_image_ref = icon_image  # referansı tut, çöp toplayıcı silmesin
+        except Exception:
+            pass
+
+    def _maybe_first_run_setup(self):
+        """İlk çalıştırmada (eczane adı hâlâ varsayılan "Eczanem" ve telefon
+        boşsa) kısa bir kurulum penceresiyle temel bilgileri sorar."""
+        profile = self.active_profile
+        if profile.get("name") == "Eczanem" and not profile.get("phone"):
+            self._open_first_run_dialog(profile)
+
+    def _open_first_run_dialog(self, profile):
+        top = tk.Toplevel(self)
+        top.title("Hoş Geldiniz — İlk Kurulum")
+        top.geometry("440x230")
+        top.transient(self)
+        top.grab_set()
+
+        ttk.Label(
+            top,
+            text=(
+                "Eczane bilgilerinizi girin — etiketlerin alt bandında görünecek.\n"
+                "Bu bilgileri istediğiniz zaman Admin Paneli → Eczane Profilleri'nden\n"
+                "değiştirebilirsiniz."
+            ),
+            justify="left",
+            wraplength=400,
+        ).pack(padx=14, pady=(14, 10), anchor="w")
+
+        form = ttk.Frame(top)
+        form.pack(fill="x", padx=14)
+        ttk.Label(form, text="Eczane Adı:").grid(row=0, column=0, sticky="w", pady=4)
+        name_var = tk.StringVar(value="")
+        ttk.Entry(form, textvariable=name_var, width=32).grid(row=0, column=1, sticky="we", pady=4)
+        ttk.Label(form, text="Telefon (opsiyonel):").grid(row=1, column=0, sticky="w", pady=4)
+        phone_var = tk.StringVar()
+        ttk.Entry(form, textvariable=phone_var, width=32).grid(row=1, column=1, sticky="we", pady=4)
+        form.columnconfigure(1, weight=1)
+
+        def save_and_close():
+            name = name_var.get().strip() or "Eczanem"
+            profiles.update_profile(profile["id"], name=name, phone=phone_var.get().strip())
+            self.active_profile = profiles.get_active_profile()
+            self.profile_label.config(text=f"Aktif Eczane: {self.active_profile.get('name', '')}")
+            self._refresh_preview()
+            top.destroy()
+
+        btns = ttk.Frame(top)
+        btns.pack(fill="x", padx=14, pady=14)
+        ttk.Button(btns, text="Kaydet", command=save_and_close).pack(side="left")
+        ttk.Button(btns, text="Daha Sonra", command=top.destroy).pack(side="left", padx=(6, 0))
 
     # ------------------------------------------------------------------
     # Layout
@@ -48,6 +112,7 @@ class App(tk.Tk):
         )
         self.profile_label.pack(side="left")
         ttk.Button(top, text="Admin Paneli", command=self._open_admin_panel).pack(side="right")
+        ttk.Button(top, text="Hakkında", command=self._show_about).pack(side="right", padx=(0, 6))
 
         body = ttk.Frame(self, padding=8)
         body.pack(fill="both", expand=True)
@@ -519,6 +584,16 @@ class App(tk.Tk):
         self.instructions_text.insert("1.0", record.get("instructions") or "")
         self.staff_var.set(record.get("staff_name") or "")
         self._refresh_preview()
+
+    def _show_about(self):
+        messagebox.showinfo(
+            "Hakkında",
+            f"Eczane İlaç Etiketi Programı — sürüm {__version__}\n\n"
+            "Bağımsız, ücretsiz ve açık kaynak (MIT) bir masaüstü uygulaması.\n"
+            "Hesap, bulut, abonelik gerektirmez — tüm veriler bu bilgisayarda saklanır.\n\n"
+            "Kaynak kod ve güncellemeler:\n"
+            "https://github.com/Bluetwinklez/cll",
+        )
 
     def _open_admin_panel(self):
         pin = None
