@@ -9,7 +9,7 @@ işler bu ayrı pencerede yer alır. Opsiyonel PIN koruması main.py tarafında
 import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog, ttk
 
-from . import backup, data, drug_api, drug_import, history, profiles, staff, stock
+from . import backup, data, drug_api, drug_import, history, profiles, staff, stats, stock
 from .label_pdf import LABEL_SIZES_MM
 from .profiles import LABEL_TEMPLATES
 
@@ -28,6 +28,7 @@ def open_admin_panel(parent, on_close=None):
     _build_templates_tab(notebook)
     _build_staff_tab(notebook)
     _build_history_tab(notebook)
+    _build_stats_tab(notebook)
     _build_stock_tab(notebook)
     _build_backup_tab(notebook)
 
@@ -47,9 +48,9 @@ def _build_profiles_tab(notebook):
     frame = ttk.Frame(notebook, padding=8)
     notebook.add(frame, text="Eczane Profilleri")
 
-    columns = ("name", "phone", "template", "pin")
+    columns = ("name", "phone", "template", "pin", "qr")
     tree = ttk.Treeview(frame, columns=columns, show="headings", height=10)
-    for col, label in zip(columns, ("İsim", "Telefon", "Etiket Şablonu", "PIN")):
+    for col, label in zip(columns, ("İsim", "Telefon", "Etiket Şablonu", "PIN", "QR Kod")):
         tree.heading(col, text=label)
     tree.pack(fill="both", expand=True)
 
@@ -59,7 +60,11 @@ def _build_profiles_tab(notebook):
         for p in state["profiles"]:
             mark = "★" if p["id"] == state.get("active_id") else ""
             pin_status = "Var" if p.get("pin_hash") else "Yok"
-            tree.insert("", "end", iid=p["id"], values=(mark + p["name"], p.get("phone", ""), LABEL_TEMPLATES.get(p.get("label_template", ""), ""), pin_status))
+            qr_status = "Açık" if p.get("qr_enabled") else "Kapalı"
+            tree.insert(
+                "", "end", iid=p["id"],
+                values=(mark + p["name"], p.get("phone", ""), LABEL_TEMPLATES.get(p.get("label_template", ""), ""), pin_status, qr_status),
+            )
 
     def get_selected_id():
         sel = tree.selection()
@@ -123,6 +128,25 @@ def _build_profiles_tab(notebook):
             profiles.update_profile(pid, logo_path=path)
             refresh()
 
+    def toggle_qr():
+        pid = get_selected_id()
+        if not pid:
+            return
+        profile = next((p for p in profiles.load_profiles() if p["id"] == pid), None)
+        if not profile:
+            return
+        new_value = not profile.get("qr_enabled", False)
+        profiles.update_profile(pid, qr_enabled=new_value)
+        state_text = "açıldı" if new_value else "kapatıldı"
+        messagebox.showinfo(
+            "QR Kod",
+            f"'{profile['name']}' profili için etiket QR kodu {state_text}.\n\n"
+            "Not: QR kod yalnızca 'A4 Sayfa - 6'lı Etiket Izgarası' şablonunda "
+            "gösterilir; küçük termal etiketlerde okunabilir bir QR koda yetecek "
+            "yer olmadığı için eklenmez.",
+        )
+        refresh()
+
     btns = ttk.Frame(frame)
     btns.pack(fill="x", pady=(6, 0))
     for text, cmd in (
@@ -132,6 +156,7 @@ def _build_profiles_tab(notebook):
         ("Aktif Yap", set_active),
         ("PIN Ayarla", set_pin),
         ("Logo Seç", set_logo),
+        ("QR Kod Aç/Kapat (A4 şablonunda)", toggle_qr),
     ):
         ttk.Button(btns, text=text, command=cmd).pack(side="left", padx=2)
 
@@ -424,38 +449,118 @@ def _build_history_tab(notebook):
 
 
 # ----------------------------------------------------------------------
+# İstatistikler
+# ----------------------------------------------------------------------
+def _build_stats_tab(notebook):
+    frame = ttk.Frame(notebook, padding=8)
+    notebook.add(frame, text="İstatistikler")
+
+    summary_label = ttk.Label(frame, text="", font=("Segoe UI", 10, "bold"))
+    summary_label.pack(anchor="w", pady=(0, 8))
+
+    lists_frame = ttk.Frame(frame)
+    lists_frame.pack(fill="both", expand=True)
+
+    drugs_col = ttk.Frame(lists_frame)
+    drugs_col.pack(side="left", fill="both", expand=True, padx=(0, 6))
+    ttk.Label(drugs_col, text="En Çok Basılan İlaçlar").pack(anchor="w")
+    drugs_tree = ttk.Treeview(drugs_col, columns=("drug", "count"), show="headings", height=10)
+    for col, label in zip(("drug", "count"), ("İlaç", "Basım Sayısı")):
+        drugs_tree.heading(col, text=label)
+    drugs_tree.pack(fill="both", expand=True)
+
+    staff_col = ttk.Frame(lists_frame)
+    staff_col.pack(side="left", fill="both", expand=True, padx=6)
+    ttk.Label(staff_col, text="En Aktif Personel").pack(anchor="w")
+    staff_tree = ttk.Treeview(staff_col, columns=("staff", "count"), show="headings", height=10)
+    for col, label in zip(("staff", "count"), ("Personel", "Basım Sayısı")):
+        staff_tree.heading(col, text=label)
+    staff_tree.pack(fill="both", expand=True)
+
+    days_col = ttk.Frame(lists_frame)
+    days_col.pack(side="left", fill="both", expand=True, padx=(6, 0))
+    ttk.Label(days_col, text="Son 7 Gün").pack(anchor="w")
+    days_tree = ttk.Treeview(days_col, columns=("day", "count"), show="headings", height=10)
+    for col, label in zip(("day", "count"), ("Tarih", "Etiket Sayısı")):
+        days_tree.heading(col, text=label)
+    days_tree.pack(fill="both", expand=True)
+
+    def refresh():
+        s = stats.summary()
+        summary_label.config(text=f"Toplam basılan etiket: {s['total']}")
+        drugs_tree.delete(*drugs_tree.get_children())
+        for name, count in s["top_drugs"]:
+            drugs_tree.insert("", "end", values=(name, count))
+        staff_tree.delete(*staff_tree.get_children())
+        for name, count in s["top_staff"]:
+            staff_tree.insert("", "end", values=(name, count))
+        days_tree.delete(*days_tree.get_children())
+        for day, count in s["by_day"]:
+            days_tree.insert("", "end", values=(day, count))
+
+    ttk.Button(frame, text="Yenile", command=refresh).pack(anchor="w", pady=(8, 0))
+    refresh()
+
+
+# ----------------------------------------------------------------------
 # Stok / SKT Takip
 # ----------------------------------------------------------------------
 def _build_stock_tab(notebook):
     frame = ttk.Frame(notebook, padding=8)
     notebook.add(frame, text="Stok / SKT Takip")
 
-    columns = ("name", "quantity", "expiry", "note", "status")
+    columns = ("name", "quantity", "min_quantity", "expiry", "note", "status")
     tree = ttk.Treeview(frame, columns=columns, show="headings", height=16)
-    for col, label in zip(columns, ("Ürün", "Miktar", "SKT", "Not", "Durum")):
+    for col, label in zip(columns, ("Ürün", "Miktar", "Min. Stok", "SKT", "Not", "Durum")):
         tree.heading(col, text=label)
     tree.tag_configure("expired", background="#f8d7da")
     tree.tag_configure("expiring_soon", background="#fff3cd")
+    tree.tag_configure("low_stock", background="#ffe5cc")
     tree.pack(fill="both", expand=True)
 
     def refresh():
         tree.delete(*tree.get_children())
+        items = stock.load_stock()
         grouped = stock.get_expiring_items()
-        for status, label in (("expired", "SÜRESİ GEÇTİ"), ("expiring_soon", "YAKLAŞIYOR"), ("ok", "")):
-            for item in grouped[status]:
-                tree.insert(
-                    "", "end", iid=item["id"], values=(item["name"], item["quantity"], item["expiry_date"], item.get("note", ""), label),
-                    tags=(status,) if status != "ok" else (),
-                )
+        expired_ids = {i["id"] for i in grouped["expired"]}
+        expiring_ids = {i["id"] for i in grouped["expiring_soon"]}
+        low_ids = {i["id"] for i in stock.get_low_stock_items(items)}
+        for item in items:
+            if item["id"] in expired_ids:
+                status, tag = "SÜRESİ GEÇTİ", "expired"
+            elif item["id"] in expiring_ids:
+                status, tag = "SKT YAKLAŞIYOR", "expiring_soon"
+            elif item["id"] in low_ids:
+                status, tag = "STOK DÜŞÜK", "low_stock"
+            else:
+                status, tag = "", None
+            tree.insert(
+                "", "end", iid=item["id"],
+                values=(
+                    item["name"],
+                    item["quantity"],
+                    item.get("min_quantity", 0) or "",
+                    item["expiry_date"],
+                    item.get("note", ""),
+                    status,
+                ),
+                tags=(tag,) if tag else (),
+            )
 
     def add_item():
         name = simpledialog.askstring("Yeni Ürün", "Ürün adı:")
         if not name:
             return
         qty = simpledialog.askinteger("Miktar", "Miktar:", initialvalue=1) or 0
+        min_qty = simpledialog.askinteger(
+            "Minimum Stok",
+            "Miktar bu eşiğin altına/eşitine düşünce uyarılmak için minimum stok "
+            "(0 = düşük stok uyarısı yapılmasın):",
+            initialvalue=0,
+        ) or 0
         expiry = simpledialog.askstring("SKT", "Son kullanma tarihi (YYYY-AA-GG):")
         note = simpledialog.askstring("Not", "Not (opsiyonel):")
-        stock.add_item(name, qty, expiry or "", note or "")
+        stock.add_item(name, qty, expiry or "", note or "", min_quantity=min_qty)
         refresh()
 
     def delete_item():
