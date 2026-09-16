@@ -13,8 +13,9 @@ a = Analysis(
     ['run_app.py'],
     pathex=[],
     binaries=[],
-    # DejaVu Sans fontları (Türkçe karakter desteği için) paket içine dahil edilir.
-    datas=[('eczane_etiket/fonts', 'eczane_etiket/fonts')],
+    # DejaVu Sans fontları (Türkçe karakter desteği için) ve uygulama ikonu
+    # paket içine dahil edilir.
+    datas=[('eczane_etiket/fonts', 'eczane_etiket/fonts'), ('eczane_etiket/icons', 'eczane_etiket/icons')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -33,6 +34,7 @@ exe = EXE(
     a.datas,
     [],
     name='EczaneEtiket',
+    icon='eczane_etiket/icons/app_icon.ico',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
