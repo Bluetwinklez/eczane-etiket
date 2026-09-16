@@ -5,6 +5,19 @@ sürümleme kullanır (MAJOR.MINOR.PATCH). Sürüm numarası `eczane_etiket/__in
 içindeki `__version__` değişkeninde tutulur ve uygulama içinde "Hakkında"
 penceresinde gösterilir.
 
+## [1.3.0]
+
+- Admin Panelinde silme onayı: ilaç, stok kaydı, personel ve talimat şablonu
+  silmeden önce artık onay isteniyor (önceden yalnızca profil silmede vardı)
+- Geçmiş & Raporlar sekmesine tarih aralığı filtresi (Başlangıç/Bitiş) ve
+  filtreli CSV dışa aktarım eklendi
+- Tedavi bitiş tarihi "GG.AA.YYYY" formatında değilse yazdırma/kaydetmeden
+  önce uyarı gösteriliyor
+- Forma "Ambalaj Bilgisi (opsiyonel)" alanı eklendi (etiket başlığında ilaç
+  adının yanına eklenir; `LabelEntry.package_info` daha önce vardı ama
+  formda kullanılmıyordu)
+- İlaç örnek listesine 7 yeni, iyi bilinen ürün eklendi (28 → 35)
+
 ## [1.2.0]
 
 - İlk çalıştırmada kısa bir kurulum penceresiyle eczane adı/telefonu sorma
