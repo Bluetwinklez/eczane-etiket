@@ -18,6 +18,9 @@ import subprocess
 from dataclasses import dataclass
 from typing import Optional
 
+from reportlab.graphics import renderPDF
+from reportlab.graphics.barcode.qr import QrCodeWidget
+from reportlab.graphics.shapes import Drawing
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
@@ -34,6 +37,13 @@ LABEL_SIZES_MM = {
     "thermal_50x30": (50, 30),
     "thermal_60x40": (60, 40),
 }
+
+# QR kod yalnızca A4 ızgara şablonunda gösterilir — küçük termal etiketlerde
+# (50x30/60x40mm) okunabilir boyutta bir QR koda yetecek yer yoktur ve
+# eklenirse etiket metni "büyük ve düzensiz" görünür (bkz. kullanıcı geri
+# bildirimi). A4'te ise her hücre metin + QR için iki sütuna bölünür.
+QR_COLUMN_WIDTH = 24 * mm
+QR_MAX_SIZE = 20 * mm
 
 _FONTS_DIR = os.path.join(os.path.dirname(__file__), "fonts")
 FONT_REGULAR = "Helvetica"
@@ -228,6 +238,37 @@ def _draw_single_label(c: canvas.Canvas, ox: float, oy: float, w: float, h: floa
     _draw_banner(c, ox + pad, oy + pad * 0.5, w - pad * 2, footer_h, footer_text, 5.2)
 
 
+def _qr_payload(entry: LabelEntry) -> str:
+    """QR koda gömülecek metni oluşturur.
+
+    Herhangi bir sunucuya/internete bağlanmaz — QR tamamen çevrimdışı,
+    telefonun kamerasıyla okutulduğunda doğrudan bu metni (ilaç adı +
+    kısa bilgiler) gösterir; bir web adresine yönlendirmez.
+    """
+    parts = [entry.drug_name]
+    if entry.kullanim_amaci_tani:
+        parts.append(entry.kullanim_amaci_tani)
+    if entry.detail_note:
+        parts.append(entry.detail_note)
+    if entry.instructions:
+        parts.append(entry.instructions)
+    return "\n".join(p for p in parts if p)[:500]
+
+
+def _draw_qr_code(c: canvas.Canvas, x: float, y: float, size: float, payload: str) -> None:
+    if not payload.strip() or size <= 0:
+        return
+    widget = QrCodeWidget(payload)
+    bounds = widget.getBounds()
+    native_w = bounds[2] - bounds[0]
+    native_h = bounds[3] - bounds[1]
+    if native_w <= 0 or native_h <= 0:
+        return
+    drawing = Drawing(size, size, transform=[size / native_w, 0, 0, size / native_h, 0, 0])
+    drawing.add(widget)
+    renderPDF.draw(drawing, c, x, y)
+
+
 def build_label_pdf(profile: dict, entries: list, output_path: str) -> str:
     """entries: list[LabelEntry]. Toplu mod için birden fazla ilaç/etiket taşıyabilir.
 
@@ -267,6 +308,14 @@ def _build_a4_grid_pdf(profile: dict, entries: list, output_path: str) -> None:
     cell_h = (page_h - 2 * margin) / rows
     content_h = min(cell_h - 4 * mm, A4_CONTENT_HEIGHT)
 
+    # QR açıksa hücre metin+QR olmak üzere iki sütuna bölünür; metin alanı
+    # otomatik olarak daralır (_draw_single_label zaten metni verilen
+    # genişliğe göre küçültüp sarmalıyor), böylece hiçbir zaman QR ile üst
+    # üste binmez.
+    qr_enabled = bool(profile.get("qr_enabled"))
+    qr_col = QR_COLUMN_WIDTH if qr_enabled else 0
+    text_w = cell_w - 4 * mm - qr_col
+
     c = canvas.Canvas(output_path, pagesize=A4)
     for i, entry in enumerate(entries):
         idx_in_page = i % (cols * rows)
@@ -279,7 +328,13 @@ def _build_a4_grid_pdf(profile: dict, entries: list, output_path: str) -> None:
         # İçerik hücrenin ÜSTÜNE hizalanır (sabit yükseklik) — hücre daha uzun
         # olsa bile etiket gereksiz uzamaz, altında boş kesim payı kalır.
         oy = cell_top - 2 * mm - content_h
-        _draw_single_label(c, ox + 2 * mm, oy, cell_w - 4 * mm, content_h, profile, entry)
+        _draw_single_label(c, ox + 2 * mm, oy, text_w, content_h, profile, entry)
+        if qr_enabled:
+            payload = _qr_payload(entry)
+            qr_size = min(QR_MAX_SIZE, content_h - 4 * mm, qr_col - 4 * mm)
+            qr_x = ox + 2 * mm + text_w + (qr_col - qr_size) / 2
+            qr_y = oy + (content_h - qr_size) / 2
+            _draw_qr_code(c, qr_x, qr_y, qr_size, payload)
         c.setStrokeColorRGB(0.75, 0.75, 0.75)
         c.rect(ox + 2 * mm, oy, cell_w - 4 * mm, content_h, fill=0, stroke=1)
     c.save()

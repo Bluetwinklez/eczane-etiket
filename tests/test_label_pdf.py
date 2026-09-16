@@ -48,6 +48,33 @@ def test_build_label_pdf_without_optional_fields():
         assert os.path.getsize(output_path) > 0
 
 
+def test_build_label_pdf_a4_grid_with_qr_enabled():
+    profile = dict(SAMPLE_PROFILE, label_template="a4_grid_6", qr_enabled=True)
+    entries = [
+        LabelEntry(
+            drug_name="PAROL 500MG 20 TABLET",
+            kullanim_amaci_tani="Ağrı ve ateş düşürücü",
+            instructions="Günde 3x1 tok karnına yutulacak",
+        )
+    ]
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        output_path = os.path.join(tmp_dir, "qr.pdf")
+        build_label_pdf(profile, entries, output_path)
+        assert os.path.exists(output_path)
+        assert os.path.getsize(output_path) > 0
+
+
+def test_thermal_template_ignores_qr_enabled():
+    # QR kod yalnızca A4 ızgara şablonunda gösterilir; termal şablonda
+    # qr_enabled=True olsa bile hata vermeden, QR olmadan basılabilmeli.
+    profile = dict(SAMPLE_PROFILE, qr_enabled=True)
+    entry = LabelEntry(drug_name="BASIT İLAÇ", instructions="Günde 1x1")
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        output_path = os.path.join(tmp_dir, "thermal_qr.pdf")
+        build_label_pdf(profile, [entry], output_path)
+        assert os.path.getsize(output_path) > 0
+
+
 def test_build_label_pdf_with_patient_note_and_storage():
     entry = LabelEntry(
         drug_name="PAROL 500MG 20 TABLET",
