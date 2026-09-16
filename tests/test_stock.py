@@ -62,3 +62,29 @@ def test_import_stock_csv(tmp_path, monkeypatch):
     assert len(imported) == 2
     assert imported[0]["quantity"] == 20
     assert len(stock.load_stock()) == 2
+
+
+def test_get_low_stock_items_only_flags_items_with_threshold(tmp_path, monkeypatch):
+    monkeypatch.setattr(stock, "STOCK_FILE", tmp_path / "stock.json")
+
+    stock.add_item("Eşik Altı", 2, _iso(200), min_quantity=5)
+    stock.add_item("Eşiğe Eşit", 5, _iso(200), min_quantity=5)
+    stock.add_item("Eşik Üstü", 10, _iso(200), min_quantity=5)
+    stock.add_item("Eşiksiz", 0, _iso(200))  # min_quantity=0 -> hiç uyarılmaz
+
+    low = stock.get_low_stock_items()
+    names = {i["name"] for i in low}
+    assert names == {"Eşik Altı", "Eşiğe Eşit"}
+
+
+def test_import_stock_csv_parses_min_quantity(tmp_path, monkeypatch):
+    monkeypatch.setattr(stock, "STOCK_FILE", tmp_path / "stock.json")
+    csv_path = tmp_path / "stok.csv"
+    csv_path.write_text(
+        "name,quantity,expiry_date,note,min_quantity\n"
+        "Parol 500mg,2,2027-01-01,raf 1,5\n",
+        encoding="utf-8",
+    )
+    imported = stock.import_stock_csv(str(csv_path))
+    assert imported[0]["min_quantity"] == 5
+    assert stock.get_low_stock_items(imported) == imported

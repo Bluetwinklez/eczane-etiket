@@ -16,6 +16,7 @@ herkes indirip kullanabilir, değiştirebilir ve dağıtabilir (MIT lisansı).
 - [Çalıştırma](#çalıştırma)
 - [Proje Yapısı](#proje-yapısı)
 - [İlaç Veri Kaynağı ve API Anahtarı Hakkında](#ilaç-veri-kaynağı-ve-api-anahtarı-hakkında)
+- [Medula ile İlgili Not](#medula-ile-i̇lgili-not)
 - [Testler](#testler)
 - [Windows İçin Tek Dosya .exe Oluşturma](#windows-i̇çin-tek-dosya-exe-oluşturma)
 - [Veri Saklama](#veri-saklama)
@@ -36,10 +37,22 @@ herkes indirip kullanabilir, değiştirebilir ve dağıtabilir (MIT lisansı).
 - Etiket geçmişi (hasta adına göre arama/gruplama, CSV dışa aktarım)
 - Stok / son kullanma tarihi (SKT) takibi
 - Admin Paneli: eczane profilleri, ilaç listesi yönetimi, talimat şablonları,
-  personel listesi, yedekleme/geri yükleme (opsiyonel PIN korumalı)
+  personel listesi, istatistikler, yedekleme/geri yükleme (opsiyonel PIN korumalı)
 - İlaç listesi: küçük bir örnek liste + CSV/Excel içe aktarma + yapılandırılabilir
-  (opsiyonel) API kaynağı — Medula'ya canlı bağlanmaz (kapalı bir sistemdir)
+  (opsiyonel) API kaynağı — Medula'ya canlı bağlanmaz (kapalı bir sistemdir,
+  bkz. [Medula ile İlgili Not](#medula-ile-i̇lgili-not))
+- **Hızlı Yapıştır**: Medula (ya da başka bir kaynak) ekranından kopyalanan
+  reçete metnini yapıştırıp ilaçları otomatik ayrıştırarak toplu etiket
+  listesine aktarma — canlı bir Medula bağlantısı değildir, elle
+  kopyala/yapıştıra dayanır (bkz. aşağıdaki not)
 - Barkod okuyucu desteği: USB barkod okuyucuyla ürün okutulunca ilaç otomatik seçilir
+- İstatistik/özet panosu: en çok basılan ilaçlar, en aktif personel, son 7
+  günün etiket sayısı (Admin Paneli → İstatistikler)
+- Stokta düşük miktar uyarısı: her stok kalemi için isteğe bağlı minimum
+  miktar eşiği tanımlanabilir, eşik altına düşenler listede vurgulanır
+- İsteğe bağlı QR kod: A4 sayfa şablonunda her etikete, ilaç adı + kullanım
+  bilgilerini içeren, tamamen çevrimdışı okunan küçük bir QR kod eklenebilir
+  (küçük termal etikette yer olmadığı için yalnızca A4 şablonunda desteklenir)
 - Türkçe karakterler (ı, İ, ş, Ş, ğ, Ğ) gömülü font sayesinde her bilgisayarda
   doğru basılır
 - Adres ve emoji **yok** — etiket sade ve düzenli kalır
@@ -78,7 +91,9 @@ cll/
 │   ├── drug_import.py          # CSV/Excel içe aktarma
 │   ├── label_pdf.py            # reportlab ile etiket PDF üretimi + yazdırma
 │   ├── history.py              # Etiket geçmişi + hasta arama + CSV export
-│   ├── stock.py                # Stok/SKT takibi
+│   ├── stats.py                 # İstatistik/özet panosu (en çok basılan ilaç, vb.)
+│   ├── prescription_parser.py  # "Hızlı Yapıştır" reçete metni ayrıştırma (Medula değildir)
+│   ├── stock.py                # Stok/SKT takibi + düşük stok eşiği
 │   ├── backup.py               # Yedekleme/geri yükleme (.zip)
 │   ├── staff.py                # Personel listesi
 │   ├── paths.py / jsonutil.py  # Ortak veri yolu ve JSON okuma/yazma yardımcıları
@@ -107,6 +122,30 @@ dosyasında yerel olarak saklanır ve arayüzde `*` ile gizlenir. Bu depo
 içinde (kod veya git geçmişinde) hiçbir gerçek API anahtarı, token ya da
 sır bulunmaz — `api_config.json` gibi kişisel yapılandırma dosyaları
 `~/.eczane_etiket/` altında tutulur ve repoya dahil edilmez.
+
+## Medula ile İlgili Not
+
+Bu program **Medula'ya canlı/otomatik olarak bağlanmaz.** Bunun nedeni
+isteksizlik değil, teknik ve güvenlik kısıtı: Medula'nın eczane/provizyon
+tarafı için (doktorun e-reçete yazma servisinin aksine) genel, resmi ve
+dokümante edilmiş bir API bulunmuyor — yalnızca eczanenin kendi SGK kimlik
+bilgileriyle giriş yaptığı kapalı bir web portalı var. Doğrulanmamış bir
+kimlik bilgisiyle veya tersine mühendislikle bu tür bir entegrasyon
+yazmak, hem hatalı/eksik veri riski hem de eczanenizin SGK erişimini
+tehlikeye atma riski taşır.
+
+Bunun yerine program **"Hızlı Yapıştır"** özelliğini sunar: Medula (ya da
+başka bir kaynak) ekranındaki reçete metnini kopyalayıp uygulamaya
+yapıştırırsınız; program metni satır satır ayrıştırıp bilinen ilaç
+listesiyle eşleştirmeye çalışır ve toplu etiket listesine aktarır.
+Eşleştirme kesin değildir — yazdırmadan önce her zaman gözden geçirip
+gerekirse düzeltmeniz gerekir. Bu, gerçek bir API entegrasyonu değildir;
+hiçbir sunucuya bağlanmaz, tamamen yerel çalışır.
+
+Eğer eczanenizin/kurumunuzun resmi, dokümante edilmiş bir Medula
+provizyon API'sine erişiminiz varsa, bunu bir Issue/PR olarak paylaşarak
+gerçek bir entegrasyonun (yine de yazdırmadan önce insan onayı adımıyla)
+eklenmesine katkıda bulunabilirsiniz.
 
 ## Testler
 
@@ -140,13 +179,15 @@ dosyasına yedeklenip geri yüklenebilir.
 
 ## Sınırlamalar / Kapsam Dışı
 
-- **Medula'ya canlı bağlantı yoktur.** Medula, eczanenin kendi SGK kimlik
-  bilgilerini gerektiren kapalı bir sistemdir; bu proje resmi/doğrulanmamış
-  bir entegrasyon içermez.
+- **Medula'ya canlı bağlantı yoktur** (bkz. [Medula ile İlgili Not](#medula-ile-i̇lgili-not)
+  — nedeni ve alternatifi orada açıklanıyor).
+- **Hızlı Yapıştır** kesin bir ayrıştırma garantisi vermez; eşleşmeyen ya da
+  yanlış eşleşen satırlar olabilir, yazdırmadan önce mutlaka kontrol edilmelidir.
 - İlaç veritabanındaki "ne işe yaradığı" açıklamaları elle doğrulanabildiği
   kadar doldurulmuştur; uydurma veri yoktur — bilinmeyen alanlar boş bırakılır.
 - Hasta notu/alerji alanı sadece eczacının kendi yazdığı bir hatırlatmadır;
   otomatik ilaç etkileşim/alerji kontrolü yapılmaz.
+- İstatistik panosu basit bir özet aracıdır, resmi bir raporlama/BI sistemi değildir.
 
 ## Katkıda Bulunma
 
