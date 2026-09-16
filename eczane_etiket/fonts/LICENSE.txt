@@ -1,0 +1,8 @@
+DejaVu Sans (Regular, Bold)
+
+DejaVu fonts are based on Bitstream Vera fonts and are released under a
+permissive, redistributable license (Bitstream Vera License + DejaVu
+changes, public domain-like terms). They are bundled here to guarantee
+correct rendering of Turkish characters (ı, İ, ş, Ş, ğ, Ğ, ç, ö, ü) on
+printed labels regardless of what fonts are installed on the end user's
+computer. Full license text: https://dejavu-fonts.github.io/License.html
