@@ -13,6 +13,8 @@ bilgiler yalnızca sizin bilgisayarınızda saklanır, hiçbir yere gönderilmez
 Açık kaynak kodludur (MIT lisansı): kaynak kodu herkese açıktır, isteyen
 inceleyebilir, değiştirebilir, kendi ihtiyacına göre uyarlayabilir.
 
+![Hızlı Etiket ekranı — soldan sağa: ilaç bilgileri formu, forma göre hızlı talimat butonları, sağda canlı önizleme ve geçmiş](docs/screenshot-hizli-etiket.png)
+
 ## İçindekiler
 
 - [Bu Program Tam Olarak Ne Yapar?](#bu-program-tam-olarak-ne-yapar)
