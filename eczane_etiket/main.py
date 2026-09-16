@@ -7,6 +7,7 @@ Admin Panelinde toplanır (bkz. admin_panel.py).
 
 import datetime as _dt
 import os
+import re
 import tempfile
 import tkinter as tk
 import uuid
@@ -19,6 +20,7 @@ PREVIEW_BG = "#1a2a4d"
 PREVIEW_FG = "white"
 
 _ICON_PNG = os.path.join(os.path.dirname(__file__), "icons", "app_icon.png")
+_END_DATE_RE = re.compile(r"^\d{2}\.\d{2}\.\d{4}$")
 
 
 class App(tk.Tk):
@@ -160,6 +162,14 @@ class App(tk.Tk):
         self.drug_combo.grid(row=row, column=1, sticky="we", pady=2)
         self.drug_combo.bind("<KeyRelease>", self._on_drug_typed)
         self.drug_combo.bind("<<ComboboxSelected>>", self._on_drug_selected)
+        row += 1
+
+        ttk.Label(form, text="Ambalaj Bilgisi (opsiyonel):").grid(row=row, column=0, sticky="w", pady=2)
+        self.package_var = tk.StringVar()
+        ttk.Entry(form, textvariable=self.package_var, width=40).grid(row=row, column=1, sticky="we", pady=2)
+        ttk.Label(form, text="(ör. \"20 TABLET\" — ilaç adı zaten içeriyorsa boş bırakın)", foreground="gray").grid(
+            row=row, column=2, sticky="w", padx=(6, 0)
+        )
         row += 1
 
         ttk.Label(form, text="Ne İçin Kullanılır:").grid(row=row, column=0, sticky="w", pady=2)
@@ -340,6 +350,7 @@ class App(tk.Tk):
         banner = " - ".join(banner_parts) if banner_parts else None
         return LabelEntry(
             drug_name=self.drug_var.get().strip(),
+            package_info=self.package_var.get().strip(),
             kullanim_amaci_tani=banner,
             instructions=self.instructions_text.get("1.0", "end").strip(),
             detail_note=self.detail_text.get("1.0", "end").strip() or None,
@@ -363,6 +374,8 @@ class App(tk.Tk):
         if entry.patient_note:
             widget.insert("end", f"Not: {entry.patient_note}\n", "warning")
         header = entry.drug_name or "(ilaç seçilmedi)"
+        if entry.package_info:
+            header += f" {entry.package_info}"
         date_str = _dt.datetime.now().strftime("%d.%m.%Y %H:%M")
         widget.insert("end", f"{header}\n", "header")
         widget.insert("end", f"{date_str}\n\n", "small")
@@ -504,6 +517,24 @@ class App(tk.Tk):
             return []
         return [entry]
 
+    def _invalid_end_dates(self, entries):
+        """GG.AA.YYYY formatına uymayan tedavi bitiş tarihi girilen ilaçların
+        adlarını döner (boş liste = hepsi geçerli/boş)."""
+        return [e.drug_name for e in entries if e.end_date and not _END_DATE_RE.match(e.end_date)]
+
+    def _confirm_or_warn_invalid_dates(self, entries) -> bool:
+        """Geçersiz formatlı tarih varsa kullanıcıya sorar; devam edilmek
+        istenmezse False döner (çağıran işlemi iptal etmeli)."""
+        invalid = self._invalid_end_dates(entries)
+        if not invalid:
+            return True
+        return messagebox.askyesno(
+            "Tarih Formatı",
+            "Şu ilaç(lar)da tedavi bitiş tarihi 'GG.AA.YYYY' formatında görünmüyor:\n\n"
+            + "\n".join(invalid)
+            + "\n\nYine de devam edilsin mi?",
+        )
+
     def _log_and_bump(self, entries):
         for entry in entries:
             history.log_label(
@@ -526,6 +557,8 @@ class App(tk.Tk):
         if not entries:
             messagebox.showwarning("Eksik bilgi", "Lütfen önce bir ilaç adı girin.")
             return
+        if not self._confirm_or_warn_invalid_dates(entries):
+            return
         tmp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
         tmp.close()
         build_label_pdf(self.active_profile, entries, tmp.name)
@@ -545,6 +578,8 @@ class App(tk.Tk):
         entries = self._entries_to_print()
         if not entries:
             messagebox.showwarning("Eksik bilgi", "Lütfen önce bir ilaç adı girin.")
+            return
+        if not self._confirm_or_warn_invalid_dates(entries):
             return
         path = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF", "*.pdf")])
         if not path:
@@ -573,6 +608,7 @@ class App(tk.Tk):
         self.purpose_var.set("")
         self.note_var.set("")
         self.storage_var.set("")
+        self.package_var.set("")
         self.detail_text.delete("1.0", "end")
 
         self.patient_var.set(record.get("patient_name") or "")

@@ -105,6 +105,20 @@ DRUGS_SEED = [
          "Ağız yoluyla ilaç alınamadığında kullanılabilen bir ağrı kesici süpozituvardır."),
     Drug("DULCOLAX 5MG SÜPOZİTUVAR 6 ADET", "supozituvar", "Kabızlık giderici",
          "Kabızlığı gidermeye yardımcı, rektal yolla uygulanan bir müshildir."),
+    Drug("GRİPİN 10 TABLET", "tablet", "Soğuk algınlığı belirtilerini hafifletici",
+         "Baş ağrısı, ateş ve vücut ağrısı gibi soğuk algınlığı belirtilerini hafifletmek için kullanılan bir ilaçtır."),
+    Drug("TALCID 20 ÇİĞNEME TABLETİ", "tablet", "Mide ekşimesi giderici",
+         "Mide ekşimesi ve hazımsızlık şikayetlerini hafifletmek için kullanılan bir antasittir."),
+    Drug("BUSCOPAN 10MG 20 DRAJE", "tablet", "Karın kramp/ağrısını giderici",
+         "Karın bölgesindeki kas kramplarına bağlı ağrıları hafifletmek için kullanılan bir ilaçtır."),
+    Drug("FERROGRAD 325MG 30 TABLET", "tablet", "Demir takviyesi",
+         "Demir eksikliğini desteklemek amacıyla kullanılan bir takviyedir."),
+    Drug("MAGNEZYUM 375MG 30 TABLET", "tablet", "Magnezyum takviyesi",
+         "Magnezyum eksikliğini desteklemek amacıyla kullanılan bir takviyedir."),
+    Drug("ORAMED B12 DAMLA 20ML", "damla", "B12 vitamini takviyesi",
+         "B12 vitamini eksikliğini desteklemek amacıyla kullanılan bir damladır."),
+    Drug("FUCİTHALMİC GÖZ DAMLASI", "damla", "Bakteriyel göz enfeksiyonu tedavisi",
+         "Gözde bakteri kaynaklı enfeksiyonları tedavi etmek için kullanılan bir antibiyotikli damladır."),
 ]
 
 # Saklama koşulu ayrıca belirtilmemiş ürünlere Türkiye'de ilaç ambalajlarında

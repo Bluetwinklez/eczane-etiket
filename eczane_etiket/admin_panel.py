@@ -244,6 +244,8 @@ def _build_drugs_tab(notebook):
         if not sel:
             return
         name = tree.item(sel[0], "values")[0]
+        if not messagebox.askyesno("Sil", f"'{name}' ilacını listeden silmek istiyor musunuz?"):
+            return
         drugs = [d for d in data.load_drug_list() if d["name"] != name]
         data.save_drug_list(drugs)
         refresh()
@@ -355,6 +357,9 @@ def _build_templates_tab(notebook):
         sel = listbox.curselection()
         if not sel:
             return
+        text = listbox.get(sel[0])
+        if not messagebox.askyesno("Sil", f"Bu şablonu silmek istiyor musunuz?\n\n\"{text}\""):
+            return
         templates = data.get_instruction_templates(form_var.get())
         del templates[sel[0]]
         data.save_instruction_templates(form_var.get(), templates)
@@ -395,6 +400,8 @@ def _build_staff_tab(notebook):
         if not sel:
             return
         name = listbox.get(sel[0])
+        if not messagebox.askyesno("Sil", f"'{name}' personelini silmek istiyor musunuz?"):
+            return
         staff.remove_staff(name)
         refresh()
 
@@ -414,10 +421,19 @@ def _build_history_tab(notebook):
     notebook.add(frame, text="Geçmiş & Raporlar")
 
     search_frame = ttk.Frame(frame)
-    search_frame.pack(fill="x", pady=(0, 6))
+    search_frame.pack(fill="x", pady=(0, 4))
     ttk.Label(search_frame, text="Hasta Adına Göre Ara:").pack(side="left")
     search_var = tk.StringVar()
     ttk.Entry(search_frame, textvariable=search_var, width=30).pack(side="left", padx=(4, 0))
+
+    date_frame = ttk.Frame(frame)
+    date_frame.pack(fill="x", pady=(0, 6))
+    ttk.Label(date_frame, text="Tarih Aralığı — Başlangıç (YYYY-AA-GG):").pack(side="left")
+    date_from_var = tk.StringVar()
+    ttk.Entry(date_frame, textvariable=date_from_var, width=12).pack(side="left", padx=(4, 10))
+    ttk.Label(date_frame, text="Bitiş (YYYY-AA-GG):").pack(side="left")
+    date_to_var = tk.StringVar()
+    ttk.Entry(date_frame, textvariable=date_to_var, width=12).pack(side="left", padx=(4, 0))
 
     columns = ("timestamp", "patient", "drug", "instructions", "staff")
     tree = ttk.Treeview(frame, columns=columns, show="headings", height=16)
@@ -435,15 +451,31 @@ def _build_history_tab(notebook):
         q = search_var.get().strip()
         refresh(history.search_by_patient(q) if q else None)
 
+    def do_filter_by_date():
+        date_from = date_from_var.get().strip() or None
+        date_to = date_to_var.get().strip() or None
+        if date_to:
+            # Bitiş tarihi girilen günün TAMAMINI kapsasın diye gün sonuna
+            # tamamlanır — aksi halde ISO zaman damgası ("...T14:30:00")
+            # salt tarihten ("...") büyük göründüğünden o gün dışarıda kalır.
+            date_to = f"{date_to}T23:59:59"
+        refresh(history.load_history(date_from=date_from, date_to=date_to))
+
     def export_csv():
         path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV", "*.csv")])
-        if path:
-            history.export_history_csv(path)
-            messagebox.showinfo("Dışa Aktarıldı", f"Geçmiş CSV olarak kaydedildi:\n{path}")
+        if not path:
+            return
+        date_from = date_from_var.get().strip() or None
+        date_to = date_to_var.get().strip() or None
+        if date_to:
+            date_to = f"{date_to}T23:59:59"
+        history.export_history_csv(path, date_from=date_from, date_to=date_to)
+        messagebox.showinfo("Dışa Aktarıldı", f"Geçmiş CSV olarak kaydedildi:\n{path}")
 
     ttk.Button(search_frame, text="Ara", command=do_search).pack(side="left", padx=4)
-    ttk.Button(search_frame, text="Tümünü Göster", command=lambda: refresh()).pack(side="left")
-    ttk.Button(search_frame, text="CSV Dışa Aktar", command=export_csv).pack(side="right")
+    ttk.Button(date_frame, text="Filtrele", command=do_filter_by_date).pack(side="left", padx=(10, 4))
+    ttk.Button(date_frame, text="Tümünü Göster", command=lambda: refresh()).pack(side="left")
+    ttk.Button(date_frame, text="CSV Dışa Aktar (Filtreli)", command=export_csv).pack(side="right")
 
     refresh()
 
@@ -565,9 +597,13 @@ def _build_stock_tab(notebook):
 
     def delete_item():
         sel = tree.selection()
-        if sel:
-            stock.delete_item(sel[0])
-            refresh()
+        if not sel:
+            return
+        name = tree.item(sel[0], "values")[0]
+        if not messagebox.askyesno("Sil", f"'{name}' stok kaydını silmek istiyor musunuz?"):
+            return
+        stock.delete_item(sel[0])
+        refresh()
 
     def import_csv():
         path = filedialog.askopenfilename(filetypes=[("CSV", "*.csv")])
