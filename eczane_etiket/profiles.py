@@ -31,6 +31,7 @@ class Profile:
     logo_path: Optional[str] = None
     pin_hash: Optional[str] = None
     label_template: str = DEFAULT_LABEL_TEMPLATE
+    qr_enabled: bool = False  # yalnızca a4_grid_6 şablonunda gösterilir (bkz. label_pdf.py)
 
     def to_dict(self) -> dict:
         return asdict(self)

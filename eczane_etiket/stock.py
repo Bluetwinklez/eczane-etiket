@@ -23,7 +23,7 @@ def save_stock(items: list) -> None:
     write_json(STOCK_FILE, items)
 
 
-def add_item(name: str, quantity: int, expiry_date: str, note: str = "") -> dict:
+def add_item(name: str, quantity: int, expiry_date: str, note: str = "", min_quantity: int = 0) -> dict:
     items = load_stock()
     item = {
         "id": str(uuid.uuid4()),
@@ -31,6 +31,7 @@ def add_item(name: str, quantity: int, expiry_date: str, note: str = "") -> dict
         "quantity": quantity,
         "expiry_date": expiry_date,  # "YYYY-MM-DD"
         "note": note,
+        "min_quantity": min_quantity,  # 0 = düşük stok uyarısı yok
     }
     items.append(item)
     save_stock(items)
@@ -80,8 +81,24 @@ def get_expiring_items(days_threshold: int = DEFAULT_WARNING_DAYS) -> dict:
     return result
 
 
+def get_low_stock_items(items: Optional[list] = None) -> list:
+    """`min_quantity` alanı 0'dan büyük ayarlanmış ve mevcut miktarı bu eşiğin
+    altında ya da eşit olan ürünleri döner. `min_quantity` girilmemiş (0)
+    ürünler için düşük stok uyarısı üretilmez — eşik belirtilmediği sürece
+    her ürünü "düşük" saymak yanlış alarmlara yol açar.
+    """
+    items = items if items is not None else load_stock()
+    return [
+        item
+        for item in items
+        if item.get("min_quantity", 0) > 0 and item.get("quantity", 0) <= item.get("min_quantity", 0)
+    ]
+
+
 def import_stock_csv(path: str, save: bool = True) -> list:
-    """CSV'den stok içe aktarır. Beklenen sütunlar: name, quantity, expiry_date, note (opsiyonel)."""
+    """CSV'den stok içe aktarır. Beklenen sütunlar: name, quantity, expiry_date,
+    note, min_quantity (hepsi Türkçe başlıklarla da desteklenir, hepsi opsiyonel
+    name/quantity/expiry_date hariç)."""
     items = []
     with open(path, "r", encoding="utf-8-sig", newline="") as f:
         reader = csv.DictReader(f)
@@ -93,6 +110,10 @@ def import_stock_csv(path: str, save: bool = True) -> list:
                 quantity = int(row.get("quantity") or row.get("Miktar") or 0)
             except ValueError:
                 quantity = 0
+            try:
+                min_quantity = int(row.get("min_quantity") or row.get("Min Stok") or 0)
+            except ValueError:
+                min_quantity = 0
             expiry = (row.get("expiry_date") or row.get("SKT") or "").strip()
             note = (row.get("note") or row.get("Not") or "").strip()
             items.append(
@@ -102,6 +123,7 @@ def import_stock_csv(path: str, save: bool = True) -> list:
                     "quantity": quantity,
                     "expiry_date": expiry,
                     "note": note,
+                    "min_quantity": min_quantity,
                 }
             )
     if save:

@@ -11,7 +11,7 @@ import tkinter as tk
 import uuid
 from tkinter import messagebox, filedialog, simpledialog, ttk
 
-from . import data, history, profiles, staff
+from . import data, history, prescription_parser, profiles, staff
 from .label_pdf import LabelEntry, build_label_pdf, print_pdf
 
 PREVIEW_BG = "#1a2a4d"
@@ -67,6 +67,9 @@ class App(tk.Tk):
                          command=self._on_mode_change).pack(side="left")
         ttk.Radiobutton(mode_frame, text="Toplu Etiket (reçetedeki tüm ilaçlar)", value=True,
                          variable=self.batch_mode, command=self._on_mode_change).pack(side="left", padx=(12, 0))
+        ttk.Button(mode_frame, text="Hızlı Yapıştır (reçete metni)", command=self._open_quick_paste_dialog).pack(
+            side="left", padx=(12, 0)
+        )
 
         form = ttk.LabelFrame(parent, text="Etiket Bilgileri", padding=8)
         form.pack(fill="x")
@@ -324,6 +327,92 @@ class App(tk.Tk):
         text.tag_configure("header", font=("Segoe UI", 15, "bold"))
         text.tag_configure("normal", font=("Segoe UI", 12))
         self._render_preview(text, self._build_current_entry())
+
+    def _build_entry_from_parsed(self, parsed: "prescription_parser.ParsedLine") -> LabelEntry:
+        drug = parsed.matched_drug
+        return LabelEntry(
+            drug_name=parsed.drug_name,
+            kullanim_amaci_tani=(drug.get("kullanim_amaci") if drug else None),
+            instructions=parsed.instructions,
+            detail_note=(drug.get("kisa_prospektus") if drug else None),
+            storage_note=(drug.get("saklama_kosulu") if drug else None),
+            copies=1,
+        )
+
+    def _open_quick_paste_dialog(self):
+        """"Hızlı Yapıştır": Medula ya da başka bir kaynaktan kopyalanan reçete
+        metnini yapıştırıp ilaçları toplu etiket listesine aktarma penceresi.
+
+        Bu bir Medula bağlantısı DEĞİLDİR — tamamen elle kopyala/yapıştıra
+        dayanır, hiçbir sunucuya bağlanmaz.
+        """
+        top = tk.Toplevel(self)
+        top.title("Hızlı Yapıştır — Reçete Metni")
+        top.geometry("680x540")
+
+        ttk.Label(
+            top,
+            text=(
+                "Medula (ya da başka bir kaynak) ekranındaki reçete metnini kopyalayıp\n"
+                "aşağıya yapıştırın; her satır ayrı bir ilaç olarak kabul edilir.\n"
+                "Bu bir Medula bağlantısı DEĞİLDİR, hiçbir sunucuya bağlanmaz — sadece\n"
+                "yapıştırdığınız metni ayrıştırır. Eşleşmeleri aktarmadan önce kontrol edin."
+            ),
+            justify="left",
+            foreground="gray20",
+        ).pack(fill="x", padx=10, pady=(10, 6))
+
+        text_widget = tk.Text(top, height=7, wrap="word")
+        text_widget.pack(fill="x", padx=10)
+
+        ttk.Label(top, text="Ayrıştırma Sonucu:").pack(anchor="w", padx=10, pady=(8, 0))
+        columns = ("line", "drug", "instructions", "status")
+        tree = ttk.Treeview(top, columns=columns, show="headings", height=10)
+        for col, label in zip(columns, ("Yapıştırılan Satır", "İlaç", "Talimat", "Durum")):
+            tree.heading(col, text=label)
+        tree.column("line", width=180)
+        tree.pack(fill="both", expand=True, padx=10, pady=(4, 4))
+
+        parsed_lines = []
+
+        def do_parse():
+            nonlocal parsed_lines
+            tree.delete(*tree.get_children())
+            raw_text = text_widget.get("1.0", "end")
+            parsed_lines = prescription_parser.parse_prescription_text(raw_text, self.drug_list)
+            for p in parsed_lines:
+                status = "Eşleşti" if p.matched_drug else "Eşleşmedi — elle düzeltin"
+                tree.insert("", "end", values=(p.raw_line, p.drug_name, p.instructions, status))
+            if not parsed_lines:
+                messagebox.showinfo("Boş", "Ayrıştırılacak bir satır bulunamadı.")
+
+        def transfer_to_batch():
+            if not parsed_lines:
+                messagebox.showwarning("Önce ayrıştırın", "Lütfen önce 'Ayrıştır' butonuna basın.")
+                return
+            self.batch_mode.set(True)
+            self._on_mode_change()
+            added = 0
+            for p in parsed_lines:
+                if not p.drug_name:
+                    continue
+                entry = self._build_entry_from_parsed(p)
+                self.batch_entries.append(entry)
+                iid = str(uuid.uuid4())
+                self.batch_tree.insert("", "end", iid=iid, values=(entry.drug_name, entry.instructions, entry.copies))
+                added += 1
+            top.destroy()
+            messagebox.showinfo(
+                "Aktarıldı",
+                f"{added} ilaç toplu etiket listesine eklendi.\n\n"
+                "Eşleşmeyen/eksik ilaçları yazdırmadan önce toplu listede kontrol edip düzeltin.",
+            )
+
+        btns = ttk.Frame(top)
+        btns.pack(fill="x", padx=10, pady=(0, 10))
+        ttk.Button(btns, text="Ayrıştır", command=do_parse).pack(side="left")
+        ttk.Button(btns, text="Toplu Moda Aktar", command=transfer_to_batch).pack(side="left", padx=(6, 0))
+        ttk.Button(btns, text="Kapat", command=top.destroy).pack(side="right")
 
     def _add_to_batch(self):
         entry = self._build_current_entry()
