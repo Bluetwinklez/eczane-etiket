@@ -27,7 +27,12 @@ def test_search_by_patient(tmp_path, monkeypatch):
 
 def test_export_history_csv(tmp_path, monkeypatch):
     monkeypatch.setattr(history, "HISTORY_FILE", tmp_path / "history.json")
-    history.log_label({"patient_name": "Ahmet Yılmaz", "drug_name": "PAROL 500MG", "instructions": "Günde 3x1"})
+    history.log_label({
+        "patient_name": "Ahmet Yılmaz",
+        "drug_name": "PAROL 500MG",
+        "instructions": "Günde 3x1",
+        "refill_date": "20.10.2026",
+    })
 
     csv_path = tmp_path / "export.csv"
     history.export_history_csv(str(csv_path))
@@ -36,3 +41,5 @@ def test_export_history_csv(tmp_path, monkeypatch):
     content = csv_path.read_text(encoding="utf-8-sig")
     assert "PAROL 500MG" in content
     assert "Ahmet Yılmaz" in content
+    assert "refill_date" in content
+    assert "20.10.2026" in content

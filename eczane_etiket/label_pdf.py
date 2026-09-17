@@ -36,6 +36,7 @@ DOZ_ZAMANI_KELIMELERI = ["sabah", "öğle", "ogle", "akşam", "aksam", "gece"]
 LABEL_SIZES_MM = {
     "thermal_50x30": (50, 30),
     "thermal_60x40": (60, 40),
+    "thermal_80x50": (80, 50),
 }
 
 # QR kod yalnızca A4 ızgara şablonunda gösterilir — küçük termal etiketlerde
@@ -84,8 +85,46 @@ class LabelEntry:
     patient_name: Optional[str] = None
     patient_note: Optional[str] = None
     end_date: Optional[str] = None
+    refill_date: Optional[str] = None
+    dose_grid: Optional[dict] = None
+    print_dose_grid: bool = False
     staff_name: Optional[str] = None
+    warning_tags: Optional[list] = None
+    print_barcode: bool = False
+    barcode_value: Optional[str] = None
     copies: int = 1
+
+
+def _draw_dose_grid(c: canvas.Canvas, x: float, y: float, w: float, h: float, grid: dict) -> None:
+    """4 sütunlu (SABAH | ÖĞLE | AKŞAM | GECE) görsel doz çizelgesi tablosu çizer."""
+    cols = ["SABAH", "ÖĞLE", "AKŞAM", "GECE"]
+    keys = ["sabah", "öğle", "akşam", "gece"]
+    col_w = w / 4.0
+
+    c.setStrokeColorRGB(0.60, 0.65, 0.75)
+    c.setLineWidth(0.5)
+    c.rect(x, y, w, h, fill=0, stroke=1)
+
+    mid_y = y + h * 0.44
+    c.line(x, mid_y, x + w, mid_y)
+
+    for i in range(1, 4):
+        c.line(x + i * col_w, y, x + i * col_w, y + h)
+
+    c.setFont(FONT_BOLD, 3.8)
+    c.setFillColorRGB(0.20, 0.25, 0.35)
+    header_y = mid_y + (h * 0.56 - 3.8) / 2 + 0.3
+    for i, col_name in enumerate(cols):
+        tw = c.stringWidth(col_name, FONT_BOLD, 3.8)
+        c.drawString(x + i * col_w + (col_w - tw) / 2, header_y, col_name)
+
+    c.setFont(FONT_BOLD, 4.8)
+    c.setFillColorRGB(*BLACK)
+    val_y = y + (h * 0.44 - 4.8) / 2 + 0.5
+    for i, key in enumerate(keys):
+        val = str(grid.get(key, "-")).strip() if grid else "-"
+        tw = c.stringWidth(val, FONT_BOLD, 4.8)
+        c.drawString(x + i * col_w + (col_w - tw) / 2, val_y, val)
 
 
 def _vurgula_doz_zamani(text: str) -> str:
@@ -141,6 +180,8 @@ def _draw_single_label(c: canvas.Canvas, ox: float, oy: float, w: float, h: floa
     date_str = _dt.datetime.now().strftime("%d.%m.%Y %H:%M")
     if entry.end_date:
         date_str += f"  Bitiş: {entry.end_date}"
+    if entry.refill_date:
+        date_str += f"  Tekrar: {entry.refill_date}"
 
     footer_h = 3.6 * mm
     footer_top = oy + pad * 0.5 + footer_h + 1.3  # bu çizginin üstüne taşılmaz
@@ -182,6 +223,19 @@ def _draw_single_label(c: canvas.Canvas, ox: float, oy: float, w: float, h: floa
         _draw_banner(c, ox + pad, cursor_y, w - pad * 2, banner_h, entry.kullanim_amaci_tani, 5.2)
         cursor_y -= 1.0
 
+    # Özel Eczane Uyarı Etiketleri (Varsa: Çalkalayınız, Uyku Yapabilir vb.)
+    if entry.warning_tags:
+        w_text = "⚠️ " + " • ".join(entry.warning_tags)
+        c.setFillColorRGB(0.80, 0.12, 0.12)
+        c.setFont(FONT_BOLD, 4.3)
+        w_lines = _wrap_text(c, w_text, FONT_BOLD, 4.3, w - pad * 2)
+        for line in w_lines[:2]:
+            cursor_y -= 4.3
+            c.drawString(ox + pad, cursor_y, line)
+            cursor_y -= 0.4
+        cursor_y -= 0.5
+        c.setFillColorRGB(*BLACK)
+
     # Neden kullanıldığının uzun anlatımı (kısa prospektüs / ek not) —
     # talimattan ÖNCE gelir, yer açmak için en fazla 2 satırla sınırlanır.
     if entry.detail_note:
@@ -213,8 +267,15 @@ def _draw_single_label(c: canvas.Canvas, ox: float, oy: float, w: float, h: floa
             cursor_y -= font_size
             line_width = c.stringWidth(line, FONT_BOLD, font_size)
             c.drawString(ox + (w - line_width) / 2, cursor_y, line)
-            cursor_y -= 0.5
         cursor_y -= 1.0
+
+    # Görsel Doz Çizelgesi Tablosu (SABAH | ÖĞLE | AKŞAM | GECE)
+    if entry.print_dose_grid and entry.dose_grid:
+        grid_h = 3.8 * mm
+        if cursor_y - grid_h > footer_top:
+            cursor_y -= grid_h
+            _draw_dose_grid(c, ox + pad, cursor_y, w - pad * 2, grid_h, entry.dose_grid)
+            cursor_y -= 0.6
 
     # Saklama koşulu — alt banta taşmayacak kadar satır basılır
     if entry.storage_note:
@@ -228,6 +289,22 @@ def _draw_single_label(c: canvas.Canvas, ox: float, oy: float, w: float, h: floa
             cursor_y -= font_size
             c.drawString(ox + pad, cursor_y, line)
             cursor_y -= 0.3
+
+    # İsteğe bağlı Barkod Basımı (Code128)
+    if entry.print_barcode and entry.barcode_value:
+        try:
+            from reportlab.graphics.barcode import createBarcodeDrawing
+            bw = min(30 * mm, w - pad * 2)
+            bh = 3.6 * mm
+            if cursor_y - bh > footer_top:
+                clean_val = "".join(ch for ch in str(entry.barcode_value) if ch.isalnum())[:20]
+                if clean_val:
+                    b_drawing = createBarcodeDrawing("Code128", value=clean_val, width=bw, height=bh, humanReadable=False)
+                    cursor_y -= (bh + 0.5)
+                    bx = ox + (w - bw) / 2
+                    renderPDF.draw(b_drawing, c, bx, cursor_y)
+        except Exception:
+            pass
 
     # Alt koyu bant: eczane adı + telefon (adres YOK) [+ personel]
     footer_text = profile.get("name", "")
@@ -297,7 +374,7 @@ def _build_thermal_pdf(profile: dict, entries: list, output_path: str, size_mm: 
     c.save()
 
 
-A4_CONTENT_HEIGHT = 34 * mm  # her etiketin gerçek içerik yüksekliği (hücre bundan uzun olsa da içerik üstte kalır)
+A4_CONTENT_HEIGHT = 48 * mm  # her etiketin içerik yüksekliği (hücre bundan uzun olsa da içerik üstte kalır)
 
 
 def _build_a4_grid_pdf(profile: dict, entries: list, output_path: str) -> None:
@@ -340,16 +417,56 @@ def _build_a4_grid_pdf(profile: dict, entries: list, output_path: str) -> None:
     c.save()
 
 
-def print_pdf(path: str) -> tuple:
+def get_system_printers() -> list:
+    """İşletim sisteminde kurulu yazıcıların adlarını döndürür."""
+    system = platform.system()
+    printers = []
+    try:
+        if system == "Windows":
+            cmd = ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+                   "(Get-CimInstance Win32_Printer).Name"]
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+            if res.returncode == 0:
+                for line in res.stdout.splitlines():
+                    line = line.strip()
+                    if line and line not in printers:
+                        printers.append(line)
+        elif system in ("Darwin", "Linux"):
+            res = subprocess.run(["lpstat", "-a"], capture_output=True, text=True, timeout=5)
+            if res.returncode == 0:
+                for line in res.stdout.splitlines():
+                    parts = line.split()
+                    if parts and parts[0] not in printers:
+                        printers.append(parts[0])
+    except Exception:
+        pass
+    return printers
+
+
+def print_pdf(path: str, printer_name: Optional[str] = None) -> tuple:
     """Platforma göre PDF'i yazıcıya gönderir. (success: bool, error: str|None) döner."""
     try:
         system = platform.system()
         if system == "Windows":
-            os.startfile(path, "print")  # type: ignore[attr-defined]
+            if printer_name:
+                import ctypes
+                ret = ctypes.windll.shell32.ShellExecuteW(None, "printto", path, f'"{printer_name}"', None, 0)
+                if ret <= 32:
+                    os.startfile(path, "print")  # type: ignore[attr-defined]
+            else:
+                os.startfile(path, "print")  # type: ignore[attr-defined]
         elif system == "Darwin":
-            subprocess.run(["lpr", path], check=True)
+            cmd = ["lpr"]
+            if printer_name:
+                cmd.extend(["-P", printer_name])
+            cmd.append(path)
+            subprocess.run(cmd, check=True)
         else:
-            subprocess.run(["lp", path], check=True)
+            cmd = ["lp"]
+            if printer_name:
+                cmd.extend(["-d", printer_name])
+            cmd.append(path)
+            subprocess.run(cmd, check=True)
         return True, None
     except Exception as exc:  # yazıcı yok/izin yok/komut bulunamadı vb.
         return False, str(exc)
