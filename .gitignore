@@ -1,9 +1,79 @@
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.pyc
-.pytest_cache/
-*.egg-info/
-.venv/
-venv/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
 build/
 dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 *.spec.bak
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Environments / Secrets / API Keys (GitHub yayını için koruma)
+.env
+.env.*
+*.env
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Local configuration & Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Kullanıcı, Eczane ve Hasta Verileri (Yerel Depolama & Çıktılar)
+.eczane_etiket/
+*.pdf
+*.csv
+*.xlsx
+*.xlsm
+*.zip
+*.log
+history.json
+drugs.json
+profiles.json
+stock.json
+templates.json
+api_config.json
+staff.json
+scratch/

@@ -62,8 +62,12 @@ def export_history_csv(path: str, date_from: Optional[str] = None, date_to: Opti
         "timestamp",
         "patient_name",
         "drug_name",
+        "package_info",
         "kullanim_amaci_tani",
         "instructions",
+        "patient_note",
+        "end_date",
+        "refill_date",
         "staff_name",
     ]
     with open(path, "w", encoding="utf-8-sig", newline="") as f:
