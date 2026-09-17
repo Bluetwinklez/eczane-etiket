@@ -19,6 +19,7 @@ DEFAULT_LABEL_TEMPLATE = "thermal_50x30"
 LABEL_TEMPLATES = {
     "thermal_50x30": "Termal Etiket (50x30mm)",
     "thermal_60x40": "Termal Etiket (60x40mm)",
+    "thermal_80x50": "Termal Etiket (80x50mm)",
     "a4_grid_6": "A4 Sayfa - 6'lı Etiket Izgarası",
 }
 
@@ -32,6 +33,8 @@ class Profile:
     pin_hash: Optional[str] = None
     label_template: str = DEFAULT_LABEL_TEMPLATE
     qr_enabled: bool = False  # yalnızca a4_grid_6 şablonunda gösterilir (bkz. label_pdf.py)
+    theme: str = "light"
+    default_printer: Optional[str] = None
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -97,9 +100,24 @@ def set_active_profile(profile_id: str) -> None:
         save_state(state)
 
 
-def add_profile(name: str, phone: str = "", logo_path: Optional[str] = None) -> dict:
+def add_profile(
+    name: str,
+    phone: str = "",
+    logo_path: Optional[str] = None,
+    label_template: str = DEFAULT_LABEL_TEMPLATE,
+    theme: str = "light",
+    default_printer: Optional[str] = None,
+) -> dict:
     state = load_state()
-    profile = Profile(id=str(uuid.uuid4()), name=name, phone=phone, logo_path=logo_path).to_dict()
+    profile = Profile(
+        id=str(uuid.uuid4()),
+        name=name,
+        phone=phone,
+        logo_path=logo_path,
+        label_template=label_template,
+        theme=theme,
+        default_printer=default_printer,
+    ).to_dict()
     state["profiles"].append(profile)
     if not state.get("active_id"):
         state["active_id"] = profile["id"]

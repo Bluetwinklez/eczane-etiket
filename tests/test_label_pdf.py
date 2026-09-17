@@ -87,3 +87,45 @@ def test_build_label_pdf_with_patient_note_and_storage():
         output_path = os.path.join(tmp_dir, "not_test.pdf")
         build_label_pdf(SAMPLE_PROFILE, [entry], output_path)
         assert os.path.getsize(output_path) > 0
+
+
+def test_build_label_pdf_with_warning_tags_and_barcode():
+    entry = LabelEntry(
+        drug_name="PAROL 500MG 20 TABLET",
+        instructions="Günde 2x1 tok karnına yutulacak",
+        warning_tags=["Çalkalayınız", "Uyku Yapabilir"],
+        print_barcode=True,
+        barcode_value="8699500000001",
+    )
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        output_path = os.path.join(tmp_dir, "warning_barcode.pdf")
+        build_label_pdf(SAMPLE_PROFILE, [entry], output_path)
+        assert os.path.exists(output_path)
+        assert os.path.getsize(output_path) > 0
+
+
+def test_build_label_pdf_with_dose_grid_and_refill_date():
+    from eczane_etiket.label_pdf import get_system_printers, print_pdf
+
+    entry = LabelEntry(
+        drug_name="AUGMENTIN 1000MG 14 TABLET",
+        package_info="14 Tablet",
+        kullanim_amaci_tani="Antibiyotik Tedavisi",
+        instructions="Günde 2x1 Sabah Akşam Tok",
+        refill_date="15.02.2026",
+        dose_grid={"sabah": "1", "öğle": "-", "akşam": "1", "gece": "-"},
+        print_dose_grid=True,
+    )
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        output_path = os.path.join(tmp_dir, "grid_refill.pdf")
+        build_label_pdf(SAMPLE_PROFILE, [entry], output_path)
+        assert os.path.exists(output_path)
+        assert os.path.getsize(output_path) > 0
+
+
+def test_get_system_printers_returns_list():
+    from eczane_etiket.label_pdf import get_system_printers
+    printers = get_system_printers()
+    assert isinstance(printers, list)
+    # Hata fırlatmamalı ve liste tipinde dönmeli
+

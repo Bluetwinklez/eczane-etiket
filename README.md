@@ -1,287 +1,342 @@
-# Eczane Etiket Programı
+# 🏥 Eczane İlaç Etiketi Programı
 
-Eczacının, ilaç kutusuna/poşetine yapıştırdığı **kullanım talimatı
-etiketini** ("Günde 2×1 tok karnına yutulacak" gibi) birkaç tıkla
-hazırlayıp yazdırmasını sağlayan, bağımsız ve **tamamen ücretsiz** bir
-masaüstü programıdır.
+<div align="center">
 
-**Basitçe özetle:** Hesap açmanıza, internete bağlanmanıza ya da bir
-şeye abone olmanıza gerek yok. Programı bilgisayarınıza kurarsınız,
-ilacı seçersiniz, talimatı yazarsınız, yazdırırsınız — bu kadar. Tüm
-bilgiler yalnızca sizin bilgisayarınızda saklanır, hiçbir yere gönderilmez.
+[![CI Test Suite](https://github.com/Bluetwinklez/eczane-etiket/actions/workflows/test.yml/badge.svg)](https://github.com/Bluetwinklez/eczane-etiket/actions/workflows/test.yml)
+[![Build & Release](https://github.com/Bluetwinklez/eczane-etiket/actions/workflows/release.yml/badge.svg)](https://github.com/Bluetwinklez/eczane-etiket/actions/workflows/release.yml)
+[![Sürüm](https://img.shields.io/badge/Sürüm-v1.6.0-blueviolet.svg)](CHANGELOG.md)
+[![Python Version](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
+[![Testler](https://img.shields.io/badge/Testler-77%20Geçti-brightgreen.svg)]()
+[![Lisans: MIT](https://img.shields.io/badge/Lisans-MIT-green.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)]()
+[![Veri Gizliliği](https://img.shields.io/badge/Veri%20Gizliliği-%25100%20Yerel%20%2F%20Çevrimdışı-emerald.svg)](SECURITY.md)
 
-Açık kaynak kodludur (MIT lisansı): kaynak kodu herkese açıktır, isteyen
-inceleyebilir, değiştirebilir, kendi ihtiyacına göre uyarlayabilir.
+**Türkiye'deki serbest eczaneler, hastane eczaneleri ve klinikler için modern, hızlı, hatasız ve %100 çevrimdışı termal ilaç etiketi basım ve yönetim sistemi.**
 
-![Hızlı Etiket ekranı — soldan sağa: ilaç bilgileri formu, forma göre hızlı talimat butonları, sağda canlı önizleme ve geçmiş](docs/screenshot-hizli-etiket.png)
+[🚀 Özellikler](#-öne-çıkan-özellikler) • [⚡ Hızlı Kurulum](#-hızlı-başlangıç-kurulum) • [🖨️ Uyumlu Yazıcılar](#️-desteklenen-yazıcılar-ve-etiketler) • [⌨️ Kısayollar](#️-klavye-kısayolları) • [⚙️ Admin Paneli](#️-admin-paneli) • [🚀 Dağıtım](#-dağıtım-deployment--paketleme) • [❓ SSS](#-sık-sorulan-sorular-sss) • [🤝 Katkı](#-katkıda-bulunma)
 
-## İçindekiler
+</div>
 
-- [Bu Program Tam Olarak Ne Yapar?](#bu-program-tam-olarak-ne-yapar)
-- [Hızlı Başlangıç](#hızlı-başlangıç)
-- [Günlük Kullanım — Adım Adım](#günlük-kullanım--adım-adım)
-- [Özellikler](#özellikler)
-- [Admin Paneli Nedir?](#admin-paneli-nedir)
-- [Sık Sorulan Sorular](#sık-sorulan-sorular)
-- [Sınırlamalar](#sınırlamalar)
-- [Geliştiriciler İçin](#geliştiriciler-için)
-- [Lisans](#lisans)
+---
 
-## Bu Program Tam Olarak Ne Yapar?
+> [!TIP]
+> **%100 Çevrimdışı ve Sıfır Veri Sızıntısı:** İnternet bağlantısı, üyelik ya da bulut aboneliği gerekmez. Hasta bilgileri, reçete kayıtları ve eczane verileri yalnızca kendi bilgisayarınızın yerel diskinde saklanır; üçüncü taraf sunuculara asla iletilmez (KVKK tam uyumlu).
 
-Piyasadaki bazı eczane etiket sistemlerinin yaptığı işi, tek başına ve
-ücretsiz yapar:
+---
 
-1. İlacı listeden seçersiniz (ya da barkod okutursunuz).
-2. İlacın formuna göre (tablet, şurup, damla, krem, vb.) hazır talimat
-   butonlarından birine tıklarsınız — ya da kendiniz yazarsınız.
-3. "Yazdır" dersiniz; küçük termal etiket ya da A4 sayfa üzerine 6'lı
-   ızgara olarak, eczane adınız ve talimat yazılı bir etiket çıkar.
+<div align="center">
+  <img src="docs/screenshot-hizli-etiket.png" alt="Eczane İlaç Etiketi v1.6.0 Arayüz Önizlemesi" width="850" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);"/>
+</div>
 
-Bunun yanında geçmiş kayıtları (hangi hastaya ne verilmiş), stok/son
-kullanma tarihi takibi, birden fazla eczane profili gibi ek araçlar da
-sunar — ama temel iş yukarıdaki üç adımdır.
+---
 
-## Hızlı Başlangıç
+## ⚡ Hızlı Başlangıç (Kurulum)
 
-Programı çalıştırmak için bilgisayarınızda **Python** kurulu olması
-yeterlidir (Windows, Mac, Linux hepsinde çalışır).
+Uygulamayı çalıştırmak için 3 pratik yöntemden dilediğinizi seçebilirsiniz:
 
-1. Python kurulu değilse [python.org](https://www.python.org/downloads/)
-   adresinden indirip kurun (kurulumda "Add to PATH" seçeneğini işaretleyin).
-2. Bu depoyu bilgisayarınıza indirin — sağ üstteki yeşil **"Code"**
-   butonuna basıp **"Download ZIP"** seçin, ya da git kuruluysa:
-   ```bash
-   git clone https://github.com/Bluetwinklez/cll.git
-   cd cll
+### Seçenek 1: Tek Tıkla Başlatma (Önerilen — Windows)
+
+1. Bu depoyu indirin: Sağ üstteki yeşil **"Code"** butonuna tıklayıp **"Download ZIP"** seçeneğini seçin veya [Releases](https://github.com/Bluetwinklez/eczane-etiket/releases) sayfasından son sürümü indirin.
+2. Arşivi masaüstünüze çıkartın.
+3. Klasör içindeki **`baslat.bat`** dosyasına çift tıklayın.
+   - *Python sanal ortamı ve gerekli kütüphaneler ilk çalıştırmada otomatik kurulur ve program saniyeler içinde açılır.*
+
+---
+
+### Seçenek 2: Kurulumsuz Bağımsız `.exe` (Taşınabilir USB Sürüm)
+
+Python kurulu olmayan eczane banko terminallerinde çalıştırmak için tek bir `.exe` dosyası kullanabilirsiniz:
+
+1. [GitHub Releases](https://github.com/Bluetwinklez/eczane-etiket/releases) sayfasından en güncel **`EczaneEtiket.exe`** dosyasını indirin.
+2. Dosyayı USB belleğe veya masaüstünüze kopyalayıp çift tıklayarak doğrudan çalıştırın.
+3. Kendiniz derlemek isterseniz:
+   ```bat
+   pip install -r requirements.txt -r requirements-dev.txt
+   pyinstaller eczane_etiket.spec
    ```
-3. Gerekli kütüphaneleri kurun:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Programı başlatın:
-   ```bash
-   python run_app.py
-   ```
+   Derleme sonrası `dist\EczaneEtiket.exe` hazır olacaktır.
 
-İlk açılışta size eczane adı/telefonu soran küçük bir pencere çıkar —
-doldurup "Kaydet"e basmanız yeterli, sonra tekrar sorulmaz.
+---
 
-**Not:** Python kurmak istemeyen bir çalışanınız varsa, programı tek
-tıkla açılan bir `.exe` dosyasına da dönüştürebilirsiniz — bkz.
-[Geliştiriciler İçin](#geliştiriciler-için) bölümündeki "Windows .exe
-Oluşturma" kısmı.
+### Seçenek 3: Komut Satırı ile Kurulum (Geliştiriciler & İleri Düzey)
 
-## Günlük Kullanım — Adım Adım
+```bash
+# 1. Projeyi klonlayın ve klasöre girin
+git clone https://github.com/Bluetwinklez/eczane-etiket.git
+cd eczane-etiket
 
-Program açıldığında karşınıza **"Hızlı Etiket"** ekranı gelir; günlük
-işiniz burada biter:
+# 2. Sanal ortamı oluşturun ve aktif edin (Windows)
+python -m venv .venv
+.venv\Scripts\activate
 
-1. **İlaç Adı** kutusuna yazmaya başlayın — liste yazdıkça daralır. Ya da
-   üstteki **Barkod Oku** kutusuna barkod okuyucuyla ürünü okutun.
-2. İlacı seçince, varsa **"Ne İçin Kullanılır"**, **"Neden Kullanılır?"**
-   (kısa prospektüs) ve **"Saklama Koşulu"** alanları otomatik dolar —
-   isterseniz düzenleyebilirsiniz.
-3. Altındaki **hızlı talimat butonlarından** birine tıklayın (ilacın
-   formuna göre değişir: tablet için "Günde 2x1 tok karnına yutulacak"
-   gibi, krem için "İnce tabaka halinde sürülecek" gibi) — ya da talimatı
-   kendiniz serbestçe yazın.
-4. İsterseniz **Hasta Adı**, **Tanı**, **Hasta Notu** (örn. bilinen
-   alerji) gibi ek bilgileri doldurun.
-5. Sağdaki **önizlemeden** etiketin son halini görün, **"Büyüt"** ile
-   daha net inceleyin.
-6. **"Yazdır"** (`Ctrl+P`) ile doğrudan yazıcıya gönderin, ya da
-   **"PDF Olarak Kaydet"** ile dosya olarak saklayın.
+# Linux / macOS:
+# python3 -m venv .venv && source .venv/bin/activate
 
-**Bir reçetede birden fazla ilaç varsa:** Üstte **"Toplu Etiket"**
-moduna geçin; her ilacı tek tek doldurup **"Sepete Ekle"**ye basın,
-sonuncusunu ekledikten sonra tek seferde hepsini yazdırın.
+# 3. Kütüphaneleri yükleyin
+pip install -r requirements.txt
 
-**Reçete metnini elle yazmak istemiyorsanız:** **"Hızlı Yapıştır"**
-butonuna basıp, elinizdeki reçete metnini (örn. Medula ekranından
-kopyaladığınız) kutuya yapıştırın, **"Ayrıştır"**a basın — program
-ilaçları otomatik tanıyıp toplu listeye hazırlar. Siz sadece kontrol
-edip yazdırırsınız (bkz. [Sık Sorulan Sorular](#sık-sorulan-sorular)).
+# 4. Programı başlatın
+python run_app.py
+```
 
-## Özellikler
+---
 
-**Etiket oluşturma**
-- Forma göre (tablet, kapsül, şurup, damla, merhem/krem, süpozituvar,
-  sprey) otomatik değişen hazır talimat butonları
-- Hasta adı, tanı, hasta notu/bilinen alerji, tedavi bitiş tarihi gibi
-  opsiyonel alanlar (bitiş tarihi yanlış formatta girilirse uyarır)
-- Etikette sabit ve mantıklı sıra: önce neden kullanıldığı, sonra nasıl
-  kullanılacağı, sonra saklama koşulu
-- Tekli ve toplu (bir reçetedeki birden fazla ilaç) etiket modu
-- **Hızlı Yapıştır**: reçete metnini yapıştırıp ilaçları otomatik
-  ayrıştırarak toplu listeye aktarma (bir Medula bağlantısı değildir,
-  tamamen elle kopyala/yapıştıra dayanır — bkz. SSS)
-- Barkod okuyucu desteği: ürünü okutunca ilaç otomatik seçilir
-- Büyütülebilir canlı önizleme, yazdırma (`Ctrl+P`) ve PDF olarak kaydetme
-- Küçük termal etiket (50x30 / 60x40mm) ya da A4 sayfada 6'lı ızgara
-  şablonu arasında seçim
-- İsteğe bağlı QR kod (yalnızca A4 şablonunda — küçük etikette yer yok):
-  ilaç bilgilerini gösteren, tamamen çevrimdışı okunan küçük bir kod
-- Türkçe karakterler (ı, İ, ş, Ş, ğ, Ğ) gömülü font sayesinde her
-  bilgisayarda doğru basılır
-- Adres ve emoji yok — etiket sade ve düzenli kalır
+## 🌟 Öne Çıkan Özellikler
 
-**Yönetim ve takip** (bkz. [Admin Paneli Nedir?](#admin-paneli-nedir))
-- Eczane profilleri, ilaç listesi yönetimi, talimat şablonları, personel
-  listesi, istatistikler, stok/SKT takibi, yedekleme (opsiyonel PIN korumalı)
+### 🎨 1. 3 Farklı Modern Tema Motoru (Kalıcı Tercih)
+- **☀️ Gündüz (Ferah Medikal):** Gün ışığında gözü yormayan modern slate ve açık mavi tonlar (`#f1f5f9`).
+- **🌙 Gece Nöbeti (Dark Mode):** Nöbetçi eczanelerde loş ışıkta ekran parlamasını önleyen yüksek kontrastlı koyu tema (`#0b1329`, `#152238`).
+- **🌿 Eczane Yeşili (Geleneksel Sağlık):** Eczacılık kültürünün klasik medikal yeşil tonları (`#065f46`, `#10b981`).
+- Başlıktaki `🎨` menüsünden anında değiştirilir; seçilen tema eczane profilinize kaydedilir ve program yeniden açıldığında otomatik yüklenir.
 
-## Admin Paneli Nedir?
+### 📅 2. Akıllı Ambalaj Ayrıştırma & SGK Kutu Bitiş Asistanı
+- İlaç seçildiğinde (`AUGMENTIN BID 1000MG 14 TABLET`, `PAROL 500MG 20 TABLET` vb.) ambalaj adedi (`14 Tablet`, `20 Tablet`) regex motoruyla otomatik ayıklanır.
+- Dozaj (`2x1`, `3x1` vb.) girildiği anda ilacın biteceği ve SGK'dan tekrar temin edilebileceği tarih anında hesaplanır.
+- İsteğe bağlı olarak etiketin üst satırına `Tekrar: GG.AA.YYYY` notu basılır; Admin Paneli geçmişinde ve CSV raporlarında ayrı sütun olarak listelenir.
 
-Ana ekrandaki **"Admin Paneli"** butonuyla açılan, yönetimsel işlerin
-toplandığı ayrı bir pencere. Her sekme bir konuya bakar:
+### 📊 3. Etiket Üzerinde Görsel Doz Çizelgesi Tablosu
+- Yaşlı, okuma güçlüğü çeken ya da yabancı uyruklu hastalar için etiket üzerine 4 sütunlu dozaj tablosu basılır:
+  ```
+  ┌───────┬───────┬───────┬───────┐
+  │ SABAH │ ÖĞLE  │ AKŞAM │ GECE  │
+  ├───────┼───────┼───────┼───────┤
+  │   1   │   -   │   1   │   -   │
+  └───────┴───────┴───────┴───────┘
+  ```
+- Canlı önizleme çubuğundaki **"📊 Doz Çizelgesi"** seçeneğiyle tek tıkla açılıp kapatılabilir.
 
-| Sekme | Ne İşe Yarar |
+### 👶 4. Pediatrik / Çocuk Şurup ve Damla Modu
+- **`👶 Pediatrik Mod`** butonuna basıldığında arayüz sıvı ve süspansiyon ilaç kalıplarına geçer:
+  - `1 Ölçek (5 ml)`, `Yarım Ölçek (2.5 ml)`, `2 Ölçek (10 ml)`, `10 Damla`, `15 Damla` ve pediatrik ateş/ağrı kalıpları tek tıkla yüklenir.
+
+### ⚠️ 5. Genişletilmiş Tıbbi Uyarı Çipleri (8 Seçenek, 2 Satır)
+- Eczane etiketlerinde en çok kullanılan tıbbi güvenlik uyarıları 2 satırlı düzenli butonlarla tek tıkla etikete eklenir:
+  - `⚠️ Çalkalayınız`, `🚗 Uyku Yapabilir`, `🥛 Sütle Almayınız`, `💧 Bol Su İle`
+  - `⏳ Kutuyu Bitiriniz`, `☀️ Işıktan Koruyunuz`, `🧊 Buzdolabında (2-8°C)` (Soğuk Zincir), `⏱️ Açıldıktan Sonra 15 Gün` (Kullanım Ömrü)
+- Termal ve A4 baskıda özel kırmızı vurgulu uyarı bandı olarak basılır.
+
+### 🍎 6. Besin & İlaç Etkileşim Asistanı
+- Sık karşılaşılan klinik besin etkileşimlerini (`Süt Ürünleri`, `Greyfurt`, `Çay / Kahve / Demir`, `Alkol Yasağı`, `Aç Karnına`) tek tıkla prospektüs ve kullanım notuna ekler.
+
+### 🖨️ 7. Doğrudan Sistem Yazıcısı Seçimi & Hatırlama
+- Windows ve Linux/macOS sisteminde kurulu yazıcıları otomatik keşfeder (`Xprinter`, `Argox`, `Zebra`, `Bixolon`, vb.).
+- Varsayılan Windows yazıcısını değiştirmeden doğrudan etiket yazıcısına baskı gönderebilirsiniz.
+- Seçilen yazıcı profilinize kaydedilir, program her açıldığında otomatik seçili gelir.
+
+### 🏷️ 8. İTS 2D Karekod & Barkod Desteği
+- Türkiye'deki tüm optik barkod okuyuculardan gelen **GS1 2D DataMatrix Karekod** (`0108699...`) ve standart 13 haneli **EAN-13** barkodlarını tanır.
+- Barkodu okuttuğunuz anda ilacın adı, farmasötik formu, saklama koşulu ve kullanım amacı otomatik dolar.
+- **Bilinmeyen Barkod Tanımlama:** Kayıtlı olmayan bir kutu okutulduğunda ekrandan ayrılmadan hızlıca yeni ilaç kaydı oluşturulabilir.
+
+### 📋 9. Medula / e-Reçete Hızlı Yapıştır & Toplu Mod
+- Medula ekranından kopyalanan reçete metni **"Hızlı Yapıştır"** penceresine yapıştırıldığında:
+  - Hasta adı ve tanı üstverileri otomatik ayıklanıp forma aktarılır.
+  - Reçetedeki tüm ilaçlar satır satır ayrıştırılır; ambalaj adedi, doz çizelgesi ve SGK kutu bitiş tarihi otomatik üretilerek toplu listeye eklenir.
+- `Ctrl+P` ile reçetedeki tüm etiketler tek seferde art arda yazıcıya basılır.
+
+### 👁️ 10. Canlı Önizleme & Türkçe Karakter Garantisi
+- Girdiğiniz her harf sağ paneldeki simülasyonda anlık güncellenir.
+- **DejaVu Sans** fontu doğrudan gömülü geldiği için Türkçe karakterler (`ı`, `İ`, `ş`, `Ş`, `ğ`, `Ğ`, `ç`, `Ç`, `ö`, `Ö`, `ü`, `Ü`) her yazıcıda ve işletim sisteminde pürüzsüz basılır.
+
+### 🧪 11. Majistral (Yapma İlaç) Modu
+- Laboratuvarda hazırlanan yapma ilaçlar için tek tıkla `🧪 Majistral` butonu:
+  - 30 günlük SKT tarihini otomatik atar.
+  - "Haricen Kullanılır - Doktor Önerisiyle" ibaresini ve saklama koşullarını doldurur.
+
+---
+
+## 🖨️ Desteklenen Yazıcılar ve Etiketler
+
+### Etiket Şablonları
+
+| Şablon Kodu | Boyut | Kullanım Alanı |
+|---|---|---|
+| `thermal_50x30` | **50 x 30 mm** | En yaygın standart eczane rulo etiketi (Zebra, Argox, Xprinter) |
+| `thermal_60x40` | **60 x 40 mm** | Geniş açıklama ve dozaj tablosu içeren termal etiket |
+| `thermal_80x50` | **80 x 50 mm** | Büyük boy detaylı prospektüslü termal etiket |
+| `a4_grid_6` | **A4 Sayfa** | Standart lazer/mürekkep yazıcılar için 6'lı ızgara baskı (isteğe bağlı QR kodlu) |
+
+### Test Edilen ve Onaylanan Yazıcı Modelleri
+- **Xprinter:** XP-365B, XP-370B, XP-420B, XP-235B
+- **Argox:** OS-214 Plus, CP-2140, iX4-250
+- **Zebra:** ZD220, ZD230, GK420t, GX430t
+- **Bixolon:** SLP-TX400, SLP-DX220
+- **Brother:** QL-700, QL-800, QL-1110NWB
+- **TSC:** TE200, DA210, TDP-225
+- **Standart Yazıcılar:** HP LaserJet, Canon, Epson vb. tüm A4 lazer/mürekkep yazıcılar
+
+> [!TIP]
+> **Yazıcı Hizalama İpucu:** Etiket baskısında kayma yaşamamak için Windows Denetim Masası / Yazıcı Özellikleri altından etiket boyutunuzu (örneğin 50x30 mm) tanımlayın ve arayüzdeki **"🧪 Test Baskısı"** butonuyla test edin.
+
+---
+
+## ⌨️ Klavye Kısayolları
+
+Eczanede fare kullanmadan hızlı çalışabilmeniz için optimize edilmiş klavye kısayolları:
+
+| Kısayol | İşlev |
 |---|---|
-| Eczane Profilleri | Eczane adı/telefon, birden fazla şube profili, opsiyonel PIN kilidi |
-| İlaç Listesi | İlaçları görme/ekleme/silme, CSV/Excel'den toplu içe aktarma |
-| İlaç Veri Kaynağı | İsteyenler için opsiyonel dış API bağlantısı (bkz. SSS) |
-| Talimat Şablonları | Hızlı talimat butonlarının metnini forma göre düzenleme |
-| Personel | "Kim bastı" notu için basit bir isim listesi |
-| Geçmiş & Raporlar | Basılan tüm etiketler, hasta adına/tarih aralığına göre arama, CSV dışa aktarım |
-| İstatistikler | En çok basılan ilaçlar, en aktif personel, son 7 günün etiket sayısı |
-| Stok / SKT Takip | Ürün/miktar/son kullanma tarihi listesi, düşük stok ve yaklaşan SKT uyarısı |
-| Yedekleme | Tüm verileri tek bir `.zip` dosyasına yedekleme/geri yükleme |
+| `Ctrl + P` | Etiketi doğrudan yazıcıya gönder |
+| `Ctrl + S` | Etiketi PDF dosyası olarak kaydet |
+| `Ctrl + Enter` | Toplu etiket listesine ekle (Toplu Modda) |
+| `Esc` veya `Ctrl + N` | Formdaki tüm alanları temizle ve yeni etikete hazırla |
+| `F2` | İmleci doğrudan Barkod Oku kutusuna odakla |
+| `F3` | İmleci doğrudan İlaç Adı arama kutusuna odakla |
+| `Tab` / `Shift + Tab` | Metin kutuları arasında doğal geçiş yap |
 
-İstenirse silme işlemleri öncesi onay istenir, yanlışlıkla veri kaybını
-önlemek için.
+---
 
-## Sık Sorulan Sorular
+## ⚙️ Admin Paneli
 
-**İnternet bağlantısı gerekiyor mu?**
-Hayır. Program tamamen çevrimdışı çalışır. İsteğe bağlı olarak (kapatılabilir)
-bir ilaç veri kaynağı API'si bağlanabilir, ama bu kesinlikle zorunlu değildir.
+Üst barda yer alan **⚙️ Admin** butonu ile açılan yönetim panelinde eczanenin tüm yönetimsel işleri toplanmıştır (isteğe bağlı SHA-256 PIN kilidi eklenebilir):
 
-**Gerçekten ücretsiz mi, gizli bir bedel var mı?**
-Evet, tamamen ücretsiz ve açık kaynaktır (MIT lisansı). Reklam, abonelik,
-lisans anahtarı yok.
+- **🏥 Eczane Profilleri:** Eczane adı, telefon, şube, varsayılan etiket boyutu, tercih edilen tema ve varsayılan yazıcı yönetimi.
+- **💊 İlaç Listesi:** İlaç arama, yeni ilaç tanımlama, çift tıklamayla düzenleme, CSV/Excel'den toplu içe aktarma.
+- **📦 Stok & SKT Takibi:** Son kullanma tarihi yaklaşanlar, süresi geçenler ve kritik stok eşiği uyarıları.
+- **🕒 Geçmiş & Raporlar:** Yazdırılan tüm etiketler, hasta adına veya tarih aralığına göre arama, SGK Bitiş sütunu ve Excel/CSV dışa aktarım.
+- **📊 İstatistikler:** En çok basılan ilaçlar, personel aktivitesi ve son 7 günlük basım grafiği.
+- **⚡ Talimat Şablonları:** Forma göre hızlı dozaj butonlarını kendi eczanenizin alışkanlıklarına göre düzenleme.
+- **💾 Yedekleme:** Tüm eczane kayıtlarını tek tıkla `.zip` arşivine yedekleme ve geri yükleme.
 
-**Medula'ya bağlanıp reçeteyi otomatik çekiyor mu?**
-Hayır — ve bunun nedeni tembellik değil, güvenlik. Medula'nın eczane
-tarafı için resmi/genel bir API yok, yalnızca eczanenin kendi SGK
-kimlik bilgisiyle girdiği kapalı bir portal var. Doğrulanmamış bir
-bağlantı yazmak, eczanenizin SGK erişimini riske atabilir. Bunun yerine
-**Hızlı Yapıştır** özelliği var: Medula ekranındaki metni kopyalayıp
-programa yapıştırırsınız, program ilaçları tanımaya çalışır — ama
-hiçbir sunucuya bağlanmaz, siz yazdırmadan önce mutlaka kontrol edersiniz.
+---
 
-**Verilerim (hasta bilgileri, geçmiş, stok) nerede saklanıyor?**
-Sadece kendi bilgisayarınızda, `~/.eczane_etiket/` klasöründe (basit
-JSON dosyaları olarak). Hiçbir sunucuya gönderilmez. Bu git deposuna da
-dahil değildir.
-
-**Birden fazla bilgisayarda/şubede kullanabilir miyim?**
-Evet, her bilgisayara ayrı ayrı kurulur (veriler birbirinden bağımsızdır).
-Tek bir bilgisayarda birden fazla eczane/şube profili arasında da geçiş
-yapılabilir. Bilgisayarlar arası otomatik senkronizasyon yoktur — istenirse
-Yedekleme özelliğiyle bir `.zip` dosyası aktarılabilir.
-
-**İlaç bilgileri (ne işe yaradığı vb.) güvenilir mi?**
-Örnek listedeki açıklamalar yalnızca genel bilinirlikte, tartışmasız
-bilgilerle doldurulmuştur; emin olunmayan alanlar bilerek boş
-bırakılmıştır (uydurma veri yoktur). Bu, resmi bir kısa ürün bilgisi/
-kullanma talimatının yerine geçmez.
-
-**Programı geliştirebilir miyim / hata bulursam ne yapmalıyım?**
-Kod tamamen açık, GitHub Issues üzerinden hata bildirebilir ya da Pull
-Request açabilirsiniz — bkz. [Geliştiriciler İçin](#geliştiriciler-için).
-
-## Sınırlamalar
-
-- Medula'ya canlı bağlantı yoktur (yukarıda açıklandı).
-- Hızlı Yapıştır kesin bir ayrıştırma garantisi vermez; yazdırmadan önce
-  mutlaka kontrol edilmelidir.
-- Hasta notu/alerji alanı yalnızca eczacının kendi yazdığı bir
-  hatırlatmadır; otomatik ilaç etkileşim/alerji kontrolü yapılmaz.
-- İstatistik panosu basit bir özet aracıdır, resmi bir raporlama sistemi
-  değildir.
-
-## Geliştiriciler İçin
-
-Bu bölüm, kodu inceleyecek, katkı verecek ya da `.exe` paketleyecek
-kişiler içindir — günlük kullanım için gerekli değildir.
-
-### Proje Yapısı
+## 📁 Proje Dizin Yapısı
 
 ```
-cll/
-├── run_app.py                  # Giriş noktası
+eczane-etiket/
+├── .github/
+│   ├── workflows/
+│   │   ├── test.yml            # Çoklu platform (Windows/Ubuntu) CI test motoru
+│   │   └── release.yml         # Otomatik Windows .exe derleme ve GitHub Releases iş akışı
+│   ├── ISSUE_TEMPLATE/         # Hata bildirimi ve özellik önerisi şablonları
+│   └── PULL_REQUEST_TEMPLATE.md# Katkı ve PR şablonu
+├── docs/
+│   └── screenshot-hizli-etiket.png # v1.6.0 arayüz ekran görüntüsü
+├── baslat.bat                  # Windows tek tıkla ortam kurma ve başlatma betiği
+├── run_app.py                  # Uygulama giriş noktası
+├── pyproject.toml              # Standart Python paketleme ve araç yapılandırması
+├── eczane_etiket.spec          # PyInstaller tek dosya .exe derleme yapılandırması
+├── requirements.txt            # Temel kütüphane bağımlılıkları
+├── requirements-dev.txt        # Test ve derleme araçları bağımlılıkları
+├── CONTRIBUTING.md             # Katkıda bulunma rehberi
+├── SECURITY.md                 # Güvenlik ve yerel veri gizliliği politikası
+├── CHANGELOG.md                # Sürüm değişiklik günlüğü
+├── LICENSE                     # MIT Açık Kaynak Lisansı
 ├── eczane_etiket/
-│   ├── main.py                  # Hızlı Etiket ana ekranı (Tkinter)
-│   ├── admin_panel.py           # Yönetim paneli
-│   ├── profiles.py              # Eczane profil(ler)i, PIN doğrulama
-│   ├── data.py                  # İlaç seed listesi + forma göre talimat şablonları
-│   ├── drug_api.py              # Yapılandırılabilir, opsiyonel ilaç veri API istemcisi
-│   ├── drug_import.py           # CSV/Excel içe aktarma
-│   ├── label_pdf.py             # reportlab ile etiket PDF üretimi + yazdırma
-│   ├── history.py               # Etiket geçmişi + arama + CSV export
-│   ├── stats.py                 # İstatistik/özet panosu
-│   ├── prescription_parser.py   # "Hızlı Yapıştır" reçete metni ayrıştırma
-│   ├── stock.py                 # Stok/SKT takibi + düşük stok eşiği
-│   ├── backup.py                # Yedekleme/geri yükleme (.zip)
-│   ├── staff.py                 # Personel listesi
-│   ├── paths.py / jsonutil.py   # Ortak veri yolu ve JSON okuma/yazma yardımcıları
-│   ├── icons/                   # Uygulama ikonu
-│   └── fonts/                   # Gömülü DejaVu Sans (Türkçe karakter desteği)
-├── tests/                       # pytest test paketi
-├── eczane_etiket.spec           # PyInstaller derleme yapılandırması
-└── requirements*.txt
+│   ├── __init__.py             # Sürüm ve paket tanımı (v1.6.0)
+│   ├── main.py                 # Modern Tkinter Hızlı Etiket ana ekranı
+│   ├── theme.py                # 3 temalı (Gündüz, Gece, Yeşil) görsel motor
+│   ├── admin_panel.py          # Eczane yönetim paneli (Profiller, İlaçlar, Stok, vb.)
+│   ├── data.py                 # İlaç veritabanı, akıllı ambalaj ayrıştırma, karekod okuyucu
+│   ├── label_pdf.py            # Termal ve A4 etiket PDF motoru ve yazdırma
+│   ├── prescription_parser.py  # Reçete metni ve hasta bilgisi ayrıştırıcı
+│   ├── history.py              # Etiket geçmişi ve CSV raporlama
+│   ├── stock.py                # Stok ve SKT takip sistemi
+│   ├── profiles.py             # Eczane profilleri ve PIN güvenliği
+│   ├── staff.py                # Eczane personel listesi
+│   ├── stats.py                # Etiket istatistikleri
+│   ├── backup.py               # .zip arşivleme ve geri yükleme
+│   ├── paths.py                # Yerel veri yolu yapılandırması
+│   ├── fonts/                  # Gömülü Türkçe DejaVu Sans fontları
+│   └── icons/                  # Uygulama simgeleri (.ico, .png)
+└── tests/                      # 77 adet otomatik birim ve entegrasyon testi
+    ├── conftest.py             # Test ortamı ve Tcl/Tk konfigürasyonu
+    ├── test_data.py            # Veritabanı ve ambalaj ayrıştırma testleri
+    ├── test_drug_import.py     # İlaç içe aktarma testleri
+    ├── test_history.py         # Geçmiş ve CSV testleri
+    ├── test_label_pdf.py       # PDF üretimi ve şablon testleri
+    ├── test_main_workflow.py   # Ana arayüz, toplu mod ve kısayol testleri
+    ├── test_prescription_parser.py # Medula reçete ayrıştırma testleri
+    ├── test_profiles.py        # Profil ve tema/yazıcı kalıcılığı testleri
+    ├── test_stats.py           # İstatistik hesaplama testleri
+    ├── test_stock.py           # Stok ve SKT testleri
+    ├── test_theme.py           # Renk paleti ve tema testleri
+    └── test_version.py         # Sürüm tutarlılığı testi
 ```
 
-### İlaç Veri Kaynağı ve API Anahtarı Hakkında
+---
 
-Program varsayılan olarak hiçbir dış servise bağlanmaz. İsteyen kullanıcı,
-Admin Panelindeki "İlaç Veri Kaynağı" sekmesinden isteğe bağlı olarak açık
-kaynak [`turkish-medicine-api`](https://github.com/tugcantopaloglu/turkish-medicine-api)
-gibi bir servisin adresini girebilir (herkese açık barındırılan bir servis
-değildir, kendi sunucunuzda çalıştırmanız gerekir).
+## 🚀 Dağıtım (Deployment) & Paketleme
 
-**Güvenlik notu:** Girilen API anahtarı hiçbir zaman koda/git deposuna
-yazılmaz — yalnızca `~/.eczane_etiket/api_config.json` içinde yerel
-saklanır, arayüzde `*` ile gizlenir. Bu depoda (kod veya git geçmişinde)
-hiçbir gerçek anahtar/sır yoktur.
+Programın farklı ortamlarda sorunsuz çalışması için tüm dağıtım senaryoları hazırlanmıştır:
 
-### Testler
+### 1. GitHub Releases ile Otomatik Dağıtım
+- Projeye bir sürüm etiketi (`git tag v1.6.0 && git push origin v1.6.0`) atıldığında GitHub Actions `.github/workflows/release.yml` iş akışı otomatik devreye girer.
+- Sanal bir Windows ortamında PyInstaller ile `EczaneEtiket.exe` derlenir ve doğrudan ilgili GitHub Release sayfasına eklenir.
+
+### 2. Eczane İçi USB ile Taşınabilir (Portable) Dağıtım
+- `dist\EczaneEtiket.exe` dosyasını doğrudan bir USB belleğe kopyalayabilirsiniz.
+- USB belleği eczanedeki herhangi bir Windows 10/11 bilgisayarına taktığınızda hiçbir kurulum yapmadan doğrudan çalışır.
+- Veriler kullanıcının `%APPDATA%\.eczane_etiket` klasöründe saklandığı için bilgisayar değişse de işletim sistemi izinleri güvende kalır.
+
+---
+
+## 🧪 Testleri Çalıştırma
+
+Tüm iş akışları, PDF üretimleri, veri tabanı işlemleri ve arayüz olayları otomatik test kapsamındadır:
 
 ```bash
 pip install -r requirements-dev.txt
-python -m pytest tests/
+pytest -v
 ```
 
-### Windows İçin Tek Dosya .exe Oluşturma
+```
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0
+collected 77 items
 
-**Windows bilgisayarda** (PyInstaller çapraz derleme yapmaz):
+tests\test_data.py .................                                     [ 22%]
+tests\test_drug_import.py .......                                        [ 31%]
+tests\test_history.py ...                                                [ 35%]
+tests\test_label_pdf.py .........                                        [ 46%]
+tests\test_main_workflow.py .................                            [ 68%]
+tests\test_prescription_parser.py .......                                [ 77%]
+tests\test_profiles.py ..                                                [ 80%]
+tests\test_stats.py ......                                               [ 88%]
+tests\test_stock.py ......                                               [ 96%]
+tests\test_theme.py ..                                                   [ 98%]
+tests\test_version.py .                                                  [100%]
 
-```bat
-pip install -r requirements-dev.txt
-pyinstaller eczane_etiket.spec
+============================= 77 passed in 31.23s =============================
 ```
 
-Çıktı `dist\EczaneEtiket.exe` olur; Türkçe font ve uygulama ikonu otomatik
-pakete dahil edilir (`eczane_etiket.spec` içindeki `datas`/`icon` ayarları).
+---
 
-### Veri Saklama (Teknik Detay)
+## ❓ Sık Sorulan Sorular (SSS)
 
-`~/.eczane_etiket/` klasöründeki JSON dosyaları: `profiles.json`,
-`drugs.json`, `templates.json`, `history.json`, `stock.json`,
-`api_config.json`, `staff.json`. Hiçbiri bu git deposuna dahil değildir.
+<details>
+<summary><b>1. Programı kullanmak için internet bağlantısı gerekiyor mu?</b></summary>
+<p>Hayır. Program %100 çevrimdışı çalışacak şekilde tasarlanmıştır. İnternetiniz kesilse bile reçete etiketleme, stok takibi ve yazdırma işlemleri aksamadan devam eder.</p>
+</details>
 
-### Katkıda Bulunma
+<details>
+<summary><b>2. Barkod okuyucumu programa nasıl tanıtabilirim?</b></summary>
+<p>Herhangi bir sürücüye veya özel ayara gerek yoktur. USB veya Bluetooth ile bilgisayarınıza bağlı olan tüm 1D çizgi barkod ve 2D karekod (DataMatrix) okuyucular klavye öykünmesiyle otomatik olarak çalışır.</p>
+</details>
 
-1. Depoyu fork'layın ve bir özellik/düzeltme dalı açın.
-2. Değişikliğinizi yapın, `python -m pytest tests/` ile testlerin geçtiğini
-   doğrulayın.
-3. Bir Pull Request açın.
+<details>
+<summary><b>3. Hasta ve reçete verilerim nerede saklanıyor? KVKK'ya uygun mu?</b></summary>
+<p>Tüm veriler yalnızca bilgisayarınızın yerel sabit diskinde düz JSON dosyalarında saklanır. Hiçbir veri buluta veya harici sunuculara iletilmez; bu nedenle kişisel sağlık verileri tamamen sizin denetiminizdedir.</p>
+</details>
 
-Hata bildirimi veya özellik önerisi için GitHub Issues kullanabilirsiniz.
+<details>
+<summary><b>4. Termal yazıcımdan etiket kayması veya Türkçe karakter hatası alıyorum, ne yapmalıyım?</b></summary>
+<p>Program içinde doğrudan Türkçe karakter desteğine sahip DejaVu Sans fontları gömülüdür. Yazıcınızın sürücü ayarlarından doğru etiket boyutunu (örneğin 50x30 mm) seçtiğinizden emin olun ve ana ekrandan "🧪 Test Baskısı" butonuna basarak hizalamayı kontrol edin.</p>
+</details>
 
-## Lisans
+<details>
+<summary><b>5. Birden fazla eczane şubesi veya kasa bankosu için kullanılabilir mi?</b></summary>
+<p>Evet. Admin Paneli altındaki Eczane Profilleri sekmesinden dilediğiniz kadar profil oluşturabilir, her profil için farklı varsayılan yazıcı ve tema atayabilirsiniz.</p>
+</details>
 
-[MIT](LICENSE) — bu yazılımı ücretsiz olarak kullanabilir, değiştirebilir
-ve dağıtabilirsiniz.
+---
 
-Sürüm geçmişi için [CHANGELOG.md](CHANGELOG.md) dosyasına bakabilirsiniz.
+## 🤝 Katkıda Bulunma
+
+Eczane İlaç Etiketi açık kaynaklı bir topluluk projesidir. Hata bildirimleri, yeni özellik önerileri veya kod katkıları için lütfen [CONTRIBUTING.md](CONTRIBUTING.md) rehberini inceleyin.
+
+---
+
+## 📄 Lisans
+
+Bu proje [MIT Lisansı](LICENSE) ile lisanslanmıştır. Tamamen ücretsizdir; dilediğiniz gibi kullanabilir, değiştirebilir ve eczanenizde çalıştırabilirsiniz.

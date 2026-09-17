@@ -44,3 +44,36 @@ def test_unmatched_drug_returns_none_but_keeps_guess():
 
 def test_empty_text_returns_empty_list():
     assert prescription_parser.parse_prescription_text("   \n\n  ", DRUGS) == []
+
+
+def test_filters_metadata_and_extracts_patient_info():
+    text = (
+        "Hasta Adı: Ayşe Yılmaz\n"
+        "T.C. Kimlik No: 12345678901\n"
+        "Reçete No: EREC12345\n"
+        "Tarih: 17.09.2026\n"
+        "Tanı: Üst Solunum Yolu Enfeksiyonu\n"
+        "1- AUGMENTIN BID 1000MG 14 TABLET 2x1 tok\n"
+        "2- PAROL 500MG 20 TABLET 3*1\n"
+    )
+    meta = prescription_parser.extract_prescription_metadata(text)
+    assert meta["patient_name"] == "Ayşe Yılmaz"
+    assert meta["diagnosis"] == "Üst Solunum Yolu Enfeksiyonu"
+
+    lines = prescription_parser.parse_prescription_text(text, DRUGS)
+    # Metadata satırları ilaç olarak eklenmemeli
+    assert len(lines) == 2
+    assert lines[0].drug_name == "AUGMENTIN BID 1000MG 14 TABLET"
+    assert lines[0].instructions == "2x1 tok"
+    assert lines[1].drug_name == "PAROL 500MG 20 TABLET"
+    assert lines[1].instructions == "3*1"
+
+
+def test_prescription_parser_turkish_characters():
+    text = "cipro 500mg 10 tablet - Günde 2x1 tok"
+    lines = prescription_parser.parse_prescription_text(text, DRUGS)
+    assert len(lines) == 1
+    assert lines[0].matched_drug is not None
+    assert lines[0].matched_drug["name"] == "CIPRO 500MG 10 TABLET"
+
+
