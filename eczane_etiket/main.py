@@ -14,8 +14,9 @@ import uuid
 from tkinter import filedialog, messagebox, simpledialog, ttk
 from typing import Optional
 
-from . import __version__, data, history, prescription_parser, profiles, staff, theme
+from . import __version__, dashboard, data, history, prescription_parser, profiles, receipt_pdf, staff, theme, toast
 from .label_pdf import LabelEntry, build_label_pdf, get_system_printers, print_pdf
+from .toast import show_toast
 
 _ICON_PNG = os.path.join(os.path.dirname(__file__), "icons", "app_icon.png")
 _END_DATE_RE = re.compile(r"^\d{2}\.\d{2}\.\d{4}$")
@@ -82,7 +83,21 @@ class App(tk.Tk):
         self._refresh_preview()
         self._barcode_entry.focus_set()
 
-        # Klavye kısayolları
+        # Klavye kısayolları (POS Ergonomisi)
+        self.bind("<F1>", lambda e: self._show_shortcut_help())
+        self.bind("<F2>", lambda e: self._barcode_entry.focus_set())
+        self.bind("<F3>", lambda e: self.drug_combo.focus_set())
+        self.bind("<F4>", lambda e: self.patient_entry.focus_set() if hasattr(self, "patient_entry") else None)
+        self.bind("<F5>", lambda e: self._refresh_preview())
+        self.bind("<F6>", lambda e: self._cycle_quick_dose())
+        self.bind("<F7>", lambda e: self._toggle_quick_food())
+        self.bind("<F8>", lambda e: self._on_print_patient_schedule())
+        self.bind("<F9>", lambda e: self._on_print_receipt())
+        self.bind("<F10>", lambda e: self._add_to_batch() if self.batch_mode.get() else None)
+        self.bind("<F11>", lambda e: self._open_dashboard())
+        self.bind("<Control-d>", lambda e: self._open_dashboard())
+        self.bind("<Control-D>", lambda e: self._open_dashboard())
+        self.bind("<F12>", lambda e: self._on_print())
         self.bind("<Control-p>", lambda e: self._on_print())
         self.bind("<Control-P>", lambda e: self._on_print())
         self.bind("<Control-s>", lambda e: self._on_save_pdf())
@@ -90,9 +105,9 @@ class App(tk.Tk):
         self.bind("<Control-n>", lambda e: self._clear_form())
         self.bind("<Control-N>", lambda e: self._clear_form())
         self.bind("<Escape>", lambda e: self._clear_form())
-        self.bind("<F2>", lambda e: self._barcode_entry.focus_set())
-        self.bind("<F3>", lambda e: self.drug_combo.focus_set())
         self.bind("<Control-Return>", lambda e: self._add_to_batch() if self.batch_mode.get() else None)
+        self.bind("<Alt-Up>", lambda e: self._reorder_batch_item(-1))
+        self.bind("<Alt-Down>", lambda e: self._reorder_batch_item(1))
 
         self.after(150, self._maybe_first_run_setup)
 
@@ -186,8 +201,11 @@ class App(tk.Tk):
         btn_box = ttk.Frame(header, style="Header.TFrame")
         btn_box.pack(side="right")
         ttk.Button(btn_box, text="⚙️ Admin", style="Header.TButton", command=self._open_admin_panel).pack(side="right", padx=(4, 0))
+        ttk.Button(btn_box, text="📊 Dashboard", style="Header.TButton", command=self._open_dashboard).pack(side="right", padx=(4, 0))
+        ttk.Button(btn_box, text="🧾 Fiş Bas (F9)", style="Header.TButton", command=self._on_print_receipt).pack(side="right", padx=(4, 0))
+        ttk.Button(btn_box, text="⌨️ Kısayollar", style="Header.TButton", command=self._show_shortcut_help).pack(side="right", padx=(4, 0))
         ttk.Button(btn_box, text="ℹ️ Hakkında", style="Header.TButton", command=self._show_about).pack(side="right", padx=(4, 0))
-        ttk.Button(btn_box, text="🧪 Test Baskısı", style="Header.TButton", command=self._print_test_label).pack(side="right", padx=(4, 0))
+        ttk.Button(btn_box, text="🧪 Test", style="Header.TButton", command=self._print_test_label).pack(side="right", padx=(4, 0))
         ttk.Button(btn_box, text="🧹 Temizle", style="Header.TButton", command=self._clear_form).pack(side="right", padx=(4, 0))
 
         # Hızlı Şablon Boyut Seçici (Header Üzerinde)
@@ -264,10 +282,12 @@ class App(tk.Tk):
 
         shortcuts_hint = ttk.Label(
             status_bar,
-            text="⌨️ Ctrl+P: Yazdır  |  Ctrl+S: PDF  |  Ctrl+Enter: Listeye Ekle  |  Esc: Temizle  |  F2: Barkod  |  F3: İlaç",
+            text="⌨️ F1: Kısayollar  |  F2: Barkod  |  F3: İlaç  |  F4: Hasta  |  F6: Doz  |  F7: Aç/Tok  |  F9: Fiş  |  F11: Dashboard  |  F12: Yazdır",
             style="Status.TLabel",
+            cursor="hand2",
         )
         shortcuts_hint.pack(side="right")
+        shortcuts_hint.bind("<Button-1>", lambda e: self._show_shortcut_help())
 
     def _build_form(self, parent):
         # 1. Mod Seçici Bar
@@ -545,10 +565,13 @@ class App(tk.Tk):
 
         batch_btns = ttk.Frame(self.batch_frame, style="Card.TFrame")
         batch_btns.pack(fill="x", pady=(6, 0))
-        ttk.Button(batch_btns, text="➕ Listeye Ekle (Ctrl+Enter)", style="Primary.TButton", command=self._add_to_batch).pack(side="left")
-        ttk.Button(batch_btns, text="📄 Hasta Çizelgesi (A4)", command=self._on_print_patient_schedule).pack(side="left", padx=(6, 0))
-        ttk.Button(batch_btns, text="🗑️ Seçileni Çıkar", command=self._remove_from_batch).pack(side="left", padx=(6, 0))
-        ttk.Button(batch_btns, text="🧹 Listeyi Temizle", command=self._clear_batch).pack(side="left", padx=(6, 0))
+        ttk.Button(batch_btns, text="➕ Ekle (F10)", style="Primary.TButton", command=self._add_to_batch).pack(side="left")
+        ttk.Button(batch_btns, text="🧾 Fiş Bas (F9)", command=self._on_print_receipt).pack(side="left", padx=(4, 0))
+        ttk.Button(batch_btns, text="📄 Çizelge (F8)", command=self._on_print_patient_schedule).pack(side="left", padx=(4, 0))
+        ttk.Button(batch_btns, text="▲", width=3, command=lambda: self._reorder_batch_item(-1)).pack(side="left", padx=(4, 0))
+        ttk.Button(batch_btns, text="▼", width=3, command=lambda: self._reorder_batch_item(1)).pack(side="left", padx=(2, 0))
+        ttk.Button(batch_btns, text="🗑️ Sil", width=5, command=self._remove_from_batch).pack(side="left", padx=(4, 0))
+        ttk.Button(batch_btns, text="🧹 Temizle", width=8, command=self._clear_batch).pack(side="left", padx=(4, 0))
 
         # 7. SABİT BİRİNCİL EYLEM ÇUBUĞU (ASLA EKRANDAN TAŞMAZ)
         action_bar = ttk.Frame(parent, padding=(0, 4))
@@ -556,7 +579,7 @@ class App(tk.Tk):
 
         self.print_btn = ttk.Button(
             action_bar,
-            text="🖨️  Etiketi Yazdır (Ctrl+P)",
+            text="🖨️  Yazdır (F12 / Ctrl+P)",
             style="Success.TButton",
             command=self._on_print,
         )
@@ -564,22 +587,34 @@ class App(tk.Tk):
 
         ttk.Button(
             action_bar,
-            text="📄  Hasta Çizelgesi",
-            command=self._on_print_patient_schedule,
-        ).pack(side="left", padx=(8, 0))
+            text="🧾  Fiş / Makbuz (F9)",
+            command=self._on_print_receipt,
+        ).pack(side="left", padx=(6, 0))
 
         ttk.Button(
             action_bar,
-            text="💾  PDF Kaydet (Ctrl+S)",
+            text="📊  Dashboard (F11)",
+            command=self._open_dashboard,
+        ).pack(side="left", padx=(6, 0))
+
+        ttk.Button(
+            action_bar,
+            text="📄  Çizelge (F8)",
+            command=self._on_print_patient_schedule,
+        ).pack(side="left", padx=(6, 0))
+
+        ttk.Button(
+            action_bar,
+            text="💾  PDF (Ctrl+S)",
             style="Primary.TButton",
             command=self._on_save_pdf,
-        ).pack(side="left", padx=(8, 0))
+        ).pack(side="left", padx=(6, 0))
 
         ttk.Button(
             action_bar,
             text="🧹  Temizle (Esc)",
             command=self._clear_form,
-        ).pack(side="left", padx=(8, 0))
+        ).pack(side="left", padx=(6, 0))
 
         # Sistem Yazıcısı Seçici
         sys_printers = ["(Varsayılan Yazıcı)"] + get_system_printers()
@@ -803,6 +838,141 @@ class App(tk.Tk):
                 messagebox.showerror("Hata", f"PDF açılamadı: {e}")
         except Exception as e:
             messagebox.showerror("Hata", f"Çizelge oluşturulamadı: {e}")
+
+    def _open_dashboard(self):
+        """Özet performans ve analitik dashboard penceresini açar."""
+        from .dashboard import open_dashboard_dialog
+        open_dashboard_dialog(self)
+
+    def _show_shortcut_help(self):
+        """POS ve tezgâh klavye kısayolları kılavuzu modal penceresi."""
+        top = tk.Toplevel(self)
+        top.title("⌨️ Hızlı POS & Klavye Kısayolları")
+        top.geometry("560x450")
+        top.minsize(500, 380)
+        top.configure(bg=theme.BG_CARD)
+
+        card = ttk.Frame(top, style="Card.TFrame", padding=16)
+        card.pack(fill="both", expand=True)
+
+        ttk.Label(card, text="⌨️ Eczane POS & Klavye Kısayolları", font=(theme.FONT_FAMILY, 12, "bold"), foreground=theme.PRIMARY).pack(anchor="w", pady=(0, 8))
+
+        cols = ("key", "action", "scope")
+        tree = ttk.Treeview(card, columns=cols, show="headings", height=12)
+        for c, h, w in zip(cols, ("Kısayol Tuşu", "Eylem / Fonksiyon", "Kullanım"), (110, 260, 130)):
+            tree.heading(c, text=h)
+            tree.column(c, width=w)
+
+        shortcuts = [
+            ("F1", "Klavye Kısayolları Kılavuzu", "Yardım"),
+            ("F2", "Barkod / Karekod Alanına Odaklan", "Hızlı Okuma"),
+            ("F3", "İlaç Arama Alanına Odaklan", "Arama"),
+            ("F4", "Hasta Adı Alanına Odaklan", "Hasta Girişi"),
+            ("F5", "Önizleme ve Ekranı Yenile", "Önizleme"),
+            ("F6", "Hızlı Doz Döngüsü (1x1, 2x1, 3x1, 4x1)", "Doz Seçimi"),
+            ("F7", "Aç / Tok Durumu Değiştir", "Yemek Durumu"),
+            ("F8", "Hasta İlaç Kullanım Çizelgesi (A4)", "Raporlama"),
+            ("F9", "Satış Fişi / Teslim Makbuzu Bas", "Termal / A4 Fiş"),
+            ("F10 / Ctrl+Enter", "Reçete Listesine Ekle", "Toplu Mod"),
+            ("F11 / Ctrl+D", "Dashboard / Özet Gösterge Paneli", "Analiz"),
+            ("F12 / Ctrl+P", "Etiketi Yazıcıya Gönder", "Yazdırma"),
+            ("Ctrl+S", "Etiketi PDF Olarak Kaydet", "Dışa Aktarma"),
+            ("Esc / Ctrl+N", "Formu Temizle ve Sıfırla", "Form İptal"),
+            ("Alt + Yukarı / Aşağı", "Reçete Listesi Satırını Sırala", "Toplu Mod"),
+        ]
+        for key, act, scope in shortcuts:
+            tree.insert("", "end", values=(key, act, scope))
+        tree.pack(fill="both", expand=True)
+
+        ttk.Button(card, text="Kapat", style="Primary.TButton", command=top.destroy).pack(pady=(10, 0))
+
+    def _cycle_quick_dose(self):
+        """F6: Doz çarpanını döngüsel olarak sıradaki seçeneğe geçirir."""
+        multipliers = ["1x1", "2x1", "3x1", "4x1"]
+        cur = getattr(self, "_last_dose_cycle", "1x1")
+        try:
+            nxt = multipliers[(multipliers.index(cur) + 1) % len(multipliers)]
+        except Exception:
+            nxt = "1x1"
+        self._last_dose_cycle = nxt
+        self._set_quick_dose_multiplier(nxt)
+        show_toast(self, f"Doz ayarlandı: {nxt}", level="info", duration_ms=1600)
+
+    def _toggle_quick_food(self):
+        """F7: Açlık / tokluk durumunu hızlıca değiştirir."""
+        new_val = "ac" if self.food_status.get() == "tok" else "tok"
+        self._set_food_status(new_val)
+        txt = "Aç karnına" if new_val == "ac" else "Tok karnına"
+        show_toast(self, f"Yemek durumu: {txt}", level="info", duration_ms=1600)
+
+    def _on_print_receipt(self):
+        """F9: Termal POS Fişi veya A4 Teslim Makbuzu üretir ve yazdırır."""
+        items = []
+        if self.batch_mode.get() and self.batch_entries:
+            for e in self.batch_entries:
+                items.append({
+                    "name": e.drug_name,
+                    "instructions": e.instructions,
+                    "quantity": getattr(e, "copies", 1),
+                    "price": 95.0,
+                })
+        else:
+            drug = self.drug_var.get().strip() or "İlaç"
+            instr = self.instructions_text.get("1.0", "end").strip()
+            items.append({
+                "name": drug,
+                "instructions": instr,
+                "quantity": 1,
+                "price": 95.0,
+            })
+
+        patient = self.patient_var.get().strip() if hasattr(self, "patient_var") else ""
+        staff_name = self.active_profile.get("name") or "Eczacı"
+
+        tmp_fd, tmp_path = tempfile.mkstemp(suffix="_makbuz.pdf")
+        os.close(tmp_fd)
+
+        try:
+            receipt_pdf.build_receipt_pdf(
+                filename=tmp_path,
+                profile=self.active_profile,
+                items=items,
+                patient_name=patient,
+                staff_name=staff_name,
+                format_type="thermal_80",
+            )
+            _beep_success()
+            show_toast(self, "🧾 Satış fişi / makbuz başarıyla üretildi!", level="success")
+            self._show_status("✓ Satış fişi / makbuz oluşturuldu.")
+            try:
+                os.startfile(tmp_path)
+            except Exception:
+                import subprocess
+                subprocess.Popen(["xdg-open", tmp_path])
+        except Exception as e:
+            _beep_warning()
+            show_toast(self, f"Fiş oluşturulamadı: {e}", level="error")
+
+    def _reorder_batch_item(self, direction: int):
+        """Alt+Up / Alt+Down: Seçili reçete satırını yukarı veya aşağı taşır."""
+        if not self.batch_mode.get() or not hasattr(self, "batch_tree"):
+            return
+        sel = self.batch_tree.selection()
+        if not sel:
+            return
+        iid = sel[0]
+        idx = self.batch_tree.index(iid)
+        new_idx = idx + direction
+        if 0 <= new_idx < len(self.batch_entries):
+            self.batch_entries[idx], self.batch_entries[new_idx] = self.batch_entries[new_idx], self.batch_entries[idx]
+            self.batch_tree.delete(*self.batch_tree.get_children())
+            for i, entry in enumerate(self.batch_entries):
+                row_id = str(entry.id if hasattr(entry, "id") else i)
+                self.batch_tree.insert("", "end", iid=row_id, values=(entry.drug_name, entry.instructions, getattr(entry, "copies", 1)))
+            kids = self.batch_tree.get_children()
+            if 0 <= new_idx < len(kids):
+                self.batch_tree.selection_set(kids[new_idx])
+            show_toast(self, f"İlaç sırası taşındı (#{new_idx + 1})", level="info", duration_ms=1200)
 
     def _on_theme_selected(self, event=None):
         theme_map = {
@@ -1204,6 +1374,7 @@ class App(tk.Tk):
         self.drug_var.set(drug["name"])
         self._on_drug_selected()
         self._show_status(f"✓ Barkod okundu: {drug['name']}")
+        show_toast(self, f"Barkod okundu: {drug['name']}", level="success", duration_ms=2200)
         self._barcode_entry.focus_set()
 
     def _open_quick_add_drug_dialog(self, barcode: str):
@@ -1608,6 +1779,7 @@ class App(tk.Tk):
         self._update_safety_warnings()
         self.drug_combo.focus_set()
         self._show_status(f"✓ '{entry.drug_name}' listeye eklendi ({len(self.batch_entries)} ilaç kuyrukta).")
+        show_toast(self, f"'{entry.drug_name}' reçeteye eklendi.", level="success", duration_ms=2000)
 
     def _remove_from_batch(self):
         selected = self.batch_tree.selection()
@@ -1726,8 +1898,10 @@ class App(tk.Tk):
         if self.batch_mode.get():
             self._clear_batch()
             self._show_status(f"✓ {count} adet toplu etiket yazıcıya gönderildi.")
+            show_toast(self, f"✓ {count} adet toplu etiket yazdırıldı.", level="success")
         else:
             self._show_status(f"✓ '{entries[0].drug_name}' etiketi yazdırıldı.")
+            show_toast(self, f"✓ '{entries[0].drug_name}' etiketi yazdırıldı.", level="success")
             self._barcode_entry.focus_set()
 
     def _on_save_pdf(self):
@@ -1747,8 +1921,10 @@ class App(tk.Tk):
         if self.batch_mode.get():
             self._clear_batch()
             self._show_status(f"✓ {count} adet toplu etiket PDF olarak kaydedildi: {os.path.basename(path)}")
+            show_toast(self, f"✓ {count} adet etiket PDF'e aktarıldı.", level="info")
         else:
             self._show_status(f"✓ Etiket PDF olarak kaydedildi: {os.path.basename(path)}")
+            show_toast(self, f"✓ Etiket PDF kaydedildi: {os.path.basename(path)}", level="info")
             self._barcode_entry.focus_set()
         messagebox.showinfo("Kaydedildi", f"Etiket PDF olarak kaydedildi:\n{path}")
 

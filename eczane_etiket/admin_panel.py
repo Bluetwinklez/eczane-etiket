@@ -8,7 +8,7 @@ işler bu ayrı pencerede yer alır.
 import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog, ttk
 
-from . import backup, data, drug_api, drug_import, history, profiles, staff, stats, stock, theme
+from . import backup, dashboard, data, drug_api, drug_import, history, profiles, staff, stats, stock, theme
 from .label_pdf import LABEL_SIZES_MM, get_system_printers
 from .profiles import LABEL_TEMPLATES
 
@@ -16,7 +16,7 @@ from .profiles import LABEL_TEMPLATES
 def open_admin_panel(parent, on_close=None):
     win = tk.Toplevel(parent)
     win.title("Eczane Yönetim & Admin Paneli")
-    win.geometry("960x650")
+    win.geometry("980x680")
     win.minsize(880, 560)
     win.configure(bg=theme.BG_APP)
 
@@ -27,6 +27,7 @@ def open_admin_panel(parent, on_close=None):
     notebook = ttk.Notebook(win)
     notebook.pack(fill="both", expand=True, padx=10, pady=10)
 
+    _build_dashboard_tab(notebook)
     _build_profiles_tab(notebook)
     _build_drugs_tab(notebook)
     _build_stock_tab(notebook)
@@ -72,6 +73,14 @@ def _ask_choice(title, prompt, choices, current=None):
     top.grab_set()
     top.wait_window()
     return result.get("value")
+
+
+# ----------------------------------------------------------------------
+# 0. Dashboard (Özet Gösterge Paneli) Sekmesi
+# ----------------------------------------------------------------------
+def _build_dashboard_tab(notebook):
+    dash = dashboard.DashboardView(notebook, padding=12)
+    notebook.add(dash, text="📊 Dashboard")
 
 
 # ----------------------------------------------------------------------
@@ -512,13 +521,25 @@ def _build_stock_tab(notebook):
 
     ttk.Label(filter_bar, text="🔍 Ürün Ara:", style="CardBold.TLabel").pack(side="left")
     search_var = tk.StringVar()
-    ttk.Entry(filter_bar, textvariable=search_var, width=22).pack(side="left", padx=(6, 16))
+    ttk.Entry(filter_bar, textvariable=search_var, width=18).pack(side="left", padx=(6, 10))
+
+    ttk.Label(filter_bar, text="📁 Kategori:", style="CardBold.TLabel").pack(side="left", padx=(4, 4))
+    cat_var = tk.StringVar(value="Tümü")
+    cat_combo = ttk.Combobox(
+        filter_bar,
+        textvariable=cat_var,
+        values=["Tümü", "Tablet", "Şurup", "Krem", "Merhem", "Damla", "Ampul", "Süspansiyon", "Kapsül"],
+        state="readonly",
+        width=11,
+    )
+    cat_combo.pack(side="left", padx=(0, 10))
+    cat_combo.bind("<<ComboboxSelected>>", lambda e: refresh())
 
     current_filter = tk.StringVar(value="all")
     ttk.Radiobutton(filter_bar, text="Tümü", value="all", variable=current_filter, command=lambda: refresh()).pack(side="left")
-    ttk.Radiobutton(filter_bar, text="⚠️ SKT Yaklaşanlar", value="expiring", variable=current_filter, command=lambda: refresh()).pack(side="left", padx=(8, 0))
-    ttk.Radiobutton(filter_bar, text="⛔ Süresi Geçenler", value="expired", variable=current_filter, command=lambda: refresh()).pack(side="left", padx=(8, 0))
-    ttk.Radiobutton(filter_bar, text="📉 Düşük Stok", value="low", variable=current_filter, command=lambda: refresh()).pack(side="left", padx=(8, 0))
+    ttk.Radiobutton(filter_bar, text="⚠️ SKT Yaklaşanlar", value="expiring", variable=current_filter, command=lambda: refresh()).pack(side="left", padx=(6, 0))
+    ttk.Radiobutton(filter_bar, text="⛔ Süresi Geçenler", value="expired", variable=current_filter, command=lambda: refresh()).pack(side="left", padx=(6, 0))
+    ttk.Radiobutton(filter_bar, text="📉 Düşük Stok", value="low", variable=current_filter, command=lambda: refresh()).pack(side="left", padx=(6, 0))
 
     columns = ("name", "quantity", "min_quantity", "expiry", "note", "status")
     tree = ttk.Treeview(frame, columns=columns, show="headings", height=14)
@@ -528,6 +549,7 @@ def _build_stock_tab(notebook):
     tree.tag_configure("expired", background="#fee2e2", foreground="#991b1b")
     tree.tag_configure("expiring_soon", background="#fef3c7", foreground="#92400e")
     tree.tag_configure("low_stock", background="#ffedd5", foreground="#9a3412")
+    tree.tag_configure("normal", background="#ecfdf5", foreground="#065f46")
     tree.pack(fill="both", expand=True)
 
     def refresh():
@@ -536,6 +558,13 @@ def _build_stock_tab(notebook):
         query = search_var.get().strip().casefold()
         if query:
             items = [i for i in items if query in i.get("name", "").casefold()]
+
+        c_val = cat_var.get()
+        if c_val != "Tümü":
+            items = [
+                i for i in items
+                if c_val.casefold() in i.get("name", "").casefold() or c_val.casefold() in i.get("note", "").casefold()
+            ]
 
         grouped = stock.get_expiring_items()
         expired_ids = {i["id"] for i in grouped["expired"]}
@@ -563,7 +592,7 @@ def _build_stock_tab(notebook):
             elif is_low:
                 status, tag = "📉 STOK DÜŞÜK", "low_stock"
             else:
-                status, tag = "✅ NORMAL", None
+                status, tag = "✅ NORMAL", "normal"
 
             tree.insert(
                 "", "end", iid=iid,
