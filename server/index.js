@@ -6,6 +6,7 @@ const session = require('express-session');
 const { requireLogin } = require('./auth');
 const authRoutes = require('./routes/auth');
 const ilaclarRoutes = require('./routes/ilaclar');
+const satislarRoutes = require('./routes/satislar');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -27,6 +28,7 @@ app.use(
 
 app.use('/api/auth', authRoutes);
 app.use('/api/ilaclar', requireLogin, ilaclarRoutes);
+app.use('/api/satislar', requireLogin, satislarRoutes);
 
 // Diger API route'lari (satislar, musteriler, vb.) ilerleyen commit'lerde eklenecek.
 app.get('/api/health', (req, res) => res.json({ ok: true }));
