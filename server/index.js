@@ -10,6 +10,8 @@ const satislarRoutes = require('./routes/satislar');
 const musterilerRoutes = require('./routes/musteriler');
 const tedarikcilerRoutes = require('./routes/tedarikciler');
 const raporlarRoutes = require('./routes/raporlar');
+const kullanicilarRoutes = require('./routes/kullanicilar');
+const subelerRoutes = require('./routes/subeler');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -35,6 +37,8 @@ app.use('/api/satislar', requireLogin, satislarRoutes);
 app.use('/api/musteriler', requireLogin, musterilerRoutes);
 app.use('/api/tedarikciler', requireLogin, tedarikcilerRoutes);
 app.use('/api/raporlar', requireLogin, requireRole('admin', 'eczaci'), raporlarRoutes);
+app.use('/api/kullanicilar', requireLogin, requireRole('admin'), kullanicilarRoutes);
+app.use('/api/subeler', requireLogin, subelerRoutes);
 
 // Diger API route'lari (satislar, musteriler, vb.) ilerleyen commit'lerde eklenecek.
 app.get('/api/health', (req, res) => res.json({ ok: true }));
