@@ -4,14 +4,14 @@
 
 [![CI Test Suite](https://github.com/Bluetwinklez/eczane-etiket/actions/workflows/test.yml/badge.svg)](https://github.com/Bluetwinklez/eczane-etiket/actions/workflows/test.yml)
 [![Build & Release](https://github.com/Bluetwinklez/eczane-etiket/actions/workflows/release.yml/badge.svg)](https://github.com/Bluetwinklez/eczane-etiket/actions/workflows/release.yml)
-[![Sürüm](https://img.shields.io/badge/Sürüm-v1.8.0-blueviolet.svg)](CHANGELOG.md)
+[![Sürüm](https://img.shields.io/badge/Sürüm-v1.9.0-blueviolet.svg)](CHANGELOG.md)
 [![Python Sürümü](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
-[![Testler](https://img.shields.io/badge/Testler-108%20Geçti%20(%25100)-brightgreen.svg)]()
+[![Testler](https://img.shields.io/badge/Testler-117%20Geçti%20(%25100)-brightgreen.svg)]()
 [![Lisans: MIT](https://img.shields.io/badge/Lisans-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)]()
 [![Veri Gizliliği](https://img.shields.io/badge/Veri%20Gizliliği-%25100%20Yerel%20%2F%20Çevrimdışı-emerald.svg)](SECURITY.md)
 
-**Türkiye'deki serbest eczaneler, hastane eczaneleri ve poliklinikler için tasarlanmış klinik güvenlik denetimli, akıllı karekod ayrıştırmalı, A4 hasta kullanım çizelgeli ve %100 çevrimdışı termal etiket basım sistemi.**
+**Türkiye'deki serbest eczaneler, hastane eczaneleri ve poliklinikler için tasarlanmış Medula otomatik reçete çekimli, klinik güvenlik denetimli, akıllı karekod ayrıştırmalı, A4 hasta kullanım çizelgeli ve %100 çevrimdışı termal etiket basım sistemi.**
 
 [🚀 Özellikler](#-öne-çıkan-özellikler) • [⚡ Hızlı Kurulum](#-hızlı-başlangıç-kurulum) • [🛡️ Klinik Güvenlik](#-1-klinik-güvenlik--mükerrer-doz-koruması-yeni) • [📄 Hasta Çizelgesi](#-2-hasta-ilaç-kullanım-çizelgesi-a4-pdf-yeni) • [🖨️ Yazıcılar](#️-desteklenen-yazıcılar-ve-etiketler) • [⌨️ Kısayollar](#️-klavye-kısayolları) • [⚙️ Admin Paneli](#️-admin-paneli) • [🚀 Dağıtım](#-dağıtım-deployment--paketleme) • [❓ SSS](#-sık-sorulan-sorular-sss)
 
@@ -142,16 +142,12 @@ Optik barkod okuyucuyla kutu üzerindeki karekod okutulduğunda:
 
 ---
 
-### 📊 8. Etiket Üzerinde Görsel Doz Çizelgesi Tablosu
-- Yaşlı, okuma güçlüğü çeken ya da yabancı hastalar için etiket üzerine 4 sütunlu görsel dozaj matrisi basılır:
-  ```
-  ┌───────┬───────┬───────┬───────┐
-  │ SABAH │ ÖĞLE  │ AKŞAM │ GECE  │
-  ├───────┼───────┼───────┼───────┤
-  │   1   │   -   │   1   │   -   │
-  └───────┴───────┴───────┴───────┘
-  ```
-- Canlı önizleme panelindeki **"📊 Doz Çizelgesi"** seçeneğiyle tek tıkla açılıp kapatılabilir.
+### ⚡ 8. Medula'dan Otomatik Reçete Çekme & Canlı Dinleyici (YENİ v1.9.0)
+Eczacının reçetedeki ilaçları tek tek elle seçmesine gerek bırakmayan çift kanallı otomatik aktarım:
+- **Akıllı Pano Canlı İzleyici:** Medula reçete sayfasındayken reçeteyi kopyalamanız (Ctrl+C) yeterlidir. Program metni arka planda otomatik olarak tanır, hasta adı ve ilaçları sırayla toplu listeye yükler.
+- **Otomatik Yazdırma Onayı:** Reçete çekildiği an ekrana *"Medula Reçetesi Yazdırılsın mı?"* sorusu gelir. Enter veya Evet ile tüm etiketler doğrudan yazıcıya gönderilir.
+- **Tarayıcı 1-Tık Butonu (Bookmarklet & Tampermonkey):** Chrome/Edge yer imlerine eklenen tek bir butonla veya sayfadaki yüzen *"🏷️ Etiket Yazdır"* butonuyla Medula web sayfasından yerel programa doğrudan veri iletilir.
+- **Sade & Net Etiket Baskısı:** Etikette gereksiz barkod ve kafa karıştırıcı sabah/öğle tablo kalabalığı tamamen elenmiştir. Altbilgide sadece eczanenizin resmi adı ve iletişim telefonu şık bir şekilde basılır.
 
 ---
 

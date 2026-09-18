@@ -6,6 +6,7 @@ personel, geçmiş/raporlar, stok, yedekleme) Admin Panelinde toplanır.
 """
 
 import datetime as _dt
+import hashlib
 import os
 import re
 import tempfile
@@ -22,6 +23,7 @@ from . import (
     data,
     diagnostics,
     history,
+    medula_watcher,
     prescription_parser,
     pricing,
     profiles,
@@ -94,11 +96,21 @@ class App(tk.Tk):
         saved_printer = self.active_profile.get("default_printer")
         self.selected_printer_var = tk.StringVar(value=saved_printer or "(Varsayılan Yazıcı)")
 
+        # Medula Otomatik Reçete Servisi ve Akıllı Pano İzleyici
+        self.auto_medula_var = tk.BooleanVar(value=True)
+        self._last_medula_hash = ""
+        self.medula_server = medula_watcher.MedulaServer(on_prescription_received=self._on_medula_webhook_received)
+        self.medula_server.start()
+        self.protocol("WM_DELETE_WINDOW", self._on_app_close)
+
         self._build_layout()
         self._refresh_instruction_buttons(data.DEFAULT_FORM)
         self._refresh_history_list()
         self._refresh_preview()
         self._barcode_entry.focus_set()
+
+        # Medula panosunu arka planda sessizce izle (otomatik yakalama)
+        self.after(1000, self._poll_clipboard_for_medula)
 
         # Klavye kısayolları (POS Ergonomisi)
         self.bind("<F1>", lambda e: self._show_shortcut_help())
@@ -355,8 +367,11 @@ class App(tk.Tk):
         self.pediatric_btn.pack(side="left", padx=(8, 0))
 
         ttk.Button(
-            top_bar, text="📋 Medula Reçete (Ctrl+M)", command=self._quick_paste_from_clipboard
+            top_bar, text="⚡ Medula Çekim", style="Accent.TButton", command=self._open_medula_bridge_dialog
         ).pack(side="right")
+        ttk.Button(
+            top_bar, text="📋 Panodan Çek (Ctrl+M)", command=self._quick_paste_from_clipboard
+        ).pack(side="right", padx=(0, 6))
 
         # 1.5. Klinik İlaç Güvenlik & Etkileşim Uyarı Afişi (Dinamik)
         self.safety_banner_frame = tk.Frame(parent, bg="#fffbeb", highlightbackground="#f59e0b", highlightthickness=1, padx=8, pady=5)
@@ -1906,6 +1921,113 @@ class App(tk.Tk):
             pass
         text_widget.focus_set()
 
+    def _on_app_close(self):
+        """Program kapatılırken arka plan servislerini temizler."""
+        if hasattr(self, "medula_server") and self.medula_server:
+            try:
+                self.medula_server.stop()
+            except Exception:
+                pass
+        self.destroy()
+
+    def _on_medula_webhook_received(self, raw_text: str):
+        """Yerel HTTP sunucusundan (127.0.0.1:18888) gelen Medula verisini ana döngüye iletir."""
+        self.after(0, lambda: self._handle_auto_medula_rx(raw_text, source="Medula Tarayıcı Butonu"))
+
+    def _poll_clipboard_for_medula(self):
+        """Arka planda panoyu dinler; Medula reçetesi kopyalandığında otomatik olarak yakalar."""
+        try:
+            if getattr(self, "auto_medula_var", None) and self.auto_medula_var.get():
+                clip_text = self.clipboard_get().strip()
+                if len(clip_text) >= 15:
+                    text_hash = hashlib.md5(clip_text.encode("utf-8", errors="ignore")).hexdigest()
+                    if text_hash != self._last_medula_hash:
+                        self._last_medula_hash = text_hash
+                        if medula_watcher.is_medula_prescription_text(clip_text):
+                            self._handle_auto_medula_rx(clip_text, source="Canlı Pano (Otomatik)")
+        except Exception:
+            pass
+        finally:
+            try:
+                self.after(800, self._poll_clipboard_for_medula)
+            except Exception:
+                pass
+
+    def _handle_auto_medula_rx(self, raw_text: str, source: str = "Medula") -> bool:
+        """Medula reçetesini otomatik ayrıştırır, batch listesine ekler ve yazdırma onayını sorar."""
+        if not raw_text or len(raw_text.strip()) < 10:
+            return False
+
+        try:
+            # Uygulama penceresini öne getir
+            self.deiconify()
+            self.lift()
+            self.attributes("-topmost", True)
+            self.after(150, lambda: self.attributes("-topmost", False))
+            self.focus_force()
+        except Exception:
+            pass
+
+        meta = prescription_parser.extract_prescription_metadata(raw_text)
+        if meta.get("patient_name") and not self.patient_var.get().strip():
+            self.patient_var.set(meta["patient_name"])
+        if meta.get("diagnosis") and not self.purpose_var.get().strip():
+            self.purpose_var.set(meta["diagnosis"])
+
+        parsed_lines = prescription_parser.parse_prescription_text(raw_text, self.drug_list)
+        if not parsed_lines:
+            return False
+
+        # Eğer listede önceki reçeteden kalan ilaçlar varsa sor
+        if len(self.batch_entries) > 0:
+            clear_prev = messagebox.askyesno(
+                "Yeni Medula Reçetesi",
+                f"Listede {len(self.batch_entries)} adet önceki ilaç bulunuyor.\n\n"
+                "Yeni reçete için liste temizlensin mi?\n\n"
+                "(Evet: Önceki ilaçları temizler, Hayır: Mevcut listeye ekler)",
+                parent=self,
+            )
+            if clear_prev:
+                self.batch_entries.clear()
+                self.batch_tree.delete(*self.batch_tree.get_children())
+
+        self.batch_mode.set(True)
+        self._on_mode_change()
+
+        added = 0
+        for p in parsed_lines:
+            if not p.drug_name:
+                continue
+            entry = self._build_entry_from_parsed(p)
+            self.batch_entries.append(entry)
+            iid = str(uuid.uuid4())
+            self.batch_tree.insert("", "end", iid=iid, values=(entry.drug_name, entry.instructions, entry.copies))
+            added += 1
+
+        if added == 0:
+            return False
+
+        self._update_safety_warnings()
+        self._refresh_preview()
+        _beep_success()
+        self._show_status(f"✓ {source}: {added} adet Medula ilacı otomatik aktarıldı.")
+        show_toast(self, f"Medula: {added} ilaç çekildi", level="success")
+
+        p_name = self.patient_var.get().strip()
+        pat_info = f" (Hasta: {p_name})" if p_name else ""
+
+        # Kullanıcı kuralı: Otomatik medulada reçete girildiğinde yazdırılsın mı diye sorsun
+        should_print = messagebox.askyesno(
+            "Medula Reçetesi Yazdırılsın mı?",
+            f"Medula'dan {added} adet ilaç başarıyla çekildi{pat_info}.\n\n"
+            "Etiketler hemen yazıcıya gönderilsin mi?",
+            parent=self,
+        )
+        if should_print:
+            self._on_print()
+
+        return True
+
     def _quick_paste_from_clipboard(self):
         """Panodan (Ctrl+M) Medula reçetesini okur, ayrıştırır ve yazdırılsın mı diye sorar."""
         try:
@@ -1917,45 +2039,142 @@ class App(tk.Tk):
             self._open_quick_paste_dialog()
             return
 
-        meta = prescription_parser.extract_prescription_metadata(clipboard_text)
-        if meta.get("patient_name") and not self.patient_var.get().strip():
-            self.patient_var.set(meta["patient_name"])
-        if meta.get("diagnosis") and not self.purpose_var.get().strip():
-            self.purpose_var.set(meta["diagnosis"])
-
-        parsed_lines = prescription_parser.parse_prescription_text(clipboard_text, self.drug_list)
-        if not parsed_lines:
-            # Standart reçete formatında değilse diyalog penceresini aç
+        handled = self._handle_auto_medula_rx(clipboard_text, source="Pano (Ctrl+M)")
+        if not handled:
             self._open_quick_paste_dialog()
-            return
 
-        self.batch_mode.set(True)
-        self._on_mode_change()
-        added = 0
-        for p in parsed_lines:
-            if not p.drug_name:
-                continue
-            entry = self._build_entry_from_parsed(p)
-            self.batch_entries.append(entry)
-            iid = str(uuid.uuid4())
-            self.batch_tree.insert("", "end", iid=iid, values=(entry.drug_name, entry.instructions, entry.copies))
-            added += 1
+    def _open_medula_bridge_dialog(self):
+        """Medula otomatik reçete çekme ve tarayıcı entegrasyonu merkezi penceresi."""
+        top = tk.Toplevel(self)
+        top.title("⚡ Medula Otomatik Reçete Çekme Merkezi")
+        top.geometry("640x530")
+        top.configure(bg=theme.BG_APP)
+        top.transient(self)
 
-        self._update_safety_warnings()
-        self._show_status(f"✓ Panodan {added} adet Medula ilacı aktarıldı.")
-        show_toast(self, f"Medula: {added} ilaç aktarıldı", level="success")
+        content = ttk.Frame(top, padding=16)
+        content.pack(fill="both", expand=True)
 
-        if added > 0:
-            p_name = self.patient_var.get().strip()
-            pat_info = f" (Hasta: {p_name})" if p_name else ""
-            should_print = messagebox.askyesno(
-                "Medula Reçetesi Yazdırılsın mı?",
-                f"Medula'dan {added} adet ilaç başarıyla aktarıldı{pat_info}.\n\n"
-                "Etiketler hemen yazıcıya gönderilsin mi?",
-                parent=self,
+        ttk.Label(
+            content,
+            text="⚡ Medula Otomatik Reçete Entegrasyonu",
+            style="Title.TLabel",
+        ).pack(anchor="w", pady=(0, 4))
+
+        ttk.Label(
+            content,
+            text=(
+                "Medula Eczane portalındaki reçeteleri hiçbir zahmete girmeden\n"
+                "otomatik olarak programa aktarabilir ve tek tıkla yazdırabilirsiniz."
+            ),
+            style="Muted.TLabel",
+            justify="left",
+        ).pack(anchor="w", pady=(0, 12))
+
+        # 1. Durum Kartı
+        status_card = ttk.LabelFrame(content, text=" 📡 Canlı Dinleyici Durumu ", padding=10)
+        status_card.pack(fill="x", pady=(0, 12))
+
+        is_running = hasattr(self, "medula_server") and self.medula_server and self.medula_server.is_running
+        port = self.medula_server.port if is_running else 18888
+        status_text = f"🟢 AKTİF — Yerel Dinleyici Portu: {port}" if is_running else "🔴 PASİF"
+        ttk.Label(status_card, text=status_text, font=(theme.FONT_FAMILY, 10, "bold")).pack(anchor="w", pady=(0, 6))
+
+        ttk.Checkbutton(
+            status_card,
+            text="⚡ Akıllı Pano İzleyiciyi Etkinleştir (Medula'dan kopyalanan reçeteleri otomatik yakalar)",
+            variable=self.auto_medula_var,
+        ).pack(anchor="w")
+
+        # 2. Seçenekler Kartı
+        opts_card = ttk.LabelFrame(content, text=" 🚀 Reçete Çekme Yöntemleri ", padding=10)
+        opts_card.pack(fill="x", pady=(0, 12))
+
+        # Yöntem 1
+        m1_frame = ttk.Frame(opts_card)
+        m1_frame.pack(fill="x", pady=(0, 8))
+        ttk.Label(
+            m1_frame,
+            text="1. Yöntem: Otomatik Pano Algılama (Kurulumsuz En Kolay Yol)",
+            font=(theme.FONT_FAMILY, 9, "bold"),
+        ).pack(anchor="w")
+        ttk.Label(
+            m1_frame,
+            text="Medula reçete ekranındayken reçeteyi seçip kopyalamanız (Ctrl+C) yeterlidir. Program arka planda otomatik yakalar ve yazdırma onayını açar.",
+            style="Muted.TLabel",
+            wraplength=580,
+            justify="left",
+        ).pack(anchor="w", padx=(10, 0), pady=(2, 0))
+
+        # Yöntem 2
+        m2_frame = ttk.Frame(opts_card)
+        m2_frame.pack(fill="x", pady=(0, 4))
+        ttk.Label(
+            m2_frame,
+            text="2. Yöntem: Tarayıcı 1-Tık Butonu (Bookmarklet / Yer İmi)",
+            font=(theme.FONT_FAMILY, 9, "bold"),
+        ).pack(anchor="w")
+        ttk.Label(
+            m2_frame,
+            text="Chrome veya Edge tarayıcınızın yer imleri çubuğuna ekleyeceğiniz butonla Medula sayfasındayken tek tıkla buraya aktarın.",
+            style="Muted.TLabel",
+            wraplength=580,
+            justify="left",
+        ).pack(anchor="w", padx=(10, 0), pady=(2, 4))
+
+        def copy_bm_code():
+            bm_code = medula_watcher.get_bookmarklet_code(port)
+            self.clipboard_clear()
+            self.clipboard_append(bm_code)
+            show_toast(self, "✓ Yer İmi kodu panoya kopyalandı!", level="success")
+            messagebox.showinfo(
+                "Yer İmi Kodu Kopyalandı",
+                "Yer İmi (Bookmarklet) JavaScript kodu panoya kopyalandı!\n\n"
+                "Kurulum:\n"
+                "1. Chrome veya Edge'de Yer İmleri Çubuğuna sağ tıklayıp 'Sayfa Ekle' (veya 'Yer İmi Ekle') deyin.\n"
+                "2. İsim olarak '🏷️ Medula Etiket' yazın.\n"
+                "3. URL / Adres kısmına panodaki kodu yapıştırın (Ctrl+V) ve kaydedin.\n\n"
+                "Artık Medula reçete sayfasındayken bu butona bastığınızda reçete anında buraya aktarılacaktır!",
+                parent=top,
             )
-            if should_print:
-                self._on_print()
+
+        def copy_userscript():
+            us_code = medula_watcher.get_userscript_code(port)
+            self.clipboard_clear()
+            self.clipboard_append(us_code)
+            show_toast(self, "✓ Tampermonkey eklenti kodu kopyalandı!", level="success")
+            messagebox.showinfo(
+                "Eklenti Kodu Kopyalandı",
+                "Tampermonkey / Violentmonkey eklenti kodu panoya kopyalandı.\n"
+                "Tarayıcınızdaki Tampermonkey eklentisine yeni betik olarak yapıştırıp kaydedebilirsiniz.",
+                parent=top,
+            )
+
+        def send_test_rx():
+            test_text = (
+                "T.C. Kimlik: 12345678901\n"
+                "Hasta Adı: Ayşe Yılmaz\n"
+                "E-Reçete No: TEST1234\n"
+                "1- PAROL 500MG 20 TABLET - Günde 3x1 Tok\n"
+                "2- AUGMENTIN BID 1000MG 14 TABLET - 2x1 Tok\n"
+            )
+            top.destroy()
+            self._handle_auto_medula_rx(test_text, source="Medula Test")
+
+        btn_grid = ttk.Frame(opts_card)
+        btn_grid.pack(fill="x", pady=(6, 2))
+        ttk.Button(btn_grid, text="📋 Yer İmi Kodunu Kopyala", command=copy_bm_code).pack(side="left", padx=(0, 6))
+        ttk.Button(btn_grid, text="📜 Tampermonkey Kodu", command=copy_userscript).pack(side="left", padx=(0, 6))
+        ttk.Button(btn_grid, text="🧪 Test Reçetesi Gönder", command=send_test_rx).pack(side="left")
+
+        # Alt Butonlar
+        bottom_bar = ttk.Frame(content)
+        bottom_bar.pack(fill="x", side="bottom", pady=(12, 0))
+        ttk.Button(bottom_bar, text="Kapat", command=top.destroy).pack(side="right")
+        ttk.Button(
+            bottom_bar,
+            text="📋 Şimdi Panoyu Tara (Ctrl+M)",
+            command=lambda: [top.destroy(), self._quick_paste_from_clipboard()],
+        ).pack(side="right", padx=(0, 8))
 
     def _add_to_batch(self):
         """Mevcut ilacı toplu listeye ekler ve formdaki ilaç alanını bir sonraki ilaç için temizler."""

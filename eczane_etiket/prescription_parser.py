@@ -31,6 +31,10 @@ _METADATA_PATTERNS = [
     re.compile(r"^(?:doktor|hekim|dr\.?|uzm\.?\s*dr\.?|prof\.?\s*dr\.?|op\.?\s*dr\.?)\s*[:\-]\s*(.+)$", re.IGNORECASE),
     re.compile(r"^(?:tan[ıi]|te[şs]his)\s*[:\-]\s*(.+)$", re.IGNORECASE),
     re.compile(r"^(?:sgk|medula|provizyon|sosyal\s+güvenlik\s+kurumu)", re.IGNORECASE),
+    re.compile(r"^(?:s[ıi]ra\s+)?(?:barkod\s+)?(?:ila[çc]\s*ad[ıi])", re.IGNORECASE),
+    re.compile(r"^(?:ila[çc]\s*kodu|kullan[ıi]m\s*dozu|kullan[ıi]m\s*periyodu|ila[çc]\s*a[çc][ıi]klama)", re.IGNORECASE),
+    re.compile(r"^(?:teslim\s*alan|teslim\s*eden|toplam\s*tutar|eczane\s*pay[ıi]|katk[ıi]\s*pay[ıi])", re.IGNORECASE),
+    re.compile(r"^(?:re[çc]ete\s*ila[çc]\s*listesi|kay[ıi]tl[ıi]\s*ila[çc]lar)", re.IGNORECASE),
 ]
 
 _DOSAGE_INLINE_RE = re.compile(
@@ -71,6 +75,21 @@ def extract_prescription_metadata(text: str) -> dict:
 
 
 def _split_name_and_instructions(line: str) -> tuple:
+    # 0. Tab ayrımı (HTML tablolardan kopyalama)
+    if "\t" in line:
+        parts = [p.strip() for p in line.split("\t") if p.strip()]
+        filtered = []
+        for p in parts:
+            if re.match(r"^\d+$", p) and len(p) <= 3:  # sıra no (1, 2)
+                continue
+            if re.match(r"^86\d{11}$", p):  # barkod
+                continue
+            filtered.append(p)
+        if len(filtered) >= 2:
+            return filtered[0], " ".join(filtered[1:])
+        elif len(filtered) == 1:
+            line = filtered[0]
+
     for sep in _SEPARATORS:
         if sep in line:
             name, _, rest = line.partition(sep)
@@ -122,7 +141,7 @@ def parse_prescription_text(text: str, drugs: Optional[list] = None) -> list:
 
     Her boş olmayan ilaç satırı bağımsız bir ilaç kabul edilir.
     Hasta adı, reçete no, tarih gibi başlık satırları otomatik atlanır.
-    Baştaki "1-", "2)" gibi sıra numaraları temizlenir.
+    Baştaki "1-", "2)" gibi sıra numaraları ve barkodlar temizlenir.
     """
     if drugs is None:
         drugs = data.load_drug_list()
@@ -134,12 +153,27 @@ def parse_prescription_text(text: str, drugs: Optional[list] = None) -> list:
         if is_metadata_line(line):
             continue
         line = _LEADING_NUMBER_RE.sub("", line)
+
+        # Barkod eşleşmesi kontrolü (ör: 8699525095328)
+        barcode_match = re.search(r"\b(86\d{11})\b", line)
+        matched = None
+        if barcode_match:
+            bc = barcode_match.group(1)
+            for d in drugs:
+                if d.get("barcode") == bc:
+                    matched = d
+                    break
+            line = line.replace(bc, " ").strip()
+
         name_guess, instructions = _split_name_and_instructions(line)
-        matched = _match_drug(name_guess, drugs)
+        if not matched:
+            matched = _match_drug(name_guess, drugs)
+
+        drug_name = matched["name"] if matched else name_guess
         results.append(
             ParsedLine(
                 raw_line=raw_line.strip(),
-                drug_name=matched["name"] if matched else name_guess,
+                drug_name=drug_name,
                 instructions=instructions,
                 matched_drug=matched,
             )
