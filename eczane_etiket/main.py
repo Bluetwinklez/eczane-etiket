@@ -14,7 +14,24 @@ import uuid
 from tkinter import filedialog, messagebox, simpledialog, ttk
 from typing import Optional
 
-from . import __version__, dashboard, data, history, prescription_parser, profiles, receipt_pdf, staff, theme, toast
+from . import (
+    __version__,
+    clinical,
+    counseling_msg,
+    dashboard,
+    data,
+    diagnostics,
+    history,
+    prescription_parser,
+    pricing,
+    profiles,
+    receipt_pdf,
+    staff,
+    theme,
+    toast,
+    translator,
+    z_report,
+)
 from .label_pdf import LabelEntry, build_label_pdf, get_system_printers, print_pdf
 from .toast import show_toast
 
@@ -202,6 +219,8 @@ class App(tk.Tk):
         btn_box.pack(side="right")
         ttk.Button(btn_box, text="⚙️ Admin", style="Header.TButton", command=self._open_admin_panel).pack(side="right", padx=(4, 0))
         ttk.Button(btn_box, text="📊 Dashboard", style="Header.TButton", command=self._open_dashboard).pack(side="right", padx=(4, 0))
+        ttk.Button(btn_box, text="📑 Z-Raporu", style="Header.TButton", command=self._on_z_report).pack(side="right", padx=(4, 0))
+        ttk.Button(btn_box, text="💬 WhatsApp", style="Header.TButton", command=self._open_counseling_dialog).pack(side="right", padx=(4, 0))
         ttk.Button(btn_box, text="🧾 Fiş Bas (F9)", style="Header.TButton", command=self._on_print_receipt).pack(side="right", padx=(4, 0))
         ttk.Button(btn_box, text="⌨️ Kısayollar", style="Header.TButton", command=self._show_shortcut_help).pack(side="right", padx=(4, 0))
         ttk.Button(btn_box, text="ℹ️ Hakkında", style="Header.TButton", command=self._show_about).pack(side="right", padx=(4, 0))
@@ -223,11 +242,25 @@ class App(tk.Tk):
         self.header_template_combo.pack(side="right", padx=(0, 4))
         self.header_template_combo.bind("<<ComboboxSelected>>", self._on_header_template_selected)
 
+        # Çoklu Dil Seçici (Header Üzerinde)
+        self.header_lang_var = tk.StringVar(value="🇹🇷 Türkçe")
+        self.header_lang_combo = ttk.Combobox(
+            btn_box,
+            textvariable=self.header_lang_var,
+            values=["🇹🇷 Türkçe", "🇬🇧 English", "🇸🇾 العربية", "🇩🇪 Deutsch", "🇷🇺 Русский"],
+            width=10,
+            state="readonly",
+        )
+        self.header_lang_combo.pack(side="right", padx=(0, 4))
+        self.header_lang_combo.bind("<<ComboboxSelected>>", self._on_language_selected)
+
         # Tema Seçici (Header Üzerinde)
         theme_names_rev = {
             "light": "☀️ Gündüz",
             "dark": "🌙 Gece Nöbeti",
             "emerald": "🌿 Eczane Yeşili",
+            "ocean": "🌊 Okyanus",
+            "cosmic": "🌌 Kozmik",
         }
         init_theme_name = theme_names_rev.get(self.active_profile.get("theme", "light"), "☀️ Gündüz")
         self.theme_var = tk.StringVar(value=init_theme_name)
@@ -235,7 +268,7 @@ class App(tk.Tk):
         self.theme_combo = ttk.Combobox(
             btn_box,
             textvariable=self.theme_var,
-            values=["☀️ Gündüz", "🌙 Gece Nöbeti", "🌿 Eczane Yeşili"],
+            values=["☀️ Gündüz", "🌙 Gece Nöbeti", "🌿 Eczane Yeşili", "🌊 Okyanus", "🌌 Kozmik"],
             width=13,
             state="readonly",
         )
@@ -787,7 +820,7 @@ class App(tk.Tk):
         self._refresh_preview()
 
     def _update_safety_warnings(self):
-        """Reçetedeki veya formdaki ilaçlar arasındaki klinik etkileşim ve mükerrer dozları kontrol eder."""
+        """Reçetedeki veya formdaki ilaçlar arasındaki klinik etkileşim, doz aşımı ve geriatrik riskleri kontrol eder."""
         if not hasattr(self, "safety_banner_frame") or self.safety_banner_frame is None:
             return
 
@@ -804,6 +837,25 @@ class App(tk.Tk):
                 for w in data.check_drug_safety_warnings(d, rest):
                     if w not in all_warnings:
                         all_warnings.append(w)
+
+        # 2. İleri Düzey Klinik Etkileşim Kontrolü
+        drugs_to_check = ([current_drug] if current_drug else []) + batch_drugs
+        for inter in clinical.check_clinical_interactions(drugs_to_check):
+            if inter["message"] not in all_warnings:
+                all_warnings.append(f"[{inter['level']}] {inter['message']}")
+
+        # 3. Maksimum Günlük Doz Aşımı Kontrolü
+        if current_drug:
+            instr = self.instructions_text.get("1.0", "end").strip()
+            max_warn = clinical.check_max_daily_dose(current_drug, instr)
+            if max_warn and max_warn["warning"] not in all_warnings:
+                all_warnings.append(max_warn["warning"])
+
+        # 4. Geriatrik Beers Risk Kontrolü
+        if current_drug:
+            g_warn = clinical.check_geriatric_beers_risk(current_drug)
+            if g_warn and g_warn not in all_warnings:
+                all_warnings.append(g_warn)
 
         if all_warnings:
             _beep_warning()
@@ -974,11 +1026,116 @@ class App(tk.Tk):
                 self.batch_tree.selection_set(kids[new_idx])
             show_toast(self, f"İlaç sırası taşındı (#{new_idx + 1})", level="info", duration_ms=1200)
 
+    def _on_language_selected(self, event=None):
+        """Çoklu dil seçiciden dil seçildiğinde talimatı otomatik tercüme eder."""
+        val = self.header_lang_var.get()
+        mapping = {
+            "🇹🇷 Türkçe": "tr",
+            "🇬🇧 English": "en",
+            "🇸🇾 العربية": "ar",
+            "🇩🇪 Deutsch": "de",
+            "🇷🇺 Русский": "ru",
+        }
+        code = mapping.get(val, "tr")
+        if code != "tr":
+            self._translate_instructions(code)
+
+    def _translate_instructions(self, lang_code: str):
+        """Kullanım talimatını seçilen yabancı dile çevirir."""
+        cur = self.instructions_text.get("1.0", "end").strip()
+        if not cur:
+            return
+        translated = translator.translate_instruction(cur, target_lang=lang_code)
+        self.instructions_text.delete("1.0", "end")
+        self.instructions_text.insert("1.0", translated)
+        self._refresh_preview()
+        show_toast(self, f"Talimat çevrildi: {lang_code.upper()}", level="info")
+
+    def _open_counseling_dialog(self):
+        """Hastaya WhatsApp veya SMS ile ilaç bilgilendirme metni hazırlama penceresi."""
+        top = tk.Toplevel(self)
+        top.title("💬 Hasta Bilgilendirme & WhatsApp / SMS")
+        top.geometry("580x460")
+        top.configure(bg=theme.BG_CARD)
+
+        card = ttk.Frame(top, style="Card.TFrame", padding=14)
+        card.pack(fill="both", expand=True)
+
+        ttk.Label(card, text="💬 Hasta Danışmanlık ve Bilgilendirme Metni", font=(theme.FONT_FAMILY, 11, "bold"), foreground=theme.PRIMARY).pack(anchor="w", pady=(0, 6))
+
+        items = []
+        if self.batch_mode.get() and self.batch_entries:
+            for e in self.batch_entries:
+                items.append({
+                    "name": e.drug_name,
+                    "instructions": e.instructions,
+                    "refill_date": getattr(e, "refill_date", ""),
+                })
+        else:
+            items.append({
+                "name": self.drug_var.get().strip() or "İlaç",
+                "instructions": self.instructions_text.get("1.0", "end").strip(),
+                "refill_date": self.refill_date_var.get().strip(),
+            })
+
+        patient = self.patient_var.get().strip() if hasattr(self, "patient_var") else ""
+        pharmacy_name = self.active_profile.get("name") or "Eczanem"
+        pharmacy_phone = self.active_profile.get("phone") or ""
+
+        wa_text = counseling_msg.generate_patient_whatsapp_summary(
+            patient_name=patient,
+            pharmacy_name=pharmacy_name,
+            pharmacy_phone=pharmacy_phone,
+            items=items,
+        )
+
+        txt_box = tk.Text(card, font=(theme.FONT_FAMILY, 9), height=14, wrap="word", bg=theme.BG_CARD, fg=theme.TEXT_PRIMARY)
+        txt_box.pack(fill="both", expand=True, pady=6)
+        txt_box.insert("1.0", wa_text)
+
+        def copy_to_clipboard():
+            self.clipboard_clear()
+            self.clipboard_append(txt_box.get("1.0", "end").strip())
+            show_toast(top, "Metin panoya kopyalandı!", level="success")
+
+        btn_box = ttk.Frame(card)
+        btn_box.pack(fill="x", pady=(6, 0))
+        ttk.Button(btn_box, text="📋 Panoya Kopyala", style="Primary.TButton", command=copy_to_clipboard).pack(side="left")
+        ttk.Button(btn_box, text="Kapat", command=top.destroy).pack(side="right")
+
+    def _on_z_report(self):
+        """Günün Z-Raporunu oluşturur ve açar."""
+        import tempfile
+        tmp_fd, tmp_path = tempfile.mkstemp(suffix="_z_raporu.pdf")
+        os.close(tmp_fd)
+        try:
+            z_report.build_z_report_pdf(tmp_path, self.active_profile)
+            _beep_success()
+            show_toast(self, "📑 Gün Sonu Z-Raporu hazırlandı!", level="success")
+            try:
+                os.startfile(tmp_path)
+            except Exception:
+                import subprocess
+                subprocess.Popen(["xdg-open", tmp_path])
+        except Exception as e:
+            messagebox.showerror("Hata", f"Z-Raporu oluşturulamadı: {e}")
+
+    def _toggle_preview_zoom(self):
+        """Önizleme metin boyutunu döngüsel olarak büyütüp küçültür."""
+        scales = [10, 13, 16]
+        cur = getattr(self, "_preview_zoom_font_size", 10)
+        nxt = scales[(scales.index(cur) + 1) % len(scales)] if cur in scales else 10
+        self._preview_zoom_font_size = nxt
+        self.preview_text.configure(font=(theme.FONT_FAMILY, nxt))
+        show_toast(self, f"Önizleme boyutu: {nxt} pt", level="info", duration_ms=1200)
+
     def _on_theme_selected(self, event=None):
         theme_map = {
             "☀️ Gündüz": "light",
             "🌙 Gece Nöbeti": "dark",
             "🌿 Eczane Yeşili": "emerald",
+            "🌊 Okyanus": "ocean",
+            "🌌 Kozmik": "cosmic",
         }
         key = theme_map.get(self.theme_var.get(), "light")
         self._switch_theme(key)
