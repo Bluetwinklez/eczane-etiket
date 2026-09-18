@@ -125,6 +125,8 @@ class App(tk.Tk):
         self.bind("<Control-Return>", lambda e: self._add_to_batch() if self.batch_mode.get() else None)
         self.bind("<Alt-Up>", lambda e: self._reorder_batch_item(-1))
         self.bind("<Alt-Down>", lambda e: self._reorder_batch_item(1))
+        self.bind("<Control-m>", lambda e: self._quick_paste_from_clipboard())
+        self.bind("<Control-M>", lambda e: self._quick_paste_from_clipboard())
 
         self.after(150, self._maybe_first_run_setup)
 
@@ -353,7 +355,7 @@ class App(tk.Tk):
         self.pediatric_btn.pack(side="left", padx=(8, 0))
 
         ttk.Button(
-            top_bar, text="📋 Hızlı Yapıştır (Reçete)", command=self._open_quick_paste_dialog
+            top_bar, text="📋 Medula Reçete (Ctrl+M)", command=self._quick_paste_from_clipboard
         ).pack(side="right")
 
         # 1.5. Klinik İlaç Güvenlik & Etkileşim Uyarı Afişi (Dinamik)
@@ -928,6 +930,7 @@ class App(tk.Tk):
             ("F12 / Ctrl+P", "Etiketi Yazıcıya Gönder", "Yazdırma"),
             ("Ctrl+S", "Etiketi PDF Olarak Kaydet", "Dışa Aktarma"),
             ("Esc / Ctrl+N", "Formu Temizle ve Sıfırla", "Form İptal"),
+            ("Ctrl+M", "Medula Reçetesini Panodan Aktar & Yazdır", "Medula Hızlı Aktarım"),
             ("Alt + Yukarı / Aşağı", "Reçete Listesi Satırını Sırala", "Toplu Mod"),
         ]
         for key, act, scope in shortcuts:
@@ -1875,6 +1878,18 @@ class App(tk.Tk):
             self._update_safety_warnings()
             self._show_status(f"✓ {added} ilaç toplu etiket listesine aktarıldı.")
 
+            if added > 0:
+                p_name = self.patient_var.get().strip()
+                pat_info = f" (Hasta: {p_name})" if p_name else ""
+                should_print = messagebox.askyesno(
+                    "Medula Reçetesi Yazdırılsın mı?",
+                    f"Medula'dan {added} adet ilaç başarıyla aktarıldı{pat_info}.\n\n"
+                    "Etiketler hemen yazıcıya gönderilsin mi?",
+                    parent=self,
+                )
+                if should_print:
+                    self._on_print()
+
         btns = ttk.Frame(frame)
         btns.pack(fill="x")
         ttk.Button(btns, text="🔍 Ayrıştır", style="Primary.TButton", command=do_parse).pack(side="left")
@@ -1890,6 +1905,57 @@ class App(tk.Tk):
         except Exception:
             pass
         text_widget.focus_set()
+
+    def _quick_paste_from_clipboard(self):
+        """Panodan (Ctrl+M) Medula reçetesini okur, ayrıştırır ve yazdırılsın mı diye sorar."""
+        try:
+            clipboard_text = self.clipboard_get().strip()
+        except Exception:
+            clipboard_text = ""
+
+        if not clipboard_text:
+            self._open_quick_paste_dialog()
+            return
+
+        meta = prescription_parser.extract_prescription_metadata(clipboard_text)
+        if meta.get("patient_name") and not self.patient_var.get().strip():
+            self.patient_var.set(meta["patient_name"])
+        if meta.get("diagnosis") and not self.purpose_var.get().strip():
+            self.purpose_var.set(meta["diagnosis"])
+
+        parsed_lines = prescription_parser.parse_prescription_text(clipboard_text, self.drug_list)
+        if not parsed_lines:
+            # Standart reçete formatında değilse diyalog penceresini aç
+            self._open_quick_paste_dialog()
+            return
+
+        self.batch_mode.set(True)
+        self._on_mode_change()
+        added = 0
+        for p in parsed_lines:
+            if not p.drug_name:
+                continue
+            entry = self._build_entry_from_parsed(p)
+            self.batch_entries.append(entry)
+            iid = str(uuid.uuid4())
+            self.batch_tree.insert("", "end", iid=iid, values=(entry.drug_name, entry.instructions, entry.copies))
+            added += 1
+
+        self._update_safety_warnings()
+        self._show_status(f"✓ Panodan {added} adet Medula ilacı aktarıldı.")
+        show_toast(self, f"Medula: {added} ilaç aktarıldı", level="success")
+
+        if added > 0:
+            p_name = self.patient_var.get().strip()
+            pat_info = f" (Hasta: {p_name})" if p_name else ""
+            should_print = messagebox.askyesno(
+                "Medula Reçetesi Yazdırılsın mı?",
+                f"Medula'dan {added} adet ilaç başarıyla aktarıldı{pat_info}.\n\n"
+                "Etiketler hemen yazıcıya gönderilsin mi?",
+                parent=self,
+            )
+            if should_print:
+                self._on_print()
 
     def _add_to_batch(self):
         """Mevcut ilacı toplu listeye ekler ve formdaki ilaç alanını bir sonraki ilaç için temizler."""
