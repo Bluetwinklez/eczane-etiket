@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Eczanem Programı - Giriş</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="login-card">
+      <h1>Eczanem Programı</h1>
+      <p class="sub">Eczane yönetim sistemine giriş yapın</p>
+      <div id="error" class="login-error" hidden></div>
+      <form id="login-form">
+        <div class="field">
+          <label for="kullanici_adi">Kullanıcı adı</label>
+          <input id="kullanici_adi" name="kullanici_adi" autocomplete="username" required />
+        </div>
+        <div class="field">
+          <label for="sifre">Şifre</label>
+          <input id="sifre" name="sifre" type="password" autocomplete="current-password" required />
+        </div>
+        <button type="submit">Giriş Yap</button>
+      </form>
+      <div class="demo-hints">
+        Demo hesaplar:<br />
+        admin / admin123 (yönetici)<br />
+        eczaci / eczaci123 (eczacı)<br />
+        kasiyer / kasiyer123 (kasiyer)
+      </div>
+    </div>
+  </div>
+  <script src="js/api.js"></script>
+  <script>
+    (async function init() {
+      try {
+        await Api.get('/api/auth/me');
+        window.location.href = 'index.html';
+      } catch (e) {
+        // Oturum yok, giriş formunda kal.
+      }
+    })();
+
+    const form = document.getElementById('login-form');
+    const errorBox = document.getElementById('error');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorBox.hidden = true;
+      const kullanici_adi = document.getElementById('kullanici_adi').value.trim();
+      const sifre = document.getElementById('sifre').value;
+      try {
+        await Api.post('/api/auth/login', { kullanici_adi, sifre });
+        window.location.href = 'index.html';
+      } catch (err) {
+        errorBox.textContent = err.message || 'Giriş başarısız';
+        errorBox.hidden = false;
+      }
+    });
+  </script>
+</body>
+</html>
