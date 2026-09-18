@@ -40,24 +40,10 @@ jobs:
 
     - name: Configure Tcl/Tk for Windows
       if: runner.os == 'Windows'
-      shell: pwsh
+      shell: bash
       run: |
-        $searchDir = $env:pythonLocation
-        if (-not $searchDir -or -not (Test-Path $searchDir)) {
-            $searchDir = Split-Path (Get-Command python).Source
-        }
-        $initTcl = Get-ChildItem -Path $searchDir -Filter "init.tcl" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($initTcl) {
-            $tclDir = $initTcl.DirectoryName
-            "TCL_LIBRARY=$tclDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-            Write-Host "Found TCL_LIBRARY: $tclDir"
-        }
-        $tkTcl = Get-ChildItem -Path $searchDir -Filter "tk.tcl" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($tkTcl) {
-            $tkDir = $tkTcl.DirectoryName
-            "TK_LIBRARY=$tkDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-            Write-Host "Found TK_LIBRARY: $tkDir"
-        }
+        echo "TCL_LIBRARY=$(python -c 'import sys, os; print(os.path.join(sys.base_prefix, "tcl", "tcl8.6"))')" >> $GITHUB_ENV
+        echo "TK_LIBRARY=$(python -c 'import sys, os; print(os.path.join(sys.base_prefix, "tcl", "tk8.6"))')" >> $GITHUB_ENV
 
     - name: Run Pytest (Windows)
       if: runner.os == 'Windows'
@@ -66,11 +52,17 @@ jobs:
         $ErrorActionPreference = "Continue"
         python -m pytest -v --tb=short 2>&1 | Tee-Object -FilePath win_pytest_log.txt
         $exitCode = $LASTEXITCODE
-        "### Windows Pytest Output (Python ${{ matrix.python-version }})" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-        '```' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-        Get-Content win_pytest_log.txt | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-        '```' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-        if ($exitCode -ne 0) { exit $exitCode }
+        if ($exitCode -ne 0) {
+            $errLines = Get-Content win_pytest_log.txt | Where-Object { $_ -match "FAILED" -or $_ -match "ERROR" -or $_ -match "Error:" -or $_ -match "TclError" } | Select-Object -First 10
+            foreach ($el in $errLines) {
+                Write-Host "::error title=PytestFailure::$el"
+            }
+            $lastLines = Get-Content win_pytest_log.txt | Select-Object -Last 20
+            foreach ($ll in $lastLines) {
+                Write-Host "::warning title=PytestSummary::$ll"
+            }
+            exit $exitCode
+        }
 
     - name: Run Pytest with Xvfb (Linux)
       if: runner.os == 'Linux'
