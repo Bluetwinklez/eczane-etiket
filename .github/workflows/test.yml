@@ -61,8 +61,16 @@ jobs:
 
     - name: Run Pytest (Windows)
       if: runner.os == 'Windows'
+      shell: pwsh
       run: |
-        python -m pytest -v
+        $ErrorActionPreference = "Continue"
+        python -m pytest -v --tb=short 2>&1 | Tee-Object -FilePath win_pytest_log.txt
+        $exitCode = $LASTEXITCODE
+        "### Windows Pytest Output (Python ${{ matrix.python-version }})" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+        '```' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+        Get-Content win_pytest_log.txt | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+        '```' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+        if ($exitCode -ne 0) { exit $exitCode }
 
     - name: Run Pytest with Xvfb (Linux)
       if: runner.os == 'Linux'
