@@ -141,6 +141,93 @@ DRUGS_SEED = [
          "B12 vitamini eksikliğini desteklemek amacıyla kullanılan bir damladır."),
     Drug("FUCİTHALMİC GÖZ DAMLASI", "damla", "Bakteriyel göz enfeksiyonu tedavisi",
          "Gözde bakteri kaynaklı enfeksiyonları tedavi etmek için kullanılan bir antibiyotikli damladır."),
+    Drug("KLAMOKS BID 1000MG 14 TABLET", "tablet", "Geniş spektrumlu antibiyotik",
+         "Bakteriyel enfeksiyonlarda kullanılan bir antibiyotiktir. Doktorun belirttiği süre boyunca kutuyu bitiriniz.",
+         barcode="8699514092828"),
+    Drug("PANTPAS 40MG 28 ENTERİK TABLET", "tablet", "Mide koruyucu (asit azaltıcı)",
+         "Mide asidini azaltarak reflü ve gastrit şikayetlerini önler. Sabah aç karnına alınmalıdır.",
+         barcode="8699536090121"),
+    Drug("LIPITOR 20MG 30 FILM TABLET", "tablet", "Kolesterol düşürücü",
+         "Kandaki yüksek kolesterol ve trigliserid düzeylerini düzenleyen bir ilaçtır.",
+         barcode="8699532091122"),
+    Drug("DELIX 5MG 28 TABLET", "tablet", "Tansiyon düzenleyici (ACE inhibitörü)",
+         "Yüksek tansiyon ve kalp yetmezliği tedavisinde kullanılan bir ilaçtır.",
+         barcode="8699546012052"),
+    Drug("NORVASC 10MG 30 TABLET", "tablet", "Tansiyon ve damar genişletici",
+         "Yüksek tansiyon ve göğüs ağrısı (anjina) tedavisinde kullanılan bir kalsiyum kanal blokeridir.",
+         barcode="8699532091214"),
+    Drug("GLUCOPHAGE 1000MG 100 FILM TABLET", "tablet", "Kan şekeri düzenleyici (diyabet)",
+         "Tip 2 diyabet hastalarında kan şekeri düzeyini kontrol altına almaya yardımcı bir ilaçtır.",
+         barcode="8699546012328"),
+    Drug("LEVOTIRON 100MCG 100 TABLET", "tablet", "Tiroid hormonu takviyesi",
+         "Yetersiz çalışan tiroid bezini desteklemek için sabah aç karnına kahvaltıdan en az 30 dk önce alınır.",
+         barcode="8699546012410"),
+    Drug("XANAX 0.5MG 30 TABLET", "tablet", "Anksiyete ve panik atak tedavisi",
+         "Orta ve şiddetli anksiyete durumlarında hekim kontrolünde kullanılan bir ilaçtır.",
+         barcode="8699532091337"),
+    Drug("TRANKOBUSKAS 40 DRAJE", "tablet", "Spazm ve stres kaynaklı karın ağrısı",
+         "Sindirim sistemindeki kas krampları ve strese bağlı spazmları gidermeye yardımcıdır.",
+         barcode="8699546012526"),
+    Drug("AERIUS 5MG 20 FILM TABLET", "tablet", "Alerji giderici (antihistaminik)",
+         "Saman nezlesi, kurdeşen ve alerjik kaşıntıları hafifletmek için günde 1 kez alınır.",
+         barcode="8699546090524"),
+    Drug("VENTOLIN INHALER 200 DOZ", "sprey", "Nefes açıcı (bronkodilatör)",
+         "Astım ve nefes darlığı ataklarında hava yollarını hızla genişleten acil rahatlatıcı inhalerdir.",
+         barcode="8699546520113"),
+    Drug("SERETIDE DISKUS 250MCG 60 DOZ", "sprey", "Astım ve KOAH kontrol edici",
+         "Hava yollarındaki iltihap ve daralmayı önleyen düzenli kontrol edici tozdur. Kullandıktan sonra ağzınızı çalkalayınız.",
+         barcode="8699546520229"),
+    Drug("DAFLON 500MG 60 FILM TABLET", "tablet", "Varis ve hemoroid tedavisi",
+         "Damar direncini artıran ve toplardamar dolaşımını destekleyen bir ilaçtır.",
+         barcode="8699546012632"),
+    Drug("MONODOKS 100MG 14 KAPSÜL", "kapsul", "Antibiyotik (Doksisiklin)",
+         "Çeşitli enfeksiyonlar ve akne tedavisinde kullanılır. Bol su ile dik pozisyonda yutulmalıdır.",
+         barcode="8699546090623"),
+    Drug("KLEOCIN 150MG 16 KAPSÜL", "kapsul", "Antibiyotik (Klindamisin)",
+         "Bakteriyel enfeksiyonlarda kullanılan bir antibiyotiktir.",
+         barcode="8699532091443"),
+    Drug("ENFLUVIR 75MG 10 KAPSÜL", "kapsul", "Grip antiviral tedavisi (Oseltamivir)",
+         "İnfluenza (grip) virüsünün yayılmasını ve belirtilerini hafifletmek amacıyla kullanılır.",
+         barcode="8699546090739"),
+    Drug("DEVIT-3 DAMLA 15ML", "damla", "D3 vitamini takviyesi",
+         "D vitamini eksikliğinin tedavisi ve önlenmesinde kullanılır.",
+         barcode="8699546570224"),
+    Drug("BENEXOL B12 30 FILM TABLET", "tablet", "B1-B6-B12 vitamin kompleksi",
+         "Sinir sistemi ve B vitamini eksikliklerini destekleyici vitamin bileşimidir.",
+         barcode="8699546012748"),
+    Drug("FERRUM FORT 30 TABLET", "tablet", "Demir takviyesi",
+         "Demir eksikliği anemisinde kan yapımını destekleyen bir demir ilacıdır.",
+         barcode="8699546012854"),
+    Drug("MINOSET PLUS 30 TABLET", "tablet", "Ağrı ve ateş düşürücü (Parasetamol + Kafein)",
+         "Hafif ve orta şiddetli ağrılarda hızlı etki sağlayan bir ağrı kesicidir.",
+         barcode="8699546090845"),
+    Drug("A-FERIN FORT 30 TABLET", "tablet", "Soğuk algınlığı ve grip",
+         "Burun tıkanıklığı, hapşırma, ağrı ve ateşi hafifletmeye yardımcı soğuk algınlığı ilacıdır.",
+         barcode="8699546090951"),
+    Drug("DEXDAY 50MG 30 EFERVESAN TABLET", "tablet", "Ağrı ve iltihap kesici (NSAİİ)",
+         "Akut kas-iskelet ve diş ağrılarında suda eritilerek içilen bir ağrı kesicidir.",
+         barcode="8699514092934"),
+    Drug("MAJEZIK BOĞAZ SPREYİ 30ML", "sprey", "Boğaz ağrısı ve iltihap giderici",
+         "Ağız ve boğaz bölgesindeki ağrı ve yanmayı hafifletici lokal spreydir.",
+         barcode="8699525540125"),
+    Drug("TANFLEX BOĞAZ SPREYİ 30ML", "sprey", "Boğaz yangısı ve ağrısını giderici",
+         "Boğaz enfeksiyonları ve farenjitte ağrıyı azaltmaya yardımcı spreydir.",
+         barcode="8699546540234"),
+    Drug("TERRAMYCIN GÖZ MERHEMİ 3.5GR", "merhem_krem", "Bakteriyel göz merhemi",
+         "Göz enfeksiyonlarında kullanılan lokal antibiyotikli merhemdir.",
+         barcode="8699532340114"),
+    Drug("TRAVAZOL KREM 15GR", "merhem_krem", "Mantar ve kaşıntı önleyici krem",
+         "Ciltteki iltihaplı ve kaşıntılı mantar enfeksiyonlarında hekim önerisiyle uygulanır.",
+         barcode="8699546350239"),
+    Drug("DERMOVATE MERHEM 50GR", "merhem_krem", "Kortizonlu sedef ve egzama merhemi",
+         "Ciltteki şiddetli iltihap, kızarıklık ve döküntüleri yatıştırıcı güçlü bir kortikosteroiddir.",
+         barcode="8699546350345"),
+    Drug("ANESTOL POMAD 30GR", "merhem_krem", "Lokal uyuşturucu pomad",
+         "Ciltteki bölgesel ağrı, yanma ve kaşıntıyı geçici olarak uyuşturan bir pomaddır.",
+         barcode="8699546350451"),
+    Drug("SILVERDIN KREM 40GR", "merhem_krem", "Yanık ve yara bakım kremi",
+         "Yanıklarda ve yüzeysel yaralarda enfeksiyon gelişimini önleyici koruyucu kremdir.",
+         barcode="8699546350567"),
 ]
 
 # Saklama koşulu ayrıca belirtilmemiş ürünlere Türkiye'de ilaç ambalajlarında
@@ -380,6 +467,62 @@ def extract_gtin_from_karekod(raw: str) -> str:
     return clean
 
 
+def parse_datamatrix_details(raw: str) -> dict:
+    """GS1 2D DataMatrix karekodundan GTIN, Seri No (SN), SKT (XD) ve Parti No (BN) ayıklar.
+
+    Örnekler:
+    - GTIN (01) 14 hane
+    - SKT (17) 6 hane YYMMDD -> GG.AA.YYYY
+    - Parti/Lot (10) alfanümerik
+    - Seri No (21) alfanümerik
+    """
+    clean = raw.strip()
+    result = {
+        "gtin": extract_gtin_from_karekod(clean),
+        "sn": "",
+        "expiry_date": "",
+        "lot_number": "",
+    }
+    if not clean:
+        return result
+
+    payload = clean
+    if clean.startswith("01") and len(clean) >= 16:
+        payload = clean[16:]
+
+    # 1. GS1 AI 17 (Son Kullanma Tarihi: YYMMDD) tespiti
+    m_exp = re.search(r"(?:17|\x1d17)(\d{2})(\d{2})(\d{2})", payload)
+    if not m_exp:
+        m_exp = re.search(r"(?:17|\x1d17)(\d{2})(\d{2})(\d{2})", clean)
+    if m_exp:
+        yy, mm, dd = m_exp.groups()
+        year = f"20{yy}"
+        if dd == "00":
+            result["expiry_date"] = f"{mm}.{year}"
+        else:
+            result["expiry_date"] = f"{dd}.{mm}.{year}"
+
+    # 2. GS1 AI 10 (Parti / Lot No) tespiti
+    m_lot = re.search(r"(?:10|\x1d10)([A-Za-z0-9\-_]{2,20}?)(?=\x1d|17\d{6}|21|$)", payload)
+    if not m_lot:
+        m_lot = re.search(r"(?:10|\x1d10)([A-Za-z0-9\-_]{2,20})", payload)
+    if not m_lot:
+        m_lot = re.search(r"(?:10|\x1d10)([A-Za-z0-9\-_]{2,20})", clean)
+    if m_lot:
+        result["lot_number"] = m_lot.group(1).strip()
+
+    # 3. GS1 AI 21 (Seri Numarası) tespiti
+    m_sn = re.search(r"(?:21|\x1d21)([A-Za-z0-9\-_]{2,20}?)(?=\x1d|17\d{6}|10|$)", payload)
+    if not m_sn:
+        m_sn = re.search(r"(?:21|\x1d21)([A-Za-z0-9\-_]{2,20})", payload)
+    if not m_sn:
+        m_sn = re.search(r"(?:21|\x1d21)([A-Za-z0-9\-_]{2,20})", clean)
+    if m_sn:
+        result["sn"] = m_sn.group(1).strip()
+
+    return result
+
+
 def find_drug_by_barcode(barcode: str, drugs: Optional[list] = None) -> Optional[dict]:
     """Barkod okuyucudan gelen kodla (EAN-13 veya İTS 2D Karekod) eşleşen ilacı bulur."""
     raw = barcode.strip()
@@ -492,10 +635,13 @@ def parse_dose_grid(instructions: str) -> dict[str, str]:
 
     raw = instructions.lower()
     qty = "1"
-    if "1/2" in raw or "yarım" in raw or "buçuk" in raw:
-        qty = "½"
-    elif "2 tablet" in raw or "2 ölçek" in raw or "x2" in raw or "2 draje" in raw:
-        qty = "2"
+    qty_match = re.search(r"(?:günde\s+)?(?:\d+\s*[xX\*]\s*)?(\d+(?:[.,/]\d+)?)\s*(?:tablet|tb|ölçek|kapsül|damla|puf|saşe)?", raw)
+    if qty_match and qty_match.group(1):
+        q = qty_match.group(1).replace(",", "/")
+        if q in ("0.5", "1/2", "0,5"):
+            qty = "½"
+        else:
+            qty = q
 
     has_sabah = "sabah" in raw
     has_ogle = "öğle" in raw or "ogle" in raw
@@ -536,4 +682,116 @@ def parse_dose_grid(instructions: str) -> dict[str, str]:
             grid["sabah"] = qty
 
     return grid
+
+
+DRUG_SAFETY_CLASSES = {
+    "parasetamol": {
+        "label": "Parasetamol",
+        "patterns": ["PAROL", "CALPOL", "MINOSET", "TYLOL", "A-FERIN", "AFERIN", "GRIPIN", "GERALGIN", "TAMOL"],
+    },
+    "nsaii": {
+        "label": "NSAİİ (Ağrı/İltihap Kesici)",
+        "patterns": ["ARVELES", "MAJEZIK", "NUROFEN", "CATAFLAM", "DOLOREX", "VOLTAREN", "DEXDAY", "DEXFEN", "APRANAX", "DIKLOFLAM", "ETOL", "PROFENID", "DEXFORTE"],
+    },
+    "antibiyotik": {
+        "label": "Sistemik Antibiyotik",
+        "patterns": ["AUGMENTIN", "KLAMOKS", "CIPRO", "MONODOKS", "KLEOCIN", "MACROL", "KLACID", "ZITHROMAX", "AMOKLAVIN", "BIOCEF", "CEFROL", "ALFOXIL", "BACTRIM"],
+    },
+    "ppi": {
+        "label": "Mide Asidi Azaltıcı (PPI / Antasit)",
+        "patterns": ["NEXIUM", "PANTPAS", "PANPAS", "PANTOPRAZOL", "LANSOZOR", "PULCET", "GAVISCON", "TALCID", "RENNIE", "FAMODIN", "LANSOPRAZOL", "ESOMEPRAZOL"],
+    },
+    "kan_sulandirici": {
+        "label": "Kan Sulandırıcı / Antiagregan",
+        "patterns": ["CORASPIN", "ECOPIRIN", "PLAVIX", "ELIQUIS", "XARELTO", "PRADAXA", "COUMADIN", "ASEKOL"],
+    },
+    "antihistaminik": {
+        "label": "Alerji Giderici (Antihistaminik)",
+        "patterns": ["ZYRTEC", "AERIUS", "XYZAL", "ALLERSET", "CREBROS", "DELODAY", "RUPAFIN", "HITRIZIN", "ATARAX"],
+    },
+}
+
+
+def get_drug_safety_classes(drug_name: str) -> set[str]:
+    """Bir ilacın dahil olduğu klinik güvenlik sınıflarını döndürür."""
+    if not drug_name:
+        return set()
+    upper = drug_name.upper()
+    classes = set()
+    for cls_key, cls_info in DRUG_SAFETY_CLASSES.items():
+        for pat in cls_info["patterns"]:
+            if pat in upper:
+                classes.add(cls_key)
+                break
+    return classes
+
+
+def check_drug_safety_warnings(selected_drug_name: str, existing_drug_names: list[str]) -> list[str]:
+    """Seçilen ilaç ile reçetedeki diğer ilaçlar arasındaki klinik etkileşim ve mükerrer doz risklerini kontrol eder."""
+    if not selected_drug_name or not existing_drug_names:
+        return []
+
+    sel_norm = turkish_normalize(selected_drug_name).upper()
+    sel_classes = get_drug_safety_classes(selected_drug_name)
+    if not sel_classes:
+        return []
+
+    warnings = []
+    seen_other_names = set()
+
+    for other in existing_drug_names:
+        if not other:
+            continue
+        other_norm = turkish_normalize(other).upper()
+        if other_norm == sel_norm or other in seen_other_names:
+            continue
+        seen_other_names.add(other)
+
+        other_classes = get_drug_safety_classes(other)
+        if not other_classes:
+            continue
+
+        # 1. Mükerrer Parasetamol Kontrolü
+        if "parasetamol" in sel_classes and "parasetamol" in other_classes:
+            warnings.append(
+                f"⚠️ MÜKERRER ETKEN MADDE: Reçetede zaten Parasetamol içeren ilaç mevcut ({other})! "
+                f"Maksimum günlük dozu (4000 mg) aşmamaya dikkat ediniz."
+            )
+
+        # 2. Çift NSAİİ Riski (Mide Kanaması & Böbrek Yükü)
+        if "nsaii" in sel_classes and "nsaii" in other_classes:
+            warnings.append(
+                f"⚠️ ÇİFT NSAİİ KULLANIMI: İki farklı NSAİİ ağrı kesici ({selected_drug_name} ve {other}) birlikte girildi! "
+                f"Mide kanaması ve böbrek yükü riskine karşı hekim onayı gerekebilir."
+            )
+
+        # 3. Kan Sulandırıcı + NSAİİ Ciddi Etkileşimi
+        if ("kan_sulandirici" in sel_classes and "nsaii" in other_classes) or \
+           ("nsaii" in sel_classes and "kan_sulandirici" in other_classes):
+            blood_drug = other if "kan_sulandirici" in other_classes else selected_drug_name
+            nsaid_drug = selected_drug_name if "nsaii" in sel_classes else other
+            warnings.append(
+                f"⚠️ CİDDİ KANAMA RİSKİ: Kan sulandırıcı ({blood_drug}) ile NSAİİ ağrı kesici ({nsaid_drug}) "
+                f"birlikte alındığında gastrointestinal kanama riski belirgin şekilde artar!"
+            )
+
+        # 4. Çift Antibiyotik
+        if "antibiyotik" in sel_classes and "antibiyotik" in other_classes:
+            warnings.append(
+                f"ℹ️ ÇİFT ANTİBİYOTİK: Reçetede birden fazla sistemik antibiyotik ({selected_drug_name} ve {other}) bulunmaktadır."
+            )
+
+        # 5. Çift Mide Koruyucu
+        if "ppi" in sel_classes and "ppi" in other_classes:
+            warnings.append(
+                f"ℹ️ ÇİFT MİDE İLACI: Birden fazla mide asidi ilacı ({selected_drug_name} ve {other}) birlikte girilmiştir."
+            )
+
+        # 6. Çift Antihistaminik
+        if "antihistaminik" in sel_classes and "antihistaminik" in other_classes:
+            warnings.append(
+                f"⚠️ ÇİFT ANTİHİSTAMİNİK: İki farklı alerji ilacı ({selected_drug_name} ve {other}) aşırı uyku ve sedasyon yapabilir."
+            )
+
+    return warnings
 
