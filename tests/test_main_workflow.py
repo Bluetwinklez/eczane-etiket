@@ -269,3 +269,38 @@ def test_warning_chips_count_and_options(app):
 
     app._toggle_warning_chip("Soğuk Zincir")
     assert "Soğuk Zincir" in app.active_warning_tags
+
+
+def test_medula_quick_paste_prompts_to_print(app, monkeypatch):
+    from tkinter import messagebox
+
+    sample_medula = (
+        "Reçete No: 123456\n"
+        "Hasta: Fatma Demir\n"
+        "Tanı: Akut Faranjit\n"
+        "1- PAROL 500MG 20 TABLET - Günde 3x1 Tok\n"
+        "2- AUGMENTIN BID 1000MG 14 TABLET - Günde 2x1 Tok\n"
+    )
+    monkeypatch.setattr(app, "clipboard_get", lambda: sample_medula)
+
+    ask_called = []
+    def mock_askyesno(title, message, parent=None):
+        ask_called.append((title, message))
+        return True
+
+    print_called = []
+    monkeypatch.setattr(messagebox, "askyesno", mock_askyesno)
+    monkeypatch.setattr(app, "_on_print", lambda: print_called.append(True))
+
+    app._quick_paste_from_clipboard()
+    app.update()
+
+    # Doğrulama: 2 ilaç eklenmiş olmalı, hasta adı set edilmiş olmalı
+    assert len(app.batch_entries) == 2
+    assert app.patient_var.get() == "Fatma Demir"
+    # Yazdırılsın mı sorusu sorulmuş olmalı
+    assert len(ask_called) == 1
+    assert "Yazdırılsın mı" in ask_called[0][0]
+    # 'Evet' dendiği için _on_print tetiklenmiş olmalı
+    assert len(print_called) == 1
+
