@@ -32,7 +32,7 @@ from . import (
     translator,
     z_report,
 )
-from .label_pdf import LabelEntry, build_label_pdf, get_system_printers, print_pdf
+from .label_pdf import LabelEntry, build_label_pdf, format_label_footer, get_system_printers, print_pdf
 from .toast import show_toast
 
 _ICON_PNG = os.path.join(os.path.dirname(__file__), "icons", "app_icon.png")
@@ -81,7 +81,7 @@ class App(tk.Tk):
         self.dose_time_buttons = {}
         self.food_buttons = {}
         self.food_status = tk.StringVar(value="tok")
-        self.print_barcode_var = tk.BooleanVar(value=True)
+        self.print_barcode_var = tk.BooleanVar(value=False)
         self.pediatric_mode = tk.BooleanVar(value=False)
         self.print_dose_grid_var = tk.BooleanVar(value=False)
         self.print_refill_var = tk.BooleanVar(value=True)
@@ -140,12 +140,13 @@ class App(tk.Tk):
     def _maybe_first_run_setup(self):
         """İlk çalıştırmada temel eczane bilgilerini sorar."""
         profile = self.active_profile
-        if profile.get("name") == "Eczanem" and not profile.get("phone"):
+        name_lower = (profile.get("name") or "").strip().lower()
+        if (name_lower in ("eczanem", "") or not profile.get("phone")):
             self._open_first_run_dialog(profile)
 
     def _open_first_run_dialog(self, profile):
         top = tk.Toplevel(self)
-        top.title("Hoş Geldiniz — İlk Kurulum")
+        top.title("Eczane Bilgileri")
         top.geometry("480x250")
         top.transient(self)
         top.grab_set()
@@ -164,7 +165,7 @@ class App(tk.Tk):
         ttk.Label(
             card,
             text=(
-                "Bu bilgiler etiketlerin alt bandında yer alacaktır.\n"
+                "Bu bilgiler etiketlerin alt bandında (sadece isim ve numara olarak) yer alacaktır.\n"
                 "İstediğiniz zaman Admin Paneli → Eczane Profilleri sekmesinden değiştirebilirsiniz."
             ),
             justify="left",
@@ -174,17 +175,21 @@ class App(tk.Tk):
         form = ttk.Frame(card, style="Card.TFrame")
         form.pack(fill="x")
         ttk.Label(form, text="Eczane Adı:", style="CardBold.TLabel").grid(row=0, column=0, sticky="w", pady=6)
-        name_var = tk.StringVar(value="")
-        ttk.Entry(form, textvariable=name_var, width=32).grid(row=0, column=1, sticky="we", pady=6, padx=(8, 0))
+        init_name = "" if (profile.get("name") or "").strip().lower() in ("eczanem", "") else (profile.get("name") or "").strip()
+        name_var = tk.StringVar(value=init_name)
+        name_entry = ttk.Entry(form, textvariable=name_var, width=32)
+        name_entry.grid(row=0, column=1, sticky="we", pady=6, padx=(8, 0))
+        name_entry.focus_set()
 
         ttk.Label(form, text="Telefon:", style="CardBold.TLabel").grid(row=1, column=0, sticky="w", pady=6)
-        phone_var = tk.StringVar()
+        phone_var = tk.StringVar(value=profile.get("phone", ""))
         ttk.Entry(form, textvariable=phone_var, width=32).grid(row=1, column=1, sticky="we", pady=6, padx=(8, 0))
         form.columnconfigure(1, weight=1)
 
         def save_and_close():
-            name = name_var.get().strip() or "Eczanem"
-            profiles.update_profile(profile["id"], name=name, phone=phone_var.get().strip())
+            name = name_var.get().strip()
+            phone = phone_var.get().strip()
+            profiles.update_profile(profile["id"], name=name, phone=phone)
             self.active_profile = profiles.get_active_profile()
             self._update_profile_display()
             self._refresh_preview()
@@ -196,9 +201,13 @@ class App(tk.Tk):
         ttk.Button(btns, text="Daha Sonra", command=top.destroy).pack(side="left", padx=(8, 0))
 
     def _update_profile_display(self):
-        name = self.active_profile.get("name", "Eczanem")
-        phone = self.active_profile.get("phone", "")
-        info = f"📍 {name}" + (f"  |  ☎ {phone}" if phone else "")
+        """Header'daki profil rozetini günceller."""
+        name = (self.active_profile.get("name") or "").strip()
+        phone = (self.active_profile.get("phone") or "").strip()
+        if name.lower() in ("eczanem", ""):
+            info = "📍 Eczane Profili" + (f"  |  ☎ {phone}" if phone else "  |  (Ad & Tel Tanımlayınız)")
+        else:
+            info = f"📍 {name}" + (f"  |  ☎ {phone}" if phone else "")
         self.profile_badge.config(text=info)
 
     def _show_status(self, message: str, is_error: bool = False):
@@ -798,6 +807,7 @@ class App(tk.Tk):
         else:
             self._refresh_instruction_buttons(data.DEFAULT_FORM)
 
+        self.print_barcode_var.set(False)
         self.lot_var.set("")
         self.skt_var.set("")
         if hasattr(self, "safety_banner_frame") and self.safety_banner_frame:
@@ -1745,12 +1755,9 @@ class App(tk.Tk):
             widget.insert("end", "||| | |||| | || ||| || |||||\n", "barcode_sim")
             widget.insert("end", f"*{code}*\n\n", "barcode_code")
 
-        footer = self.active_profile.get("name", "Eczanem")
-        if self.active_profile.get("phone"):
-            footer += f"  /  {self.active_profile['phone']}"
-        if entry.staff_name:
-            footer += f"  ({entry.staff_name})"
-        widget.insert("end", f"  {footer}  ", "footer_banner")
+        footer = format_label_footer(self.active_profile)
+        if footer:
+            widget.insert("end", f"  {footer}  ", "footer_banner")
 
         widget.configure(state="disabled")
 
