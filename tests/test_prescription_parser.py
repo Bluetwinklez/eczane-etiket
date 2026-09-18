@@ -77,3 +77,32 @@ def test_prescription_parser_turkish_characters():
     assert lines[0].matched_drug["name"] == "CIPRO 500MG 10 TABLET"
 
 
+def test_medula_table_format_with_barcodes_and_tabs():
+    # Medula HTML tablosundan kopyalanmış tipik reçete
+    text = (
+        "Sıra\tBarkod\tİlaç Adı\tAdet\tDoz\tKullanım\n"
+        "1\t8699525095328\tPAROL 500 MG TAB\t1\t3x1\tTok\n"
+        "2\t8699546090123\tAUGMENTIN BID 1000 MG\t1\t2x1\tTok\n"
+    )
+    lines = prescription_parser.parse_prescription_text(text, DRUGS)
+    assert len(lines) == 2
+    # 8699525095328 -> PAROL 500MG 20 TABLET
+    assert lines[0].matched_drug is not None
+    assert lines[0].matched_drug["barcode"] == "8699525095328"
+    assert "PAROL" in lines[0].drug_name
+
+
+def test_medula_headers_and_footers_skipped():
+    text = (
+        "Kayıtlı İlaçlar\n"
+        "İlaç Adı\tKullanım Dozu\n"
+        "PAROL 500MG 20 TABLET - 3x1\n"
+        "Teslim Alan: Ahmet Yılmaz\n"
+        "Toplam Tutar: 150.00 TL\n"
+    )
+    lines = prescription_parser.parse_prescription_text(text, DRUGS)
+    assert len(lines) == 1
+    assert lines[0].drug_name == "PAROL 500MG 20 TABLET"
+
+
+
