@@ -21,6 +21,22 @@ _ICON_PNG = os.path.join(os.path.dirname(__file__), "icons", "app_icon.png")
 _END_DATE_RE = re.compile(r"^\d{2}\.\d{2}\.\d{4}$")
 
 
+def _beep_success():
+    try:
+        import winsound
+        winsound.MessageBeep(winsound.MB_ICONASTERISK)
+    except Exception:
+        pass
+
+
+def _beep_warning():
+    try:
+        import winsound
+        winsound.MessageBeep(winsound.MB_ICONEXCLAMATION)
+    except Exception:
+        pass
+
+
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -52,6 +68,11 @@ class App(tk.Tk):
         self.print_dose_grid_var = tk.BooleanVar(value=False)
         self.print_refill_var = tk.BooleanVar(value=True)
         self.refill_date_var = tk.StringVar(value="")
+        self.lot_var = tk.StringVar(value="")
+        self.skt_var = tk.StringVar(value="")
+        self.safety_warnings = []
+        self.safety_banner_frame = None
+        self.safety_banner_label = None
         saved_printer = self.active_profile.get("default_printer")
         self.selected_printer_var = tk.StringVar(value=saved_printer or "(Varsayılan Yazıcı)")
 
@@ -273,9 +294,23 @@ class App(tk.Tk):
             top_bar, text="📋 Hızlı Yapıştır (Reçete)", command=self._open_quick_paste_dialog
         ).pack(side="right")
 
+        # 1.5. Klinik İlaç Güvenlik & Etkileşim Uyarı Afişi (Dinamik)
+        self.safety_banner_frame = tk.Frame(parent, bg="#fffbeb", highlightbackground="#f59e0b", highlightthickness=1, padx=8, pady=5)
+        self.safety_banner_label = tk.Label(
+            self.safety_banner_frame,
+            text="",
+            bg="#fffbeb",
+            fg="#92400e",
+            font=(theme.FONT_FAMILY, 8, "bold"),
+            justify="left",
+            wraplength=460,
+        )
+        self.safety_banner_label.pack(side="left", fill="x", expand=True)
+
         # 2. Etiket Bilgileri Kartı (Ergonomik 2 Sütunlu Grid)
         form_card = ttk.LabelFrame(parent, text=" 🏷️ İlaç ve Hasta Bilgileri ", padding=10)
         form_card.pack(fill="x", pady=(0, 8))
+        self.form_card = form_card
 
         # Satır 0: İlaç Adı & Barkod Oku
         ttk.Label(form_card, text="İlaç Adı *:", style="CardBold.TLabel").grid(row=0, column=0, sticky="w", pady=4)
@@ -297,10 +332,14 @@ class App(tk.Tk):
         self._barcode_entry.bind("<Return>", self._on_barcode_scanned)
         ttk.Label(barcode_frame, text="⏎", style="Muted.TLabel", font=(theme.FONT_FAMILY, 9, "bold")).pack(side="left", padx=(4, 0))
 
-        # Satır 1: Hasta Adı & Personel
+        # Satır 1: Hasta Adı (Otomatik Tamamlama) & Personel
         ttk.Label(form_card, text="Hasta Adı:", style="CardBold.TLabel").grid(row=1, column=0, sticky="w", pady=4)
         self.patient_var = tk.StringVar()
-        ttk.Entry(form_card, textvariable=self.patient_var).grid(row=1, column=1, sticky="we", pady=4, padx=(6, 16))
+        patient_frame = ttk.Frame(form_card, style="Card.TFrame")
+        patient_frame.grid(row=1, column=1, sticky="we", pady=4, padx=(6, 16))
+        self.patient_combo = ttk.Combobox(patient_frame, textvariable=self.patient_var, values=history.get_recent_patients())
+        self.patient_combo.pack(side="left", fill="x", expand=True)
+        self.patient_combo.bind("<<ComboboxSelected>>", self._on_patient_selected)
 
         ttk.Label(form_card, text="Personel:", style="CardBold.TLabel").grid(row=1, column=2, sticky="w", pady=4)
         self.staff_var = tk.StringVar()
@@ -349,14 +388,21 @@ class App(tk.Tk):
         self.note_var = tk.StringVar()
         ttk.Entry(form_card, textvariable=self.note_var).grid(row=3, column=3, sticky="we", pady=4, padx=(6, 0))
 
-        # Satır 4: SGK Kutu Bitiş / Tekrar Alım Asistanı
+        # Satır 4: SGK Kutu Bitiş / Tekrar Alım Asistanı & Parti/SKT
         ttk.Label(form_card, text="SGK Kutu Bitiş:", style="CardBold.TLabel").grid(row=4, column=0, sticky="w", pady=4)
         refill_frame = ttk.Frame(form_card, style="Card.TFrame")
-        refill_frame.grid(row=4, column=1, columnspan=3, sticky="we", pady=4, padx=(6, 0))
-        self.refill_entry = ttk.Entry(refill_frame, textvariable=self.refill_date_var, width=12)
+        refill_frame.grid(row=4, column=1, sticky="we", pady=4, padx=(6, 16))
+        self.refill_entry = ttk.Entry(refill_frame, textvariable=self.refill_date_var, width=10)
         self.refill_entry.pack(side="left")
-        ttk.Button(refill_frame, text="⚡ Hesapla", command=self._auto_calc_refill_date).pack(side="left", padx=(4, 0))
-        ttk.Checkbutton(refill_frame, text="📅 Etikete Bitiş Bas", variable=self.print_refill_var, command=self._refresh_preview).pack(side="left", padx=(10, 0))
+        ttk.Button(refill_frame, text="⚡", width=2, command=self._auto_calc_refill_date).pack(side="left", padx=(2, 0))
+        ttk.Checkbutton(refill_frame, text="📅 Bitiş Bas", variable=self.print_refill_var, command=self._refresh_preview).pack(side="left", padx=(4, 0))
+
+        ttk.Label(form_card, text="Parti / SKT:", style="Card.TLabel").grid(row=4, column=2, sticky="w", pady=4)
+        lot_skt_frame = ttk.Frame(form_card, style="Card.TFrame")
+        lot_skt_frame.grid(row=4, column=3, sticky="we", pady=4, padx=(6, 0))
+        ttk.Entry(lot_skt_frame, textvariable=self.lot_var, width=8).pack(side="left")
+        ttk.Label(lot_skt_frame, text="/", style="Card.TLabel").pack(side="left", padx=1)
+        ttk.Entry(lot_skt_frame, textvariable=self.skt_var, width=8).pack(side="left")
 
         self.diagnosis_var = tk.StringVar()
 
@@ -500,6 +546,7 @@ class App(tk.Tk):
         batch_btns = ttk.Frame(self.batch_frame, style="Card.TFrame")
         batch_btns.pack(fill="x", pady=(6, 0))
         ttk.Button(batch_btns, text="➕ Listeye Ekle (Ctrl+Enter)", style="Primary.TButton", command=self._add_to_batch).pack(side="left")
+        ttk.Button(batch_btns, text="📄 Hasta Çizelgesi (A4)", command=self._on_print_patient_schedule).pack(side="left", padx=(6, 0))
         ttk.Button(batch_btns, text="🗑️ Seçileni Çıkar", command=self._remove_from_batch).pack(side="left", padx=(6, 0))
         ttk.Button(batch_btns, text="🧹 Listeyi Temizle", command=self._clear_batch).pack(side="left", padx=(6, 0))
 
@@ -514,6 +561,12 @@ class App(tk.Tk):
             command=self._on_print,
         )
         self.print_btn.pack(side="left", fill="x", expand=True)
+
+        ttk.Button(
+            action_bar,
+            text="📄  Hasta Çizelgesi",
+            command=self._on_print_patient_schedule,
+        ).pack(side="left", padx=(8, 0))
 
         ttk.Button(
             action_bar,
@@ -677,9 +730,79 @@ class App(tk.Tk):
         else:
             self._refresh_instruction_buttons(data.DEFAULT_FORM)
 
+        self.lot_var.set("")
+        self.skt_var.set("")
+        if hasattr(self, "safety_banner_frame") and self.safety_banner_frame:
+            self.safety_banner_frame.pack_forget()
+
         self._refresh_preview()
         self._barcode_entry.focus_set()
         self._show_status("Form temizlendi, yeni etiket için hazır.")
+
+    def _on_patient_selected(self, event=None):
+        """Kayıtlı hastalar combobox'ından bir hasta seçildiğinde geçmiş notları yükler."""
+        name = self.patient_var.get().strip()
+        if not name:
+            return
+        entries = history.get_patient_last_entries(name, limit=1)
+        if entries:
+            last = entries[0]
+            if last.get("patient_note") and not self.note_var.get().strip():
+                self.note_var.set(last["patient_note"])
+        self._refresh_preview()
+
+    def _update_safety_warnings(self):
+        """Reçetedeki veya formdaki ilaçlar arasındaki klinik etkileşim ve mükerrer dozları kontrol eder."""
+        if not hasattr(self, "safety_banner_frame") or self.safety_banner_frame is None:
+            return
+
+        current_drug = self.drug_var.get().strip()
+        batch_drugs = [e.drug_name for e in self.batch_entries] if self.batch_entries else []
+
+        all_warnings = []
+        if current_drug and batch_drugs:
+            all_warnings.extend(data.check_drug_safety_warnings(current_drug, batch_drugs))
+
+        if len(batch_drugs) >= 2:
+            for i, d in enumerate(batch_drugs):
+                rest = batch_drugs[:i] + batch_drugs[i + 1:]
+                for w in data.check_drug_safety_warnings(d, rest):
+                    if w not in all_warnings:
+                        all_warnings.append(w)
+
+        if all_warnings:
+            _beep_warning()
+            msg = " • " + "\n • ".join(all_warnings[:3])
+            self.safety_banner_label.config(text=msg)
+            if hasattr(self, "form_card") and self.form_card:
+                self.safety_banner_frame.pack(fill="x", pady=(0, 6), before=self.form_card)
+        else:
+            self.safety_banner_frame.pack_forget()
+
+    def _on_print_patient_schedule(self):
+        """Reçetedeki tüm ilaçlar için 'Hasta İlaç Kullanım Çizelgesi (A4)' oluşturur ve açar."""
+        entries = self._entries_to_print()
+        if not entries:
+            messagebox.showwarning("Eksik Bilgi", "Lütfen önce bir veya birden fazla ilaç girin veya toplu listeye ekleyin.")
+            return
+
+        patient = self.patient_var.get().strip() or (entries[0].patient_name if entries else "")
+        pharmacy_name = self.active_profile.get("name", "Eczanem")
+        phone = self.active_profile.get("phone", "")
+
+        tmp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
+        tmp.close()
+        try:
+            from .label_pdf import build_patient_schedule_pdf
+            build_patient_schedule_pdf(patient, pharmacy_name, phone, entries, tmp.name)
+            _beep_success()
+            try:
+                os.startfile(tmp.name)
+                self._show_status("✓ Hasta İlaç Kullanım Çizelgesi (A4) açıldı.")
+            except Exception as e:
+                messagebox.showerror("Hata", f"PDF açılamadı: {e}")
+        except Exception as e:
+            messagebox.showerror("Hata", f"Çizelge oluşturulamadı: {e}")
 
     def _on_theme_selected(self, event=None):
         theme_map = {
@@ -939,6 +1062,7 @@ class App(tk.Tk):
     def _clear_batch(self):
         self.batch_entries.clear()
         self.batch_tree.delete(*self.batch_tree.get_children())
+        self._update_safety_warnings()
         self._show_status("Toplu liste temizlendi.")
 
     def _on_drug_typed(self, event):
@@ -1018,6 +1142,7 @@ class App(tk.Tk):
                 self.refill_date_var.set(refill)
 
         self._refresh_preview()
+        self._update_safety_warnings()
 
     def _auto_calc_refill_date(self):
         """Ambalaj bilgisi (ör. 20 Tablet) ve kullanım talimatına (ör. 2x1) göre
@@ -1053,9 +1178,17 @@ class App(tk.Tk):
                 self._add_to_batch()
             return
 
+        # 2D Karekoddan SKT ve Parti No çıkar
+        details = data.parse_datamatrix_details(raw_code)
+        if details.get("expiry_date"):
+            self.skt_var.set(details["expiry_date"])
+        if details.get("lot_number"):
+            self.lot_var.set(details["lot_number"])
+
         drug = data.find_drug_by_barcode(raw_code, self.drug_list)
         if not drug:
-            gtin = data.extract_gtin_from_karekod(raw_code)
+            _beep_warning()
+            gtin = details.get("gtin") or data.extract_gtin_from_karekod(raw_code)
             answer = messagebox.askyesno(
                 "Barkod Bulunamadı",
                 f"'{gtin}' barkoduna ait kayıtlı ilaç bulunamadı.\n\n"
@@ -1067,6 +1200,7 @@ class App(tk.Tk):
                 self._barcode_entry.focus_set()
             return
 
+        _beep_success()
         self.drug_var.set(drug["name"])
         self._on_drug_selected()
         self._show_status(f"✓ Barkod okundu: {drug['name']}")
@@ -1211,6 +1345,8 @@ class App(tk.Tk):
             warning_tags=list(self.active_warning_tags) if self.active_warning_tags else None,
             print_barcode=self.print_barcode_var.get(),
             barcode_value=self._current_drug_barcode(),
+            lot_number=self.lot_var.get().strip() or None,
+            expiry_date=self.skt_var.get().strip() or None,
             copies=copies,
         )
 
@@ -1267,6 +1403,14 @@ class App(tk.Tk):
 
         if entry.storage_note:
             widget.insert("end", f"❄️ Saklama: {entry.storage_note}\n\n", "small_date")
+
+        lot_exp = []
+        if entry.lot_number:
+            lot_exp.append(f"Parti: {entry.lot_number}")
+        if entry.expiry_date:
+            lot_exp.append(f"SKT: {entry.expiry_date}")
+        if lot_exp:
+            widget.insert("end", f"📦 {' | '.join(lot_exp)}\n\n", "small_date")
 
         if entry.print_barcode:
             code = entry.barcode_value or "8699500000000"
@@ -1419,6 +1563,7 @@ class App(tk.Tk):
                 self.batch_tree.insert("", "end", iid=iid, values=(entry.drug_name, entry.instructions, entry.copies))
                 added += 1
             top.destroy()
+            self._update_safety_warnings()
             self._show_status(f"✓ {added} ilaç toplu etiket listesine aktarıldı.")
 
         btns = ttk.Frame(frame)
@@ -1452,12 +1597,15 @@ class App(tk.Tk):
         self.package_var.set("")
         self.purpose_var.set("")
         self.refill_date_var.set("")
+        self.lot_var.set("")
+        self.skt_var.set("")
         self.instructions_text.delete("1.0", "end")
         self.detail_text.delete("1.0", "end")
         self.storage_var.set("")
         self.copies_var.set(1)
         self._refresh_instruction_buttons(data.DEFAULT_FORM)
         self._refresh_preview()
+        self._update_safety_warnings()
         self.drug_combo.focus_set()
         self._show_status(f"✓ '{entry.drug_name}' listeye eklendi ({len(self.batch_entries)} ilaç kuyrukta).")
 
@@ -1468,6 +1616,7 @@ class App(tk.Tk):
             self.batch_tree.delete(iid)
             if 0 <= index < len(self.batch_entries):
                 del self.batch_entries[index]
+        self._update_safety_warnings()
         self._show_status(f"Seçili ilaç çıkarıldı ({len(self.batch_entries)} ilaç kaldı).")
 
     def _on_batch_double_click(self, event=None):
@@ -1571,6 +1720,7 @@ class App(tk.Tk):
                     messagebox.showerror("Hata", f"PDF açılamadı: {e}")
             return
 
+        _beep_success()
         self._log_and_bump(entries)
         count = len(entries)
         if self.batch_mode.get():
@@ -1591,6 +1741,7 @@ class App(tk.Tk):
         if not path:
             return
         build_label_pdf(self.active_profile, entries, path)
+        _beep_success()
         self._log_and_bump(entries)
         count = len(entries)
         if self.batch_mode.get():

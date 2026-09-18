@@ -5,6 +5,32 @@ sürümleme kullanır (MAJOR.MINOR.PATCH). Sürüm numarası `eczane_etiket/__in
 içindeki `__version__` değişkeninde tutulur ve uygulama içinde "Hakkında"
 penceresinde gösterilir.
 
+## [1.7.0]
+
+- **Klinik Güvenlik & Mükerrer Doz Koruması (Drug Safety Guard):**
+  - Seçilen ilaç ile reçetedeki diğer ilaçlar arasında dinamik klinik çapraz kontroller eklendi:
+    - **Mükerrer Parasetamol:** Aynı reçetede birden fazla parasetamol içeren ilaç (ör. Parol + A-Ferin) girildiğinde 4000 mg toksisite sınırı uyarısı.
+    - **Çift NSAİİ:** İki farklı NSAİİ ağrı kesici (ör. Majezik + Apranax) girildiğinde mide kanaması ve böbrek yükü uyarısı.
+    - **Kan Sulandırıcı + NSAİİ:** Coraspin/Plavix gibi antiagreganlar ile NSAİİ'lerin birlikte kullanımında ciddi gastrointestinal kanama riski uyarısı.
+    - **Çift Antibiyotik:** Birden fazla sistemik antibiyotik kullanım uyarısı.
+    - **Çift Mide Koruyucu:** Birden fazla PPI / antasit kullanım uyarısı.
+    - **Çift Antihistaminik:** Birden fazla alerji ilacında aşırı sedasyon uyarısı.
+  - Arayüzde formun hemen üstünde anlık beliren renkli klinik uyarı bilgi bandı.
+- **Hasta İlaç Kullanım Çizelgesi (A4 PDF):**
+  - Hastaya verilmek üzere tek tıkla profesyonel A4 ebadında **"Hasta İlaç Kullanım Çizelgesi"** çıktısı alma desteği eklendi (`📄 Hasta Çizelgesi (A4)`).
+  - İlaç adı, kutu ambalajı, 4 sütunlu (Sabah | Öğle | Akşam | Gece) görsel doz matrisi, kullanım şekli & yemek zamanı, tanı/endikasyon, SGK tekrar alım tarihi ve hasta uyarı maddeleri tek bir şık dokümanda toplanır.
+- **2D DataMatrix (GS1 İTS Karekod) Akıllı Parti/Lot ve SKT Ayrıştırma:**
+  - Optik barkod okuyucudan gelen 2D karekoddan GTIN, Seri No (SN), Son Kullanma Tarihi (GG.AA.YYYY) ve Parti No (Lot No) otomatik ayıklanır.
+  - Formdaki yeni "Parti No" ve "SKT" alanlarına doldurulur ve etiket üzerine basılır.
+- **Hasta Geçmişi & Otomatik Tamamlama (Autocomplete):**
+  - Hasta adı alanına yazıldığında geçmişteki son 50 hasta listelenir; hasta seçildiğinde geçmiş ilaç geçmişiyle bağlantı kurulabilir.
+- **POS Kasa Sesli Geri Bildirim Sistemi:**
+  - Karekod/barkod okutulduğunda, etiket yazdırıldığında veya PDF kaydedildiğinde POS "bip" onay sesi; klinik güvenlik uyarılarında ise sesli ikaz verilir.
+- **Zenginleştirilmiş Türkiye İlaç Kütüphanesi:**
+  - 32 yeni popüler ilaç tohum verisine eklenerek toplam ilaç sayısı 67'ye ulaştı (kardiyovasküler, diyabet, antibiyotik, dermatoloji, solunum ve analjezikler).
+- **88 Kapsamlı Otomatik Test:**
+  - `tests/test_safety.py` ve `tests/test_patient_schedule.py` test paketleri eklenerek test sayısı 88'e çıkarıldı (%100 yeşil).
+
 ## [1.6.0]
 
 - **Kalıcı Tema ve Yazıcı Tercihleri:** Arayüz teması (Gündüz, Gece Nöbeti, Eczane Yeşili) ve seçilen yazıcı eczane profiline kaydedilir; uygulama yeniden açıldığında otomatik yüklenir.

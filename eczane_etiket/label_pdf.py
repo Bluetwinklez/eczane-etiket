@@ -92,6 +92,8 @@ class LabelEntry:
     warning_tags: Optional[list] = None
     print_barcode: bool = False
     barcode_value: Optional[str] = None
+    lot_number: Optional[str] = None
+    expiry_date: Optional[str] = None
     copies: int = 1
 
 
@@ -306,6 +308,20 @@ def _draw_single_label(c: canvas.Canvas, ox: float, oy: float, w: float, h: floa
         except Exception:
             pass
 
+    # İsteğe bağlı Parti No ve SKT (Karekoddan gelen)
+    lot_exp = []
+    if entry.lot_number:
+        lot_exp.append(f"Parti: {entry.lot_number}")
+    if entry.expiry_date:
+        lot_exp.append(f"SKT: {entry.expiry_date}")
+    if lot_exp and cursor_y - 4.5 > footer_top:
+        lot_str = "  |  ".join(lot_exp)
+        c.setFont(FONT_REGULAR, 4.0)
+        c.setFillColorRGB(0.35, 0.40, 0.50)
+        c.drawString(ox + pad, cursor_y - 4.0, lot_str)
+        c.setFillColorRGB(*BLACK)
+        cursor_y -= 4.5
+
     # Alt koyu bant: eczane adı + telefon (adres YOK) [+ personel]
     footer_text = profile.get("name", "")
     if profile.get("phone"):
@@ -470,3 +486,180 @@ def print_pdf(path: str, printer_name: Optional[str] = None) -> tuple:
         return True, None
     except Exception as exc:  # yazıcı yok/izin yok/komut bulunamadı vb.
         return False, str(exc)
+
+
+def build_patient_schedule_pdf(
+    patient_name: str,
+    pharmacy_name: str,
+    phone: str,
+    entries: list[LabelEntry],
+    output_path: str,
+) -> None:
+    output_path = str(output_path)
+    page_w, page_h = A4
+    c = canvas.Canvas(output_path, pagesize=A4)
+    margin = 15 * mm
+    usable_w = page_w - 2 * margin
+    cursor_y = page_h - margin
+
+    # 1. Başlık Banner (Eczane & Çizelge Adı)
+    banner_h = 16 * mm
+    c.setFillColorRGB(*BANNER_COLOR)
+    c.rect(margin, cursor_y - banner_h, usable_w, banner_h, fill=1, stroke=0)
+
+    c.setFillColorRGB(*WHITE)
+    c.setFont(FONT_BOLD, 13)
+    header_title = f"{pharmacy_name.upper()} — HASTA İLAÇ KULLANIM ÇİZELGESİ"
+    c.drawCentredString(margin + usable_w / 2.0, cursor_y - 10 * mm, header_title)
+    cursor_y -= (banner_h + 2 * mm)
+
+    # 2. Üst Bilgi Kartı (Hasta Adı, Tarih, İletişim)
+    info_card_h = 13 * mm
+    c.setFillColorRGB(0.93, 0.96, 1.0)  # açık mavi
+    c.setStrokeColorRGB(0.60, 0.78, 0.98)
+    c.rect(margin, cursor_y - info_card_h, usable_w, info_card_h, fill=1, stroke=1)
+
+    c.setFillColorRGB(0.08, 0.20, 0.40)
+    c.setFont(FONT_BOLD, 10)
+    display_patient = patient_name.strip().upper() if patient_name else "SAYIN HASTAMIZ"
+    c.drawString(margin + 4 * mm, cursor_y - 5.5 * mm, f"HASTA: {display_patient}")
+
+    c.setFont(FONT_REGULAR, 8.5)
+    date_str = _dt.datetime.now().strftime("%d.%m.%Y")
+    c.drawString(margin + 4 * mm, cursor_y - 10 * mm, f"Tarih: {date_str}   |   İletişim: {phone or 'Belirtilmedi'}")
+
+    sub_note = "Bu çizelge ilaçlarınızı doğru zamanda ve dozda kullanmanızı kolaylaştırmak için hazırlanmıştır."
+    c.drawRightString(margin + usable_w - 4 * mm, cursor_y - 8 * mm, sub_note)
+    cursor_y -= (info_card_h + 4 * mm)
+
+    # 3. İlaç Çizelge Tablosu
+    col_widths = [55 * mm, 14 * mm, 14 * mm, 14 * mm, 14 * mm, 40 * mm, 29 * mm]
+    headers = ["İlaç Adı ve Ambalaj", "SABAH", "ÖĞLE", "AKŞAM", "GECE", "Kullanım Şekli & Zamanı", "Kullanım Amacı / SGK"]
+
+    # Tablo Başlığı
+    th_h = 7.5 * mm
+    c.setFillColorRGB(0.15, 0.23, 0.38)
+    c.rect(margin, cursor_y - th_h, usable_w, th_h, fill=1, stroke=0)
+
+    cur_x = margin
+    c.setFillColorRGB(*WHITE)
+    c.setFont(FONT_BOLD, 7.5)
+    for i, (col_w, h_text) in enumerate(zip(col_widths, headers)):
+        if 1 <= i <= 4:
+            c.drawCentredString(cur_x + col_w / 2.0, cursor_y - 5 * mm, h_text)
+        else:
+            c.drawString(cur_x + 2 * mm, cursor_y - 5 * mm, h_text)
+        cur_x += col_w
+    cursor_y -= th_h
+
+    # Tablo Satırları
+    row_h = 13.5 * mm
+    for idx, entry in enumerate(entries):
+        if cursor_y - row_h < margin + 35 * mm:
+            c.showPage()
+            cursor_y = page_h - margin
+
+        bg_color = (0.98, 0.98, 0.99) if idx % 2 == 1 else (1.0, 1.0, 1.0)
+        c.setFillColorRGB(*bg_color)
+        c.setStrokeColorRGB(0.85, 0.88, 0.92)
+        c.rect(margin, cursor_y - row_h, usable_w, row_h, fill=1, stroke=1)
+
+        # Doz Grid Verisi
+        grid = entry.dose_grid or {}
+        if not grid and entry.instructions:
+            from .data import parse_dose_grid
+            grid = parse_dose_grid(entry.instructions)
+
+        cur_x = margin
+        # 1. İlaç Adı
+        c.setFillColorRGB(0.10, 0.15, 0.25)
+        c.setFont(FONT_BOLD, 8)
+        drug_label = entry.drug_name
+        if entry.package_info:
+            drug_label += f" ({entry.package_info})"
+        while c.stringWidth(drug_label, FONT_BOLD, 8) > col_widths[0] - 4 * mm and len(drug_label) > 10:
+            drug_label = drug_label[:-3] + "…"
+        c.drawString(cur_x + 2 * mm, cursor_y - 5.5 * mm, drug_label)
+
+        if entry.patient_note:
+            c.setFont(FONT_REGULAR, 6.5)
+            c.setFillColorRGB(0.80, 0.20, 0.20)
+            c.drawString(cur_x + 2 * mm, cursor_y - 10 * mm, f"Not: {entry.patient_note[:30]}")
+        cur_x += col_widths[0]
+
+        # 2-5. Sabah, Öğle, Akşam, Gece
+        dose_keys = ["sabah", "öğle", "akşam", "gece"]
+        for k in dose_keys:
+            val = str(grid.get(k, "-"))
+            if val != "-":
+                c.setFillColorRGB(0.05, 0.35, 0.75)
+                c.setFont(FONT_BOLD, 10.5)
+            else:
+                c.setFillColorRGB(0.65, 0.70, 0.78)
+                c.setFont(FONT_REGULAR, 8.5)
+            c.drawCentredString(cur_x + col_widths[1] / 2.0, cursor_y - 8 * mm, val)
+            cur_x += col_widths[1]
+
+        # 6. Kullanım Şekli & Zamanı
+        c.setFillColorRGB(0.12, 0.16, 0.24)
+        c.setFont(FONT_REGULAR, 7.5)
+        instr = entry.instructions or "Doktorun belirttiği şekilde"
+        lines = _wrap_text(c, instr, FONT_REGULAR, 7.5, col_widths[5] - 3 * mm)[:2]
+        iy = cursor_y - 5 * mm
+        for ln in lines:
+            c.drawString(cur_x + 1.5 * mm, iy, ln)
+            iy -= 3.6 * mm
+        cur_x += col_widths[5]
+
+        # 7. Kullanım Amacı & SGK
+        c.setFillColorRGB(0.30, 0.35, 0.45)
+        c.setFont(FONT_REGULAR, 7.0)
+        purp = entry.kullanim_amaci_tani or "-"
+        if len(purp) > 24:
+            purp = purp[:22] + "…"
+        c.drawString(cur_x + 1.5 * mm, cursor_y - 5 * mm, purp)
+        if entry.refill_date:
+            c.setFont(FONT_BOLD, 6.8)
+            c.setFillColorRGB(0.05, 0.50, 0.35)
+            c.drawString(cur_x + 1.5 * mm, cursor_y - 9.5 * mm, f"SGK: {entry.refill_date}")
+
+        cursor_y -= row_h
+
+    cursor_y -= 4 * mm
+
+    # 4. Alt Bilgi & Uyarı Kartı
+    warn_box_h = 24 * mm
+    if cursor_y - warn_box_h < margin:
+        c.showPage()
+        cursor_y = page_h - margin
+
+    c.setFillColorRGB(0.99, 0.98, 0.93)
+    c.setStrokeColorRGB(0.95, 0.75, 0.30)
+    c.rect(margin, cursor_y - warn_box_h, usable_w, warn_box_h, fill=1, stroke=1)
+
+    c.setFillColorRGB(0.70, 0.40, 0.05)
+    c.setFont(FONT_BOLD, 8)
+    c.drawString(margin + 4 * mm, cursor_y - 5.5 * mm, "⚠️ ÖNEMLİ HASTA GÜVENLİK HATIRLATMALARI")
+
+    c.setFillColorRGB(0.25, 0.30, 0.38)
+    c.setFont(FONT_REGULAR, 7.2)
+    bullets = [
+        "• İlaçlarınızı hekiminizin ve eczacınızın tarif ettiği zaman ve dozda, kutuyu tamamlayarak kullanınız.",
+        "• Antibiyotik ve şurupları buzdolabında (2-8°C) veya serin yerde saklayınız; açıldıktan sonra süresine dikkat ediniz.",
+        "• İlaçlarınızı çocukların kesinlikle ulaşamayacağı güvenli yerlerde muhafaza ediniz.",
+        "• Beklenmeyen bir yan etki, alerji veya şikayet durumunda derhal eczacınıza veya hekiminize başvurunuz.",
+    ]
+    by = cursor_y - 9.5 * mm
+    for b in bullets:
+        c.drawString(margin + 4 * mm, by, b)
+        by -= 3.6 * mm
+
+    cursor_y -= (warn_box_h + 6 * mm)
+
+    # 5. Eczacı Vurgusu ve İyi Dilekler
+    c.setFont(FONT_BOLD, 9)
+    c.setFillColorRGB(*BANNER_COLOR)
+    c.drawCentredString(margin + usable_w / 2.0, cursor_y - 2 * mm, f"★ {pharmacy_name} • Sağlıklı ve Mutlu Günler Dileriz ★")
+
+    c.save()
+    return output_path

@@ -76,3 +76,24 @@ def export_history_csv(path: str, date_from: Optional[str] = None, date_to: Opti
         for record in records:
             writer.writerow(record)
     return path
+
+
+def get_recent_patients(limit: int = 50) -> list[str]:
+    """Son etiket basılan benzersiz hasta adlarını en yeniden eskiye doğru döndürür."""
+    history = read_json(HISTORY_FILE, [])
+    patients = []
+    seen = set()
+    for record in reversed(history):
+        name = (record.get("patient_name") or "").strip()
+        if name and name.casefold() not in seen:
+            seen.add(name.casefold())
+            patients.append(name)
+            if len(patients) >= limit:
+                break
+    return patients
+
+
+def get_patient_last_entries(patient_name: str, limit: int = 10) -> list[dict]:
+    """Belirli bir hastaya ait son basılan etiket kayıtlarını döndürür."""
+    matches = search_by_patient(patient_name)
+    return matches[:limit]
