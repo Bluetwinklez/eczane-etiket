@@ -3,12 +3,13 @@ const crypto = require('node:crypto');
 const express = require('express');
 const session = require('express-session');
 
-const { requireLogin } = require('./auth');
+const { requireLogin, requireRole } = require('./auth');
 const authRoutes = require('./routes/auth');
 const ilaclarRoutes = require('./routes/ilaclar');
 const satislarRoutes = require('./routes/satislar');
 const musterilerRoutes = require('./routes/musteriler');
 const tedarikcilerRoutes = require('./routes/tedarikciler');
+const raporlarRoutes = require('./routes/raporlar');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -33,6 +34,7 @@ app.use('/api/ilaclar', requireLogin, ilaclarRoutes);
 app.use('/api/satislar', requireLogin, satislarRoutes);
 app.use('/api/musteriler', requireLogin, musterilerRoutes);
 app.use('/api/tedarikciler', requireLogin, tedarikcilerRoutes);
+app.use('/api/raporlar', requireLogin, requireRole('admin', 'eczaci'), raporlarRoutes);
 
 // Diger API route'lari (satislar, musteriler, vb.) ilerleyen commit'lerde eklenecek.
 app.get('/api/health', (req, res) => res.json({ ok: true }));
