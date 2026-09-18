@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "eczane-etiket"
-version = "1.6.0"
+version = "1.7.0"
 description = "Türkiye'deki eczaneler için modern, hızlı ve %100 çevrimdışı termal ilaç etiketi basım sistemi"
 readme = "README.md"
 license = { text = "MIT" }
