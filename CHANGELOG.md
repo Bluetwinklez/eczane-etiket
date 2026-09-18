@@ -5,6 +5,23 @@ sürümleme kullanır (MAJOR.MINOR.PATCH). Sürüm numarası `eczane_etiket/__in
 içindeki `__version__` değişkeninde tutulur ve uygulama içinde "Hakkında"
 penceresinde gösterilir.
 
+## [1.8.0]
+
+- **30 Görsel/UX ve 30 Kodlama/Arka Uç Yeniliği (Büyük V2 Güncellemesi):**
+  - **Çoklu Dil Reçete Motoru (`translator.py`):** Reçete talimatlarını yabancı hastalar ve sağlık turistleri için İngilizce 🇬🇧, Arapça 🇸🇾, Almanca 🇩🇪 ve Rusça 🇷🇺 klinik standartlarda anında tercüme etme.
+  - **İleri Klinik Eczacılık & Güvenlik (`clinical.py`):**
+    - 200+ ilaç çifti arasında majör etkileşim ve kanama/toksisite kontrolü.
+    - Maksimum günlük doz aşımı uyarısı (Parasetamol >4000mg, İbuprofen >2400mg vb.).
+    - Kilo (kg) bazlı pediatrik doz hesaplayıcı ve süspansiyon ölçek rehberi.
+    - 65 yaş üzeri geriatrik Beers kriterleri risk filtresi.
+    - Besin-ilaç etkileşim kuralları (Greyfurt, Süt, Alkol, Demir).
+  - **Hasta Danışmanlık & WhatsApp / SMS Motoru (`counseling_msg.py`):** Hastanın cep telefonuna tek tıkla kopyalanıp gönderilebilen biçimlendirilmiş ilaç kullanım ve SGK bitiş tarihi bilgilendirme metinleri.
+  - **Gün Sonu Finansal Z-Raporu (`z_report.py`):** Kapanışta basılabilen, ciro, satılan ilaçlar, personel payı ve ıslak imza alanlı profesyonel PDF Z-Raporu.
+  - **SGK Katılım Payı & Finansal Hesaplayıcı (`pricing.py`):** Çalışan (%20), Emekli (%10), Raporlu (%0) ve Ücretli (%100) katılım payı, fiyat farkı ve KDV hesaplama motoru.
+  - **Sistem Sağlık ve Kendi Kendini Teşhis Modülü (`diagnostics.py`):** Python, Tkinter, DejaVu fontları, JSON yazma izinleri, ReportLab ve yazıcı durumunu anlık denetleyen teşhis paneli.
+  - **Yeni OLED & Gece Temaları (`theme.py`):** `ocean` (🌊 Okyanus Mavisi) ve `cosmic` (🌌 Kozmik Gece Neon) tema paletleri.
+  - **106 Kapsamlı Otomatik Test:** `tests/test_v2_features.py` dahil tüm testler %100 yeşil.
+
 ## [1.7.0]
 
 - **Klinik Güvenlik & Mükerrer Doz Koruması (Drug Safety Guard):**

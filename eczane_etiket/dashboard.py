@@ -50,7 +50,19 @@ class DashboardView(ttk.Frame):
             style="Muted.TLabel",
             font=(theme.FONT_FAMILY, 8),
         )
-        self.last_update_lbl.pack(side="left", padx=(0, 12))
+        self.last_update_lbl.pack(side="left", padx=(0, 10))
+
+        ttk.Button(
+            btn_box,
+            text="📑 Z-Raporu",
+            command=self._generate_z_report,
+        ).pack(side="left", padx=(0, 4))
+
+        ttk.Button(
+            btn_box,
+            text="🩺 Tanı",
+            command=self._show_diagnostics,
+        ).pack(side="left", padx=(0, 4))
 
         ttk.Button(
             btn_box,
@@ -274,6 +286,38 @@ class DashboardView(ttk.Frame):
         else:
             data = s.get("by_day", [])
             self.chart_widget.set_data(data, title="Haftalık Etiket Basım Sayısı", unit="adet")
+
+    def _generate_z_report(self):
+        from .z_report import build_z_report_pdf
+        import tempfile, os
+        active_prof = profiles.get_active_profile()
+        tmp_fd, tmp_path = tempfile.mkstemp(suffix="_z_raporu.pdf")
+        os.close(tmp_fd)
+        try:
+            build_z_report_pdf(tmp_path, active_prof)
+            try:
+                os.startfile(tmp_path)
+            except Exception:
+                import subprocess
+                subprocess.Popen(["xdg-open", tmp_path])
+        except Exception as e:
+            from tkinter import messagebox
+            messagebox.showerror("Hata", f"Z-Raporu oluşturulamadı: {e}")
+
+    def _show_diagnostics(self):
+        from .diagnostics import generate_diagnostic_summary_text
+        report = generate_diagnostic_summary_text()
+        top = tk.Toplevel(self)
+        top.title("🩺 Eczane İstasyonu Sistem Teşhisi")
+        top.geometry("520x360")
+        top.configure(bg=theme.BG_CARD)
+        card = ttk.Frame(top, style="Card.TFrame", padding=14)
+        card.pack(fill="both", expand=True)
+        txt = tk.Text(card, font=("Consolas", 9), bg=theme.BG_CARD, fg=theme.TEXT_PRIMARY)
+        txt.pack(fill="both", expand=True)
+        txt.insert("1.0", report)
+        txt.configure(state="disabled")
+        ttk.Button(card, text="Kapat", command=top.destroy).pack(pady=(10, 0))
 
 
 def open_dashboard_dialog(parent):
