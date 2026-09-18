@@ -6,7 +6,7 @@
 [![Build & Release](https://github.com/Bluetwinklez/eczane-etiket/actions/workflows/release.yml/badge.svg)](https://github.com/Bluetwinklez/eczane-etiket/actions/workflows/release.yml)
 [![Sürüm](https://img.shields.io/badge/Sürüm-v1.8.0-blueviolet.svg)](CHANGELOG.md)
 [![Python Sürümü](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
-[![Testler](https://img.shields.io/badge/Testler-106%20Geçti%20(%25100)-brightgreen.svg)]()
+[![Testler](https://img.shields.io/badge/Testler-107%20Geçti%20(%25100)-brightgreen.svg)]()
 [![Lisans: MIT](https://img.shields.io/badge/Lisans-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)]()
 [![Veri Gizliliği](https://img.shields.io/badge/Veri%20Gizliliği-%25100%20Yerel%20%2F%20Çevrimdışı-emerald.svg)](SECURITY.md)

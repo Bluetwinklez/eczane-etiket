@@ -174,3 +174,21 @@ def test_extended_themes():
     assert ocean["primary"] == "#0284c7"
     cosmic = theme.THEMES["cosmic"]
     assert cosmic["bg_app"] == "#05070e"
+
+
+def test_label_footer_only_pharmacy_and_phone():
+    from eczane_etiket.label_pdf import format_label_footer
+
+    # Eczanem varsayılanı gösterilmemeli
+    assert format_label_footer({"name": "Eczanem", "phone": ""}) == ""
+    assert format_label_footer({"name": "ECZANEM", "phone": ""}) == ""
+    assert format_label_footer({"name": "", "phone": ""}) == ""
+
+    # Sadece eczane ismi ve numara olmalı
+    res = format_label_footer({"name": "Şifa Eczanesi", "phone": "0212 555 12 34"})
+    assert res == "Şifa Eczanesi  /  0212 555 12 34"
+    assert "Eczanem" not in res
+
+    # Sadece numara
+    assert format_label_footer({"name": "Eczanem", "phone": "0216 111 22 33"}) == "0216 111 22 33"
+

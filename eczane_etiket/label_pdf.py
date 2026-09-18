@@ -322,13 +322,31 @@ def _draw_single_label(c: canvas.Canvas, ox: float, oy: float, w: float, h: floa
         c.setFillColorRGB(*BLACK)
         cursor_y -= 4.5
 
-    # Alt koyu bant: eczane adı + telefon (adres YOK) [+ personel]
-    footer_text = profile.get("name", "")
-    if profile.get("phone"):
-        footer_text += f"  /  {profile['phone']}"
-    if entry.staff_name:
-        footer_text += f"   ({entry.staff_name})"
-    _draw_banner(c, ox + pad, oy + pad * 0.5, w - pad * 2, footer_h, footer_text, 5.2)
+    # Alt koyu bant: SADECE eczane adı + telefon numarası (Eczanem yok, personel yok)
+    footer_text = format_label_footer(profile)
+    if footer_text:
+        _draw_banner(c, ox + pad, oy + pad * 0.5, w - pad * 2, footer_h, footer_text, 5.2)
+
+
+def format_label_footer(profile: dict) -> str:
+    """Etiket alt koyu bandı için SADECE eczane adı ve telefon numarasını döndürür.
+    
+    'Eczanem' veya 'ECZANEM' gibi jenerik varsayılanlar gösterilmez.
+    Personel adı vb. eklenmez, sadece eczane adı ve telefon numarası yer alır.
+    """
+    if not profile:
+        return ""
+    name = (profile.get("name") or "").strip()
+    if name.lower() in ("eczanem", "eczane"):
+        name = ""
+    phone = (profile.get("phone") or "").strip()
+
+    parts = []
+    if name:
+        parts.append(name)
+    if phone:
+        parts.append(phone)
+    return "  /  ".join(parts)
 
 
 def _qr_payload(entry: LabelEntry) -> str:
