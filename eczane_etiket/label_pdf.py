@@ -271,13 +271,6 @@ def _draw_single_label(c: canvas.Canvas, ox: float, oy: float, w: float, h: floa
             c.drawString(ox + (w - line_width) / 2, cursor_y, line)
         cursor_y -= 1.0
 
-    # Görsel Doz Çizelgesi Tablosu (SABAH | ÖĞLE | AKŞAM | GECE)
-    if entry.print_dose_grid and entry.dose_grid:
-        grid_h = 3.8 * mm
-        if cursor_y - grid_h > footer_top:
-            cursor_y -= grid_h
-            _draw_dose_grid(c, ox + pad, cursor_y, w - pad * 2, grid_h, entry.dose_grid)
-            cursor_y -= 0.6
 
     # Saklama koşulu — alt banta taşmayacak kadar satır basılır
     if entry.storage_note:

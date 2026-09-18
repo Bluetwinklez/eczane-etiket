@@ -709,18 +709,6 @@ class App(tk.Tk):
 
         preview_btn_bar = ttk.Frame(preview_card, style="Card.TFrame")
         preview_btn_bar.pack(fill="x", pady=(4, 0))
-        ttk.Checkbutton(
-            preview_btn_bar,
-            text="🏷️ Barkod",
-            variable=self.print_barcode_var,
-            command=self._refresh_preview,
-        ).pack(side="left")
-        ttk.Checkbutton(
-            preview_btn_bar,
-            text="📊 Doz Çizelgesi",
-            variable=self.print_dose_grid_var,
-            command=self._refresh_preview,
-        ).pack(side="left", padx=(6, 0))
         ttk.Button(preview_btn_bar, text="🔍 Büyüt", command=self._open_zoom_preview).pack(side="right")
 
         history_card = ttk.LabelFrame(parent, text=" 🕒 Son Yazdırılanlar ", padding=6)
@@ -1721,20 +1709,6 @@ class App(tk.Tk):
         if entry.instructions:
             widget.insert("end", f"{entry.instructions.upper()}\n\n", "instructions_bold")
 
-        if entry.print_dose_grid and entry.dose_grid:
-            g = entry.dose_grid
-            s = g.get("sabah", "-")
-            o = g.get("öğle", "-")
-            a = g.get("akşam", "-")
-            ge = g.get("gece", "-")
-            grid_art = (
-                "┌───────┬───────┬───────┬───────┐\n"
-                "│ SABAH │ ÖĞLE  │ AKŞAM │ GECE  │\n"
-                "├───────┼───────┼───────┼───────┤\n"
-                f"│ {s:^5} │ {o:^5} │ {a:^5} │ {ge:^5} │\n"
-                "└───────┴───────┴───────┴───────┘\n\n"
-            )
-            widget.insert("end", grid_art, "dose_grid")
 
         if entry.detail_note:
             widget.insert("end", f"{entry.detail_note}\n\n", "normal")
