@@ -12,11 +12,13 @@ const tedarikcilerRoutes = require('./routes/tedarikciler');
 const raporlarRoutes = require('./routes/raporlar');
 const kullanicilarRoutes = require('./routes/kullanicilar');
 const subelerRoutes = require('./routes/subeler');
+const bildirimlerRoutes = require('./routes/bildirimler');
+const yedeklemeRoutes = require('./routes/yedekleme');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(
   session({
     name: 'eczanem.sid',
@@ -39,8 +41,9 @@ app.use('/api/tedarikciler', requireLogin, tedarikcilerRoutes);
 app.use('/api/raporlar', requireLogin, requireRole('admin', 'eczaci'), raporlarRoutes);
 app.use('/api/kullanicilar', requireLogin, requireRole('admin'), kullanicilarRoutes);
 app.use('/api/subeler', requireLogin, subelerRoutes);
+app.use('/api/bildirimler', requireLogin, bildirimlerRoutes);
+app.use('/api/yedekleme', requireLogin, requireRole('admin'), yedeklemeRoutes);
 
-// Diger API route'lari (satislar, musteriler, vb.) ilerleyen commit'lerde eklenecek.
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
