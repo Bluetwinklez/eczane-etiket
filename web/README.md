@@ -1,4 +1,6 @@
-# Eczanem Programı
+# Eczanem Programı (Web)
+
+> Bu klasör, depodaki masaüstü **Eczane Etiket** uygulamasının yanında duran web tabanlı eczane yönetim sistemidir. Depo genel bakışı için [ana README](../README.md) dosyasına bakın.
 
 Eczane yönetim ve otomasyon sistemi. Node.js + Express + yerleşik `node:sqlite` üzerinde çalışan, build adımı gerektirmeyen sade bir HTML/CSS/JS arayüzü olan tek prosesli bir web uygulaması.
 
@@ -39,12 +41,15 @@ Eczane yönetim ve otomasyon sistemi. Node.js + Express + yerleşik `node:sqlite
 
 ## Kurulum
 
+Node.js 22.5 veya üstü gerekir (yerleşik `node:sqlite` modülü için).
+
 ```bash
+cd web
 npm install
 npm start
 ```
 
-Sunucu varsayılan olarak `http://localhost:3000` adresinde çalışır. Veritabanı ilk çalıştırmada `data/eczane.db` dosyasında otomatik oluşturulur ve örnek verilerle doldurulur.
+Sunucu varsayılan olarak `http://localhost:3000` adresinde çalışır. Veritabanı ilk çalıştırmada `web/data/eczane.db` dosyasında otomatik oluşturulur ve örnek verilerle doldurulur.
 
 ## Demo Hesaplar
 
@@ -62,7 +67,7 @@ Sunucu varsayılan olarak `http://localhost:3000` adresinde çalışır. Veritab
 |------------------|---------------------------------------------------|
 | `PORT`           | Sunucu portu (varsayılan 3000)                    |
 | `SESSION_SECRET` | Oturum imzalama anahtarı (verilmezse üretilip veritabanında saklanır) |
-| `ECZANEM_DB_PATH` | Veritabanı dosyası yolu (varsayılan `data/eczane.db`) |
+| `ECZANEM_DB_PATH` | Veritabanı dosyası yolu (varsayılan `web/data/eczane.db`) |
 | `COOKIE_SECURE`  | `1` ise oturum çerezi yalnızca HTTPS üzerinden gönderilir |
 | `TRUST_PROXY`    | `1` ise ters vekil (reverse proxy) arkasında istemci IP'si `X-Forwarded-For`'dan alınır |
 | `SMTP_HOST`      | E-posta bildirimleri için SMTP sunucusu           |
