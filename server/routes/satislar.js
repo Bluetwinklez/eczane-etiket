@@ -2,6 +2,9 @@ const express = require('express');
 const { db } = require('../db');
 const { partiCikis } = require('../partiler');
 const { sepetHesapla } = require('../kampanyalar');
+const { musteriBakiyesi, cariHareketEkle } = require('../cari');
+
+const ODEME_TIPLERI = ['nakit', 'kredi_karti', 'sgk', 'veresiye'];
 
 const router = express.Router();
 
@@ -78,6 +81,26 @@ router.post('/', (req, res) => {
 
   const hesap = sepetHesapla(hazirlanmis, indirimYuzdesiOku(indirim_yuzdesi));
 
+  const odemeTipi = odeme_tipi || 'nakit';
+  if (!ODEME_TIPLERI.includes(odemeTipi)) return res.status(400).json({ error: 'Gecersiz odeme tipi' });
+
+  let musteri = null;
+  if (musteri_id) {
+    musteri = db.prepare('SELECT * FROM musteriler WHERE id = ?').get(musteri_id);
+    if (!musteri) return res.status(404).json({ error: 'Musteri bulunamadi' });
+  }
+  if (odemeTipi === 'veresiye') {
+    if (!musteri) return res.status(400).json({ error: 'Veresiye satis icin musteri secilmelidir' });
+    if (musteri.veresiye_limiti != null) {
+      const yeniBakiye = musteriBakiyesi(musteri.id) + hesap.toplam_tutar;
+      if (yeniBakiye > musteri.veresiye_limiti + 0.001) {
+        return res.status(400).json({
+          error: `Veresiye limiti asiliyor (limit: ${musteri.veresiye_limiti.toFixed(2)} TL, mevcut borc: ${musteriBakiyesi(musteri.id).toFixed(2)} TL)`
+        });
+      }
+    }
+  }
+
   db.exec('BEGIN');
   try {
     const satisInfo = db
@@ -93,7 +116,7 @@ router.post('/', (req, res) => {
         hesap.kampanya_indirimi,
         hesap.indirim_tutari,
         hesap.toplam_tutar,
-        odeme_tipi || 'nakit',
+        odemeTipi,
         sgk_recete ? 1 : 0
       );
 
@@ -125,6 +148,18 @@ router.post('/', (req, res) => {
       }
       insertHareket.run(ilac.id, subeId, adet, `Satis #${satisId}`);
     });
+
+    if (odemeTipi === 'veresiye') {
+      cariHareketEkle({
+        musteri_id: musteri.id,
+        sube_id: subeId,
+        tip: 'borc',
+        tutar: hesap.toplam_tutar,
+        satis_id: satisId,
+        aciklama: `Satis #${satisId}`,
+        kullanici_id: req.user.id
+      });
+    }
 
     db.exec('COMMIT');
 
