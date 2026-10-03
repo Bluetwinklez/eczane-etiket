@@ -328,6 +328,55 @@ db.exec(`
 
 sutunEkleGerekirse('satis_kalemi_partileri', 'iade_edilen', 'INTEGER NOT NULL DEFAULT 0');
 sutunEkleGerekirse('kasa_kapanislari', 'iade_sistem', 'REAL NOT NULL DEFAULT 0');
+sutunEkleGerekirse('ilaclar', 'etken_madde', 'TEXT');
+
+// Etken madde ciftleri arasindaki bilinen etkilesimler (madde_a < madde_b sirali saklanir)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS etkilesimler (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    madde_a TEXT NOT NULL,
+    madde_b TEXT NOT NULL,
+    seviye TEXT NOT NULL CHECK (seviye IN ('ciddi', 'orta', 'hafif')),
+    aciklama TEXT NOT NULL,
+    UNIQUE (madde_a, madde_b)
+  );
+`);
+
+// Ornek katalogdaki ilaclarin etken maddeleri (eski veritabanlari icin de doldurulur)
+const ORNEK_ETKEN_MADDELER = {
+  '8699504010012': 'parasetamol',
+  '8699504010029': 'asetilsalisilik asit',
+  '8699504010036': 'amoksisilin, klavulanik asit',
+  '8699504010043': 'ibuprofen',
+  '8699504010050': 'essitalopram',
+  '8699504010067': 'diklofenak',
+  '8699504010074': 'asetilsalisilik asit',
+  '8699504010081': 'alprazolam',
+  '8699504010098': 'hidrotalsit',
+  '8699504010104': 'metoprolol'
+};
+function ornekEtkenMaddeleriDoldur() {
+  const guncelle = db.prepare('UPDATE ilaclar SET etken_madde = ? WHERE barkod = ? AND etken_madde IS NULL');
+  for (const [barkod, madde] of Object.entries(ORNEK_ETKEN_MADDELER)) guncelle.run(madde, barkod);
+}
+
+// Sinirli ornek veri seti: klinik karar destek sisteminin yerini tutmaz.
+if (db.prepare('SELECT COUNT(*) AS c FROM etkilesimler').get().c === 0) {
+  const ekle = db.prepare('INSERT OR IGNORE INTO etkilesimler (madde_a, madde_b, seviye, aciklama) VALUES (?, ?, ?, ?)');
+  const ornekler = [
+    ['asetilsalisilik asit', 'ibuprofen', 'orta', 'İbuprofen, düşük doz aspirinin antiplatelet (kalbi koruyucu) etkisini azaltabilir; birlikte kullanımda mide-bağırsak kanama riski artar.'],
+    ['asetilsalisilik asit', 'essitalopram', 'orta', "SSRI'lar ile aspirinin birlikte kullanımında kanama riski artar."],
+    ['essitalopram', 'ibuprofen', 'orta', "SSRI'lar ile NSAİİ'lerin birlikte kullanımında özellikle mide-bağırsak kanama riski artar."],
+    ['diklofenak', 'essitalopram', 'orta', "SSRI'lar ile NSAİİ'lerin birlikte kullanımında kanama riski artar."],
+    ['diklofenak', 'ibuprofen', 'orta', "İki NSAİİ'nin birlikte kullanımı ek fayda sağlamadan mide ve böbrek yan etki riskini artırır."],
+    ['ibuprofen', 'metoprolol', 'hafif', "NSAİİ'ler beta blokerlerin tansiyon düşürücü etkisini azaltabilir; tansiyon takibi önerilir."],
+    ['essitalopram', 'tramadol', 'ciddi', 'Serotonin sendromu ve nöbet riski artar.'],
+    ['asetilsalisilik asit', 'varfarin', 'ciddi', 'Kanama riski belirgin şekilde artar.'],
+    ['ibuprofen', 'varfarin', 'ciddi', 'Kanama riski belirgin şekilde artar.'],
+    ['hidrotalsit', 'siprofloksasin', 'orta', 'Antasitler siprofloksasinin emilimini azaltır; en az 2 saat arayla alınmalıdır.']
+  ];
+  for (const [a, b, seviye, aciklama] of ornekler) ekle.run(a, b, seviye, aciklama);
+}
 
 function ayarOku(anahtar) {
   const row = db.prepare('SELECT deger FROM ayarlar WHERE anahtar = ?').get(anahtar);
@@ -458,5 +507,6 @@ function seedIfEmpty() {
 }
 
 seedIfEmpty();
+ornekEtkenMaddeleriDoldur();
 
 module.exports = { db, hashPassword, verifyPassword, ayarOku, ayarYaz };

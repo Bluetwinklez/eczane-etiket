@@ -29,7 +29,7 @@
 
     return `
       <tr>
-        <td>${UI.esc(ilac.ad)} ${ilac.urun_tipi && ilac.urun_tipi !== 'ilac' ? `<span class="badge tip-${ilac.urun_tipi}">${UI.URUN_TIPLERI[ilac.urun_tipi] || ilac.urun_tipi}</span>` : ''} ${ilac.receteli ? '<span class="badge muted">Reçeteli</span>' : ''} ${sktRozeti(ilac.en_yakin_skt)}</td>
+        <td>${UI.esc(ilac.ad)}${ilac.etken_madde ? `<br /><small class="etken-madde">${UI.esc(ilac.etken_madde)}</small>` : ''} ${ilac.urun_tipi && ilac.urun_tipi !== 'ilac' ? `<span class="badge tip-${ilac.urun_tipi}">${UI.URUN_TIPLERI[ilac.urun_tipi] || ilac.urun_tipi}</span>` : ''} ${ilac.receteli ? '<span class="badge muted">Reçeteli</span>' : ''} ${sktRozeti(ilac.en_yakin_skt)}</td>
         <td>${UI.esc(ilac.barkod || '-')}</td>
         <td>${UI.esc(ilac.kategori || '-')}</td>
         <td class="num">${ilac.stok} ${stokRozeti}</td>
@@ -55,6 +55,7 @@
             </select>
           </div>
           <div><label>Kategori</label><input name="kategori" value="${UI.esc(i.kategori || '')}" /></div>
+          <div><label>Etken Madde</label><input name="etken_madde" value="${UI.esc(i.etken_madde || '')}" placeholder="örn. amoksisilin, klavulanik asit" title="Etkileşim kontrolü için; birden fazlaysa virgülle ayırın" /></div>
           <div><label>Üretici</label><input name="uretici" value="${UI.esc(i.uretici || '')}" /></div>
           <div><label>Alış Fiyatı</label><input name="alis_fiyati" type="number" step="0.01" min="0" value="${i.alis_fiyati ?? ''}" /></div>
           <div><label>Satış Fiyatı</label><input name="satis_fiyati" type="number" step="0.01" min="0" required value="${i.satis_fiyati ?? ''}" /></div>
@@ -85,7 +86,8 @@
       stok: fd.has('stok') ? Number(fd.get('stok')) || 0 : undefined,
       parti_no: fd.has('parti_no') ? fd.get('parti_no') || null : undefined,
       receteli: form.querySelector('[name="receteli"]').checked,
-      urun_tipi: fd.get('urun_tipi')
+      urun_tipi: fd.get('urun_tipi'),
+      etken_madde: fd.get('etken_madde') || null
     };
   }
 
@@ -219,7 +221,7 @@
     async render(container, ctx) {
       container.innerHTML = `
         <div class="toolbar">
-          <input id="ilac-ara" placeholder="İlaç, barkod veya kategori ara..." style="max-width:320px" />
+          <input id="ilac-ara" placeholder="İlaç, barkod, etken madde veya kategori ara..." style="max-width:320px" />
           <select id="ilac-tip-filtre" style="max-width:200px">
             <option value="">Tüm ürün tipleri</option>
             ${Object.entries(UI.URUN_TIPLERI).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}

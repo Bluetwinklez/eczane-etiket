@@ -27,6 +27,7 @@ const islemKayitlariRoutes = require('./routes/islemKayitlari');
 const kampanyalarRoutes = require('./routes/kampanyalar');
 const veresiyeRoutes = require('./routes/veresiye');
 const iadelerRoutes = require('./routes/iadeler');
+const etkilesimlerRoutes = require('./routes/etkilesimler');
 
 // Parti kayitlari ile toplam stoklari baslangicta esitle (eski veritabanlari icin)
 partileriEsitle();
@@ -79,6 +80,7 @@ app.use('/api/giderler', requireLogin, requireRole('admin', 'eczaci'), giderlerR
 app.use('/api/kampanyalar', requireLogin, kampanyalarRoutes);
 app.use('/api/veresiye', requireLogin, veresiyeRoutes);
 app.use('/api/iadeler', requireLogin, requireRole('admin', 'eczaci'), iadelerRoutes);
+app.use('/api/etkilesimler', requireLogin, etkilesimlerRoutes);
 app.use('/api/siparisler', requireLogin, requireRole('admin', 'eczaci'), siparislerRoutes);
 app.use('/api/gorevler', requireLogin, gorevlerRoutes);
 app.use('/api/nobetler', requireLogin, nobetlerRoutes);

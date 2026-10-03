@@ -4,6 +4,8 @@
   let sonAramaSonuclari = [];
   let genelKisayolDinleyici = null;
   let onizlemeSayaci = 0;
+  let etkilesimSayaci = 0;
+  let sonEtkilesim = null;
   let aktifKampanyalar = [];
 
   function sepetAraToplam() {
@@ -36,6 +38,50 @@
     const indirimTutari = Math.round(araToplam * (yuzde / 100) * 100) / 100;
     toplamlariYaz({ ara_toplam: araToplam, kampanya_indirimi: 0, indirim_tutari: indirimTutari, toplam_tutar: araToplam - indirimTutari });
     onizlemeGuncelle();
+    etkilesimKontrolEt();
+  }
+
+  const SEVIYE_ETIKETI = { ciddi: 'Ciddi', orta: 'Orta', hafif: 'Hafif' };
+
+  // Sepetteki urunler (ve secili musterinin son 90 gunluk alimlari) arasindaki etkilesimler
+  async function etkilesimKontrolEt() {
+    const panel = document.getElementById('pos-etkilesim');
+    if (!panel) return;
+    const sayac = ++etkilesimSayaci;
+    const musteriId = document.getElementById('pos-musteri')?.value || null;
+    if (sepet.length === 0) {
+      sonEtkilesim = null;
+      panel.innerHTML = '';
+      return;
+    }
+    try {
+      const sonuc = await Api.post('/api/etkilesimler/kontrol', {
+        ilac_ids: sepet.map((k) => k.ilac_id),
+        musteri_id: musteriId ? Number(musteriId) : null
+      });
+      if (sayac !== etkilesimSayaci) return;
+      sonEtkilesim = sonuc;
+      const satirlar = [
+        ...sonuc.alerji.map(
+          (a) => `<div class="etkilesim ciddi"><b>Alerji/sağlık notu:</b> ${UI.esc(a.urun)} (${UI.esc(a.madde)}) — müşteri notunda "${UI.esc(a.eslesen)}" geçiyor.</div>`
+        ),
+        ...sonuc.etkilesimler.map(
+          (e) => `<div class="etkilesim ${e.seviye}"><b>${SEVIYE_ETIKETI[e.seviye]} etkileşim:</b> ${UI.esc(e.urun_a)} + ${UI.esc(e.urun_b)}${
+            e.kaynak === 'gecmis' ? ' <small>(müşterinin son 90 gün alımı)</small>' : ''
+          }<br /><small>${UI.esc(e.aciklama)}</small></div>`
+        ),
+        ...sonuc.mukerrer.map(
+          (m) => `<div class="etkilesim orta"><b>Mükerrer etken madde:</b> ${UI.esc(m.urun_a)} ve ${UI.esc(m.urun_b)} aynı maddeyi (${UI.esc(m.madde)}) içeriyor${
+            m.kaynak === 'gecmis' ? ' <small>(son 90 gün alımı)</small>' : ''
+          }.</div>`
+        )
+      ];
+      panel.innerHTML = satirlar.length
+        ? satirlar.join('') + '<p class="form-ipucu">Uyarılar sınırlı bir örnek veri setine dayanır; eczacı değerlendirmesinin yerini tutmaz.</p>'
+        : '';
+    } catch (err) {
+      // Etkilesim kontrolu satisi engellemez
+    }
   }
 
   function toplamlariYaz(h) {
@@ -176,6 +222,7 @@
                   <input id="pos-indirim" type="number" min="0" max="100" step="1" value="0" />
                 </div>
               </div>
+              <div id="pos-etkilesim"></div>
               <div class="cart-total" style="font-size:14px;font-weight:400;padding:6px 0;border-top:none">
                 <span>Ara Toplam</span><span id="pos-ara-toplam">0,00 TL</span>
               </div>
@@ -250,6 +297,7 @@
       document.getElementById('pos-musteri').addEventListener('change', async (e) => {
         const uyariDiv = document.getElementById('pos-saglik-uyarisi');
         const musteri = musteriler.find((m) => String(m.id) === e.target.value);
+        etkilesimKontrolEt();
         uyariDiv.innerHTML =
           musteri && musteri.saglik_notu
             ? `<p style="background:var(--danger-soft);color:var(--danger);padding:8px 10px;border-radius:var(--radius-sm);font-size:12px;margin-top:6px">⚕ ${UI.esc(musteri.saglik_notu)}</p>`
@@ -275,6 +323,12 @@
         }
         const musteriId = document.getElementById('pos-musteri').value;
         const odemeTipi = document.getElementById('pos-odeme').value;
+        if (sonEtkilesim && (sonEtkilesim.alerji.length || sonEtkilesim.etkilesimler.some((x) => x.seviye === 'ciddi'))) {
+          const onay = window.confirm(
+            'Sepette CİDDİ etkileşim veya alerji uyarısı var. Eczacı değerlendirmesini yaptıysanız satışa devam etmek istiyor musunuz?'
+          );
+          if (!onay) return;
+        }
         if (odemeTipi === 'veresiye' && !musteriId) {
           UI.toast('Veresiye satış için müşteri seçin', 'error');
           document.getElementById('pos-musteri').focus();

@@ -27,7 +27,8 @@ const TABLO_SIRASI = [
   'kampanyalar',
   'cari_hareketler',
   'iadeler',
-  'iade_kalemleri'
+  'iade_kalemleri',
+  'etkilesimler'
 ];
 
 router.get('/export', (req, res) => {
