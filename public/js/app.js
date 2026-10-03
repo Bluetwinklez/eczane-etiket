@@ -238,6 +238,10 @@ async function rotayiRenderEt() {
 async function init() {
   try {
     const { user } = await Api.get('/api/auth/me');
+    if (user.sifre_degistirilmeli) {
+      window.location.href = 'login.html';
+      return;
+    }
     CURRENT_USER = user;
   } catch (e) {
     return; // Api.get zaten login sayfasina yonlendirir
@@ -258,6 +262,38 @@ async function init() {
   });
 
   document.getElementById('cp-ac-btn').addEventListener('click', () => CommandPalette.ac());
+
+  document.getElementById('sifre-btn').addEventListener('click', () => {
+    const modal = UI.openModal(`
+      <h3>Şifremi Değiştir</h3>
+      <form id="sifre-degistir-form">
+        <div><label>Mevcut şifre</label><input name="mevcut" type="password" autocomplete="current-password" required /></div>
+        <div style="margin-top:10px"><label>Yeni şifre</label><input name="yeni" type="password" autocomplete="new-password" minlength="8" required /></div>
+        <div style="margin-top:10px"><label>Yeni şifre (tekrar)</label><input name="yeni2" type="password" autocomplete="new-password" minlength="8" required /></div>
+        <p class="sifre-kural">En az 8 karakter, en az bir harf ve bir rakam. Diğer cihazlardaki oturumlarınız kapatılır.</p>
+        <div class="modal-actions">
+          <button type="button" class="secondary" data-action="kapat">Vazgeç</button>
+          <button type="submit">Değiştir</button>
+        </div>
+      </form>
+    `);
+    modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));
+    modal.querySelector('#sifre-degistir-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      if (fd.get('yeni') !== fd.get('yeni2')) {
+        UI.toast('Yeni şifreler eşleşmiyor', 'error');
+        return;
+      }
+      try {
+        await Api.post('/api/auth/sifre-degistir', { mevcut_sifre: fd.get('mevcut'), yeni_sifre: fd.get('yeni') });
+        UI.toast('Şifreniz değiştirildi', 'success');
+        UI.closeModal(modal);
+      } catch (err) {
+        UI.toast(err.message, 'error');
+      }
+    });
+  });
 
   document.getElementById('logout-btn').addEventListener('click', async () => {
     await Api.post('/api/auth/logout');

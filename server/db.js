@@ -201,6 +201,31 @@ function sutunEkleGerekirse(tablo, sutun, tanim) {
 sutunEkleGerekirse('satislar', 'ara_toplam', 'REAL NOT NULL DEFAULT 0');
 sutunEkleGerekirse('satislar', 'indirim_tutari', 'REAL NOT NULL DEFAULT 0');
 sutunEkleGerekirse('musteriler', 'saglik_notu', 'TEXT');
+sutunEkleGerekirse('kullanicilar', 'sifre_degistirilmeli', 'INTEGER NOT NULL DEFAULT 0');
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS ayarlar (
+    anahtar TEXT PRIMARY KEY,
+    deger TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS oturumlar (
+    sid TEXT PRIMARY KEY,
+    veri TEXT NOT NULL,
+    bitis INTEGER NOT NULL
+  );
+`);
+
+function ayarOku(anahtar) {
+  const row = db.prepare('SELECT deger FROM ayarlar WHERE anahtar = ?').get(anahtar);
+  return row ? row.deger : null;
+}
+
+function ayarYaz(anahtar, deger) {
+  db.prepare(
+    'INSERT INTO ayarlar (anahtar, deger) VALUES (?, ?) ON CONFLICT(anahtar) DO UPDATE SET deger = excluded.deger'
+  ).run(anahtar, deger);
+}
 
 function hashPassword(plain, salt = crypto.randomBytes(16).toString('hex')) {
   const hash = crypto.scryptSync(plain, salt, 64).toString('hex');
@@ -232,20 +257,20 @@ function seedIfEmpty() {
     const merkezId = db.prepare('SELECT id FROM subeler ORDER BY id LIMIT 1').get().id;
     const admin = hashPassword('admin123');
     db.prepare(
-      `INSERT INTO kullanicilar (kullanici_adi, sifre_hash, sifre_salt, ad_soyad, rol, sube_id)
-       VALUES (?, ?, ?, ?, ?, ?)`
+      `INSERT INTO kullanicilar (kullanici_adi, sifre_hash, sifre_salt, ad_soyad, rol, sube_id, sifre_degistirilmeli)
+       VALUES (?, ?, ?, ?, ?, ?, 1)`
     ).run('admin', admin.hash, admin.salt, 'Sistem Yoneticisi', 'admin', merkezId);
 
     const eczaci = hashPassword('eczaci123');
     db.prepare(
-      `INSERT INTO kullanicilar (kullanici_adi, sifre_hash, sifre_salt, ad_soyad, rol, sube_id)
-       VALUES (?, ?, ?, ?, ?, ?)`
+      `INSERT INTO kullanicilar (kullanici_adi, sifre_hash, sifre_salt, ad_soyad, rol, sube_id, sifre_degistirilmeli)
+       VALUES (?, ?, ?, ?, ?, ?, 1)`
     ).run('eczaci', eczaci.hash, eczaci.salt, 'Eczaci Kullanici', 'eczaci', merkezId);
 
     const kasiyer = hashPassword('kasiyer123');
     db.prepare(
-      `INSERT INTO kullanicilar (kullanici_adi, sifre_hash, sifre_salt, ad_soyad, rol, sube_id)
-       VALUES (?, ?, ?, ?, ?, ?)`
+      `INSERT INTO kullanicilar (kullanici_adi, sifre_hash, sifre_salt, ad_soyad, rol, sube_id, sifre_degistirilmeli)
+       VALUES (?, ?, ?, ?, ?, ?, 1)`
     ).run('kasiyer', kasiyer.hash, kasiyer.salt, 'Kasiyer Kullanici', 'kasiyer', merkezId);
   }
 
@@ -301,4 +326,4 @@ function seedIfEmpty() {
 
 seedIfEmpty();
 
-module.exports = { db, hashPassword, verifyPassword };
+module.exports = { db, hashPassword, verifyPassword, ayarOku, ayarYaz };
