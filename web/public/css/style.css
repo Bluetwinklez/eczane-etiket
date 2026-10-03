@@ -375,3 +375,8 @@ td.num, th.num { text-align: right; }
 .boyut-buyuk .raf-barkod .barkod-svg { height: 38px; }
 .boyut-kucuk .raf-lira { font-size: 19px; }
 .boyut-kucuk .raf-ad { font-size: 9.5px; }
+.badge.recete-kirmizi { background: #fde2e2; color: #b42318; }
+.badge.recete-yesil { background: #dcfce7; color: #166534; }
+.badge.recete-mor { background: #ede9fe; color: #6d28d9; }
+.badge.recete-turuncu { background: #ffedd5; color: #c2410c; }
+.recete-panel { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; margin: 8px 0; background: var(--bg); }

@@ -4,6 +4,7 @@ const { partiCikis } = require('../partiler');
 const { sepetHesapla } = require('../kampanyalar');
 const { musteriBakiyesi, cariHareketEkle } = require('../cari');
 const { puanUygula, puanHareketi } = require('../sadakat');
+const { RECETE_TURLERI, KONTROLLU_TURLER } = require('../sabitler');
 
 const ODEME_TIPLERI = ['nakit', 'kredi_karti', 'sgk', 'veresiye', 'karma'];
 
@@ -133,6 +134,33 @@ router.post('/', (req, res) => {
     musteri = db.prepare('SELECT * FROM musteriler WHERE id = ?').get(musteri_id);
     if (!musteri) return res.status(404).json({ error: 'Musteri bulunamadi' });
   }
+  // Recete bilgisi: kirmizi/yesil receteli ilaclar recete no, dogru recete
+  // turu, doktor ve hasta TC olmadan satilamaz (kontrollu ilac defteri icin)
+  const recete = {
+    recete_no: req.body.recete_no ? String(req.body.recete_no).trim() : null,
+    recete_turu: req.body.recete_turu || null,
+    recete_tarihi: req.body.recete_tarihi || null,
+    doktor_adi: req.body.doktor_adi ? String(req.body.doktor_adi).trim() : null,
+    hasta_tc: req.body.hasta_tc ? String(req.body.hasta_tc).trim() : (musteri && musteri.tc_no) || null
+  };
+  if (recete.recete_turu && !Object.prototype.hasOwnProperty.call(RECETE_TURLERI, recete.recete_turu)) {
+    return res.status(400).json({ error: 'Gecersiz recete turu' });
+  }
+  if (recete.recete_tarihi && !/^\d{4}-\d{2}-\d{2}$/.test(recete.recete_tarihi)) {
+    return res.status(400).json({ error: 'Recete tarihi gecersiz' });
+  }
+  if (recete.hasta_tc && !/^[1-9]\d{10}$/.test(recete.hasta_tc)) return res.status(400).json({ error: 'Hasta TC kimlik no 11 haneli olmali' });
+  for (const { ilac } of hazirlanmis) {
+    if (!ilac.recete_turu) continue;
+    const ad = RECETE_TURLERI[ilac.recete_turu];
+    if (recete.recete_turu !== ilac.recete_turu) {
+      return res.status(400).json({ error: `${ilac.ad} ${ad} receteyle satilir; recete turunu secin` });
+    }
+    if (KONTROLLU_TURLER.includes(ilac.recete_turu) && (!recete.recete_no || !recete.doktor_adi || !recete.hasta_tc)) {
+      return res.status(400).json({ error: `${ilac.ad} kontrollu ilactir: recete no, doktor ve hasta TC zorunlu` });
+    }
+  }
+
   // Sadakat puani: kullanilan puan toplamdan duser, kazanilacak puan hesaplanir
   const puan = puanUygula(hesap, { musteri, puanKullan: req.body.puan_kullan, sgk: odemeTipi === 'sgk' || sgk_recete });
   if (puan.puan_hatasi) return res.status(400).json({ error: puan.puan_hatasi });
@@ -171,8 +199,8 @@ router.post('/', (req, res) => {
     const satisInfo = db
       .prepare(
         `INSERT INTO satislar (musteri_id, sube_id, kullanici_id, ara_toplam, kampanya_indirimi, indirim_tutari, toplam_tutar, odeme_tipi, sgk_recete,
-                               puan_indirimi, kullanilan_puan, kazanilan_puan)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                               puan_indirimi, kullanilan_puan, kazanilan_puan, recete_no, recete_turu, recete_tarihi, doktor_adi, hasta_tc)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         musteri_id || null,
@@ -186,7 +214,12 @@ router.post('/', (req, res) => {
         sgk_recete ? 1 : 0,
         puan.puan_indirimi,
         puan.kullanilan_puan,
-        puan.kazanilacak_puan
+        puan.kazanilacak_puan,
+        recete.recete_no,
+        recete.recete_turu,
+        recete.recete_tarihi,
+        recete.doktor_adi,
+        recete.hasta_tc
       );
 
     const satisId = satisInfo.lastInsertRowid;

@@ -29,7 +29,7 @@
 
     return `
       <tr>
-        <td>${UI.esc(ilac.ad)}${ilac.etken_madde ? `<br /><small class="etken-madde">${UI.esc(ilac.etken_madde)}</small>` : ''} ${ilac.urun_tipi && ilac.urun_tipi !== 'ilac' ? `<span class="badge tip-${ilac.urun_tipi}">${UI.URUN_TIPLERI[ilac.urun_tipi] || ilac.urun_tipi}</span>` : ''} ${ilac.receteli ? '<span class="badge muted">Reçeteli</span>' : ''} ${sktRozeti(ilac.en_yakin_skt)}</td>
+        <td>${UI.esc(ilac.ad)}${ilac.etken_madde ? `<br /><small class="etken-madde">${UI.esc(ilac.etken_madde)}</small>` : ''} ${ilac.urun_tipi && ilac.urun_tipi !== 'ilac' ? `<span class="badge tip-${ilac.urun_tipi}">${UI.URUN_TIPLERI[ilac.urun_tipi] || ilac.urun_tipi}</span>` : ''} ${ilac.recete_turu ? `<span class="badge recete-${ilac.recete_turu}">${UI.RECETE_TURLERI[ilac.recete_turu]} reçete</span>` : ilac.receteli ? '<span class="badge muted">Reçeteli</span>' : ''} ${sktRozeti(ilac.en_yakin_skt)}</td>
         <td>${UI.esc(ilac.barkod || '-')}</td>
         <td>${UI.esc(ilac.kategori || '-')}</td>
         <td class="num">${ilac.stok} ${stokRozeti}</td>
@@ -55,6 +55,13 @@
             </select>
           </div>
           <div><label>Kategori</label><input name="kategori" value="${UI.esc(i.kategori || '')}" /></div>
+          <div>
+            <label>Reçete Türü</label>
+            <select name="recete_turu" title="Kırmızı/yeşil reçeteli ilaçlar kontrollü ilaç defterine girer">
+              <option value="">Normal (beyaz / reçetesiz)</option>
+              ${['kirmizi', 'yesil', 'mor', 'turuncu'].map((t) => `<option value="${t}" ${i.recete_turu === t ? 'selected' : ''}>${UI.RECETE_TURLERI[t]} reçete</option>`).join('')}
+            </select>
+          </div>
           <div><label>Bir Kutu Kaç Gün Yeter?</label><input name="kutu_gun" type="number" min="1" max="365" value="${i.kutu_gun ?? ''}" placeholder="Kronik ilaçlar için (boş = takip yok)" title="Bitiş hatırlatması için" /></div>
           <div><label>Etken Madde</label><input name="etken_madde" value="${UI.esc(i.etken_madde || '')}" placeholder="örn. amoksisilin, klavulanik asit" title="Etkileşim kontrolü için; birden fazlaysa virgülle ayırın" /></div>
           <div><label>Üretici</label><input name="uretici" value="${UI.esc(i.uretici || '')}" /></div>
@@ -89,7 +96,8 @@
       receteli: form.querySelector('[name="receteli"]').checked,
       urun_tipi: fd.get('urun_tipi'),
       etken_madde: fd.get('etken_madde') || null,
-      kutu_gun: fd.get('kutu_gun') === '' ? null : Number(fd.get('kutu_gun'))
+      kutu_gun: fd.get('kutu_gun') === '' ? null : Number(fd.get('kutu_gun')),
+      recete_turu: fd.get('recete_turu') || null
     };
   }
 

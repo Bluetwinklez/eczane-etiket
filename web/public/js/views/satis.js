@@ -37,6 +37,7 @@
     const yuzde = indirimYuzdesiOku();
     const indirimTutari = Math.round(araToplam * (yuzde / 100) * 100) / 100;
     toplamlariYaz({ ara_toplam: araToplam, kampanya_indirimi: 0, indirim_tutari: indirimTutari, toplam_tutar: araToplam - indirimTutari });
+    recetePaneliniGuncelle();
     onizlemeGuncelle();
     etkilesimKontrolEt();
   }
@@ -85,6 +86,25 @@
   }
 
   let sonToplam = 0;
+
+  // Sepette receteli urun varsa recete paneli acilir; ozel receteli (kirmizi/yesil/mor/turuncu)
+  // urun varsa recete turu ona gore secilir ve kontrollu ilaclar icin uyari gosterilir
+  function recetePaneliniGuncelle() {
+    const panel = document.getElementById('pos-recete-panel');
+    if (!panel) return;
+    const receteli = sepet.some((k) => k.receteli);
+    const ozel = sepet.find((k) => k.recete_turu);
+    panel.hidden = !(receteli || document.getElementById('pos-recete').checked);
+    const turSel = document.getElementById('pos-recete-turu');
+    if (ozel && turSel.dataset.otomatik !== ozel.recete_turu) {
+      turSel.value = ozel.recete_turu;
+      turSel.dataset.otomatik = ozel.recete_turu;
+    }
+    const kontrollu = sepet.filter((k) => ['kirmizi', 'yesil'].includes(k.recete_turu));
+    document.getElementById('pos-recete-uyari').innerHTML = kontrollu.length
+      ? `<b style="color:var(--danger)">Kontrollü ilaç: ${kontrollu.map((k) => UI.esc(k.ad)).join(', ')}</b> — reçete no, doktor ve hasta TC zorunlu.`
+      : 'Reçete bilgisi isteğe bağlıdır; reçete raporuna yansır.';
+  }
 
   function karmaGuncelle() {
     const kutu = document.getElementById('pos-karma');
@@ -160,7 +180,15 @@
         UI.toast('Bu ilacın stoğu yok', 'error');
         return;
       }
-      sepet.push({ ilac_id: ilac.id, ad: ilac.ad, satis_fiyati: ilac.satis_fiyati, adet: 1, mevcutStok: ilac.stok });
+      sepet.push({
+        ilac_id: ilac.id,
+        ad: ilac.ad,
+        satis_fiyati: ilac.satis_fiyati,
+        adet: 1,
+        mevcutStok: ilac.stok,
+        receteli: ilac.receteli,
+        recete_turu: ilac.recete_turu || null
+      });
     }
     sepetiCiz(container);
   }
@@ -287,6 +315,16 @@
               <p class="form-ipucu" id="pos-kazanilacak" hidden style="margin:0 0 6px"></p>
               <div class="cart-total"><span>Toplam</span><span id="sepet-toplam">0,00 TL</span></div>
               <label><input type="checkbox" id="pos-recete" style="width:auto" /> Reçeteli / SGK işlemi</label>
+              <div class="recete-panel" id="pos-recete-panel" hidden>
+                <div id="pos-recete-uyari" class="form-ipucu" style="margin-top:0"></div>
+                <div class="form-grid">
+                  <div><label>Reçete No</label><input id="pos-recete-no" /></div>
+                  <div><label>Reçete Türü</label><select id="pos-recete-turu">${Object.entries(UI.RECETE_TURLERI).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></div>
+                  <div><label>Doktor</label><input id="pos-doktor" /></div>
+                  <div><label>Reçete Tarihi</label><input id="pos-recete-tarihi" type="date" /></div>
+                  <div><label>Hasta TC</label><input id="pos-hasta-tc" maxlength="11" placeholder="Müşteri seçiliyse kaydındaki TC" /></div>
+                </div>
+              </div>
               <button id="pos-tamamla" style="width:100%;margin-top:14px;padding:12px">Satışı Tamamla</button>
               <p style="color:var(--text-muted);font-size:11px;margin-top:8px">
                 Kısayollar: <b>F2</b> aramaya odaklan · arama kutusunda <b>Enter</b> ilk sonucu sepete ekler · <b>Ctrl+Enter</b> satışı tamamlar · <b>F8</b> sepeti beklet
@@ -350,7 +388,10 @@
         karmaGuncelle();
         onizlemeGuncelle();
       });
-      document.getElementById('pos-recete').addEventListener('change', onizlemeGuncelle);
+      document.getElementById('pos-recete').addEventListener('change', () => {
+        recetePaneliniGuncelle();
+        onizlemeGuncelle();
+      });
       let puanZamanlayici;
       document.getElementById('pos-puan-kullan').addEventListener('input', () => {
         clearTimeout(puanZamanlayici);
@@ -429,6 +470,15 @@
             indirim_yuzdesi: indirimYuzdesiOku(),
             odemeler,
             puan_kullan: Number(document.getElementById('pos-puan-kullan').value) || 0,
+            ...(document.getElementById('pos-recete-panel').hidden
+              ? {}
+              : {
+                  recete_no: document.getElementById('pos-recete-no').value || null,
+                  recete_turu: document.getElementById('pos-recete-turu').value || null,
+                  doktor_adi: document.getElementById('pos-doktor').value || null,
+                  recete_tarihi: document.getElementById('pos-recete-tarihi').value || null,
+                  hasta_tc: document.getElementById('pos-hasta-tc').value || null
+                }),
             kalemler: sepet.map((k) => ({ ilac_id: k.ilac_id, adet: k.adet }))
           });
 

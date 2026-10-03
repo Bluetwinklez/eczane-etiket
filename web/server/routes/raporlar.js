@@ -1,7 +1,7 @@
 const express = require('express');
 const { db } = require('../db');
 const { sendCsv, sendPdf } = require('../export');
-const { URUN_TIPLERI } = require('../sabitler');
+const { URUN_TIPLERI, RECETE_TURLERI, KONTROLLU_TURLER } = require('../sabitler');
 
 const router = express.Router();
 
@@ -211,10 +211,11 @@ router.get('/recete-sgk', (req, res) => {
   const { kosul, params } = tarihFiltresi(req.query.baslangic, req.query.bitis);
 
   let sql = `
-    SELECT sa.id, sa.tarih, sa.toplam_tutar, sa.odeme_tipi, m.ad_soyad AS musteri_adi
+    SELECT sa.id, sa.tarih, sa.toplam_tutar, sa.odeme_tipi, m.ad_soyad AS musteri_adi,
+           sa.recete_no, sa.recete_turu, sa.doktor_adi
     FROM satislar sa
     LEFT JOIN musteriler m ON m.id = sa.musteri_id
-    WHERE sa.sgk_recete = 1 ${kosul}
+    WHERE (sa.sgk_recete = 1 OR sa.recete_no IS NOT NULL) ${kosul}
   `;
   if (subeId) {
     sql += ' AND sa.sube_id = ?';
@@ -227,7 +228,77 @@ router.get('/recete-sgk', (req, res) => {
     { alan: 'id', baslik: 'Satis No' },
     { alan: 'tarih', baslik: 'Tarih' },
     { alan: 'musteri_adi', baslik: 'Musteri' },
+    { alan: 'recete_no', baslik: 'Recete No' },
+    { alan: 'recete_turu', baslik: 'Recete Turu' },
+    { alan: 'doktor_adi', baslik: 'Doktor' },
     { alan: 'toplam_tutar', baslik: 'Tutar (TL)' }
+  ]);
+});
+
+// Kontrollu ilac defteri: kirmizi/yesil receteli ilaclarin tum stok giris-cikislari,
+// satislarda recete no, doktor ve hasta bilgisi, ilac bazinda yuruyen bakiye
+router.get('/kontrollu-ilac', (req, res) => {
+  const subeId = resolveSubeId(req, req.query.sube_id) || req.user.sube_id;
+  const yer = KONTROLLU_TURLER.map(() => '?').join(',');
+  let sql = `
+    SELECT h.id, h.tarih, h.ilac_id, i.ad AS ilac_adi, i.recete_turu AS ilac_recete, h.tip, h.adet, h.aciklama,
+           CAST(substr(h.aciklama, 8) AS INTEGER) AS satis_no
+    FROM stok_hareketleri h JOIN ilaclar i ON i.id = h.ilac_id
+    WHERE h.sube_id = ? AND i.recete_turu IN (${yer})`;
+  const params = [subeId, ...KONTROLLU_TURLER];
+  if (req.query.baslangic) {
+    sql += ' AND h.tarih >= ?';
+    params.push(req.query.baslangic);
+  }
+  if (req.query.bitis) {
+    sql += ' AND h.tarih <= ?';
+    params.push(req.query.bitis + ' 23:59:59');
+  }
+  sql += ' ORDER BY i.ad, h.tarih, h.id';
+  const hareketler = db.prepare(sql).all(...params);
+
+  const satisBilgisi = db.prepare(
+    `SELECT sa.recete_no, sa.recete_turu, sa.doktor_adi, sa.hasta_tc, m.ad_soyad AS hasta
+     FROM satislar sa LEFT JOIN musteriler m ON m.id = sa.musteri_id WHERE sa.id = ?`
+  );
+  // Donem oncesi bakiye: mevcut stoktan donem icindeki net hareket cikarilir
+  const mevcut = db.prepare('SELECT stok FROM ilac_stok WHERE ilac_id = ? AND sube_id = ?');
+  const netDonem = {};
+  for (const h of hareketler) netDonem[h.ilac_id] = (netDonem[h.ilac_id] || 0) + (h.tip === 'giris' ? h.adet : -h.adet);
+  const bakiye = {};
+
+  const rows = hareketler.map((h) => {
+    if (bakiye[h.ilac_id] === undefined) {
+      bakiye[h.ilac_id] = ((mevcut.get(h.ilac_id, subeId) || { stok: 0 }).stok) - netDonem[h.ilac_id];
+    }
+    bakiye[h.ilac_id] += h.tip === 'giris' ? h.adet : -h.adet;
+    const satis = h.tip === 'cikis' && /^Satis #\d+$/.test(h.aciklama || '') ? satisBilgisi.get(h.satis_no) : null;
+    return {
+      tarih: h.tarih,
+      ilac_adi: h.ilac_adi,
+      recete_rengi: RECETE_TURLERI[h.ilac_recete],
+      giris: h.tip === 'giris' ? h.adet : '',
+      cikis: h.tip === 'cikis' ? h.adet : '',
+      bakiye: bakiye[h.ilac_id],
+      aciklama: h.aciklama || '',
+      recete_no: satis ? satis.recete_no : '',
+      doktor: satis ? satis.doktor_adi : '',
+      hasta: satis ? satis.hasta || '' : '',
+      hasta_tc: satis ? satis.hasta_tc || '' : ''
+    };
+  });
+  cikisYap(req, res, 'kontrollu-ilac-defteri', 'Kontrollu Ilac Defteri', rows, [
+    { alan: 'tarih', baslik: 'Tarih' },
+    { alan: 'ilac_adi', baslik: 'Ilac' },
+    { alan: 'recete_rengi', baslik: 'Recete' },
+    { alan: 'giris', baslik: 'Giris' },
+    { alan: 'cikis', baslik: 'Cikis' },
+    { alan: 'bakiye', baslik: 'Bakiye' },
+    { alan: 'recete_no', baslik: 'Recete No' },
+    { alan: 'doktor', baslik: 'Doktor' },
+    { alan: 'hasta', baslik: 'Hasta' },
+    { alan: 'hasta_tc', baslik: 'Hasta TC' },
+    { alan: 'aciklama', baslik: 'Aciklama' }
   ]);
 });
 
