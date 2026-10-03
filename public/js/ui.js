@@ -81,5 +81,15 @@ const UI = (function () {
     }
   }
 
-  return { toast, esc, tl, tarih, openModal, closeModal, confirmSil, temaAktifMi, temaDegistir, aramaSeedOku, URUN_TIPLERI };
+  // Okutulan metin bir karekoda (GS1 DataMatrix) mi benziyor? Duz EAN-13 barkodlari eslesmez.
+  function karekodaBenziyor(metin) {
+    const s = String(metin || '').trim();
+    return /^\][A-Za-z]\d/.test(s) || s.includes('\x1d') || s.startsWith('(01)') || /^01\d{14}(10|11|17|21)/.test(s);
+  }
+
+  async function karekodSorgula(metin) {
+    return Api.get('/api/ilaclar/karekod?kod=' + encodeURIComponent(String(metin).trim()));
+  }
+
+  return { toast, esc, tl, tarih, openModal, closeModal, confirmSil, temaAktifMi, temaDegistir, aramaSeedOku, URUN_TIPLERI, karekodaBenziyor, karekodSorgula };
 })();

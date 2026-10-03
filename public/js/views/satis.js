@@ -85,6 +85,28 @@
     sepetiCiz(container);
   }
 
+  // Karekod okutulunca urunu sepete ekler; SKT'si gecmis kutunun satisini engeller
+  async function karekodIleEkle(metin, container) {
+    try {
+      const sonuc = await UI.karekodSorgula(metin);
+      if (!sonuc.ilac) {
+        UI.toast(`Karekoddaki ürün kayıtlı değil (barkod ${sonuc.karekod.barkod})`, 'error');
+        return;
+      }
+      if (sonuc.skt_gecmis) {
+        UI.toast(`${sonuc.ilac.ad}: kutunun SKT'si geçmiş (${sonuc.karekod.skt}). Satılamaz!`, 'error');
+        return;
+      }
+      sepeteEkle(sonuc.ilac, container);
+      const bilgi = [sonuc.karekod.parti_no && `Parti ${sonuc.karekod.parti_no}`, sonuc.karekod.skt && `SKT ${sonuc.karekod.skt}`]
+        .filter(Boolean)
+        .join(' · ');
+      UI.toast(`${sonuc.ilac.ad} eklendi${bilgi ? ' — ' + bilgi : ''}`, 'success');
+    } catch (err) {
+      UI.toast(err.message, 'error');
+    }
+  }
+
   async function aramaSonuclariniCiz(q) {
     const sonuclar = q ? await Api.get('/api/ilaclar?q=' + encodeURIComponent(q)) : [];
     sonAramaSonuclari = sonuclar;
@@ -115,7 +137,7 @@
         <div class="pos-layout">
           <div>
             <div class="card">
-              <input id="pos-arama" placeholder="İlaç adı veya barkod ile ara..." autofocus />
+              <input id="pos-arama" placeholder="İlaç adı, barkod veya karekod okutun..." autofocus />
               <table style="margin-top:12px">
                 <thead><tr><th>Ad</th><th>Barkod</th><th class="num">Stok</th><th class="num">Fiyat</th></tr></thead>
                 <tbody id="arama-tbody" class="pos-search-results"></tbody>
@@ -181,10 +203,20 @@
       const aramaInput = document.getElementById('pos-arama');
       aramaInput.addEventListener('input', (e) => {
         clearTimeout(aramaTimer);
+        // Karekod okutuluyorsa okuyucunun Enter'ini bekle, ara sonuc listesi gosterme
+        if (UI.karekodaBenziyor(e.target.value)) return;
         aramaTimer = setTimeout(() => aramaSonuclariniCiz(e.target.value.trim()), 200);
       });
-      aramaInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && sonAramaSonuclari.length > 0) {
+      aramaInput.addEventListener('keydown', async (e) => {
+        if (e.key !== 'Enter') return;
+        if (UI.karekodaBenziyor(aramaInput.value)) {
+          e.preventDefault();
+          clearTimeout(aramaTimer);
+          await karekodIleEkle(aramaInput.value, container);
+          aramaInput.value = '';
+          return;
+        }
+        if (sonAramaSonuclari.length > 0) {
           e.preventDefault();
           sepeteEkle(sonAramaSonuclari[0], container);
         }

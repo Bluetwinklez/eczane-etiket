@@ -236,6 +236,14 @@
       `;
 
       const yenile = async (q) => {
+        // Arama kutusuna karekod okutulursa icindeki barkodla ara
+        if (q && UI.karekodaBenziyor(q)) {
+          try {
+            q = (await UI.karekodSorgula(q)).karekod.barkod;
+          } catch (err) {
+            /* cozulemezse oldugu gibi ara */
+          }
+        }
         const params = new URLSearchParams();
         if (q) params.set('q', q);
         const tip = document.getElementById('ilac-tip-filtre').value;

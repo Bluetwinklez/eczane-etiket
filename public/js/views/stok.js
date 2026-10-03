@@ -40,6 +40,7 @@
         <div class="card">
           <h3>Stok Hareketi Ekle</h3>
           <form id="stok-form">
+            <div><label>Karekod Okut <span style="color:var(--text-muted);font-weight:400">(ürün, parti ve SKT otomatik dolar)</span></label><input id="stok-karekod" placeholder="Karekodu okutun ve Enter'a basın" /></div>
             <div class="form-grid">
               <div>
                 <label>İlaç</label>
@@ -82,6 +83,33 @@
         };
         stokForm.querySelector('[name="tip"]').addEventListener('change', girisAlanlariniGuncelle);
         girisAlanlariniGuncelle();
+
+        document.getElementById('stok-karekod').addEventListener('keydown', async (e) => {
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+          const metin = e.target.value;
+          if (!metin.trim()) return;
+          try {
+            const sonuc = await UI.karekodSorgula(metin);
+            if (!sonuc.ilac) {
+              UI.toast(`Karekoddaki ürün kayıtlı değil (barkod ${sonuc.karekod.barkod})`, 'error');
+              return;
+            }
+            stokForm.querySelector('[name="ilac_id"]').value = String(sonuc.ilac.id);
+            stokForm.querySelector('[name="tip"]').value = 'giris';
+            girisAlanlariniGuncelle();
+            stokForm.querySelector('[name="parti_no"]').value = sonuc.karekod.parti_no || '';
+            stokForm.querySelector('[name="skt"]').value = sonuc.karekod.skt || '';
+            const adet = stokForm.querySelector('[name="adet"]');
+            if (!adet.value) adet.value = '1';
+            e.target.value = '';
+            UI.toast(`${sonuc.ilac.ad} seçildi${sonuc.skt_gecmis ? ' — DİKKAT: SKT geçmiş!' : ''}`, sonuc.skt_gecmis ? 'error' : 'success');
+            adet.focus();
+            adet.select();
+          } catch (err) {
+            UI.toast(err.message, 'error');
+          }
+        });
 
         stokForm.addEventListener('submit', async (e) => {
           e.preventDefault();
