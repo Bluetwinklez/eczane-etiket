@@ -19,9 +19,11 @@
       ? `
         <button class="secondary" data-action="duzenle" data-id="${ilac.id}">Düzenle</button>
         <button class="secondary" data-action="fiyat-gecmisi" data-id="${ilac.id}">Fiyat Geçmişi</button>
+        <button class="secondary" data-action="stok-hareketleri" data-id="${ilac.id}">Stok Geçmişi</button>
         ${ctx.user.rol === 'admin' ? `<button class="danger" data-action="sil" data-id="${ilac.id}">Sil</button>` : ''}
       `
-      : `<button class="secondary" data-action="fiyat-gecmisi" data-id="${ilac.id}">Fiyat Geçmişi</button>`;
+      : `<button class="secondary" data-action="fiyat-gecmisi" data-id="${ilac.id}">Fiyat Geçmişi</button>
+         <button class="secondary" data-action="stok-hareketleri" data-id="${ilac.id}">Stok Geçmişi</button>`;
 
     return `
       <tr>
@@ -113,6 +115,31 @@
     modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));
   }
 
+  const HAREKET_ROZETI = {
+    giris: '<span class="badge ok">Giriş</span>',
+    cikis: '<span class="badge danger">Çıkış</span>'
+  };
+
+  async function stokHareketleriGoster(id, ad) {
+    const hareketler = await Api.get(`/api/ilaclar/${id}/hareketler`);
+    const satirlar = hareketler.length
+      ? hareketler
+          .map(
+            (h) =>
+              `<tr><td>${UI.tarih(h.tarih)}</td><td>${HAREKET_ROZETI[h.tip] || h.tip}</td><td class="num">${h.adet}</td><td>${UI.esc(h.aciklama || '-')}</td></tr>`
+          )
+          .join('')
+      : '<tr><td colspan="4" class="empty-state">Stok hareketi kaydı yok</td></tr>';
+
+    const modal = UI.openModal(`
+      <h3>Stok Geçmişi — ${UI.esc(ad)}</h3>
+      <table><thead><tr><th>Tarih</th><th>Tip</th><th class="num">Adet</th><th>Açıklama</th></tr></thead>
+      <tbody>${satirlar}</tbody></table>
+      <div class="modal-actions"><button class="secondary" data-action="kapat">Kapat</button></div>
+    `);
+    modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));
+  }
+
   const view = {
     async render(container, ctx) {
       container.innerHTML = `
@@ -161,6 +188,8 @@
           formuBagla(modal, ilac, () => yenile(document.getElementById('ilac-ara').value));
         } else if (btn.dataset.action === 'fiyat-gecmisi') {
           fiyatGecmisiGoster(id);
+        } else if (btn.dataset.action === 'stok-hareketleri') {
+          stokHareketleriGoster(id, ilac.ad);
         } else if (btn.dataset.action === 'sil') {
           if (!(await UI.confirmSil(`"${ilac.ad}" silinsin mi?`))) return;
           try {
