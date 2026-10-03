@@ -198,4 +198,77 @@ router.get('/recete-sgk', (req, res) => {
   ]);
 });
 
+// 16. Stok degeri raporu (muhasebe/sigorta icin envanter degerlemesi)
+router.get('/stok-degeri', (req, res) => {
+  const subeId = resolveSubeId(req, req.query.sube_id);
+
+  let sql;
+  const params = [];
+  if (subeId) {
+    sql = `
+      SELECT COALESCE(i.kategori, 'Diğer') AS kategori,
+             COUNT(DISTINCT i.id) AS urun_cesidi,
+             SUM(COALESCE(s.stok, 0)) AS toplam_adet,
+             SUM(COALESCE(s.stok, 0) * i.alis_fiyati) AS alis_degeri,
+             SUM(COALESCE(s.stok, 0) * i.satis_fiyati) AS satis_degeri
+      FROM ilaclar i
+      LEFT JOIN ilac_stok s ON s.ilac_id = i.id AND s.sube_id = ?
+      GROUP BY kategori
+      ORDER BY alis_degeri DESC
+    `;
+    params.push(subeId);
+  } else {
+    sql = `
+      SELECT COALESCE(i.kategori, 'Diğer') AS kategori,
+             COUNT(DISTINCT i.id) AS urun_cesidi,
+             SUM(COALESCE(s.stok, 0)) AS toplam_adet,
+             SUM(COALESCE(s.stok, 0) * i.alis_fiyati) AS alis_degeri,
+             SUM(COALESCE(s.stok, 0) * i.satis_fiyati) AS satis_degeri
+      FROM ilaclar i
+      LEFT JOIN ilac_stok s ON s.ilac_id = i.id
+      GROUP BY kategori
+      ORDER BY alis_degeri DESC
+    `;
+  }
+
+  const rows = db.prepare(sql).all(...params);
+  cikisYap(req, res, 'stok-degeri-raporu', 'Stok Degeri Raporu', rows, [
+    { alan: 'kategori', baslik: 'Kategori' },
+    { alan: 'urun_cesidi', baslik: 'Ürün Çeşidi' },
+    { alan: 'toplam_adet', baslik: 'Toplam Adet' },
+    { alan: 'alis_degeri', baslik: 'Alış Değeri (TL)' },
+    { alan: 'satis_degeri', baslik: 'Satış Değeri (TL)' }
+  ]);
+});
+
+// 17. Personel satis performans raporu
+router.get('/personel-performans', (req, res) => {
+  const subeId = resolveSubeId(req, req.query.sube_id);
+  const { kosul, params } = tarihFiltresi(req.query.baslangic, req.query.bitis);
+
+  let sql = `
+    SELECT u.ad_soyad AS personel, u.rol,
+           COUNT(sa.id) AS satis_adedi,
+           SUM(sa.toplam_tutar) AS toplam_ciro,
+           ROUND(AVG(sa.toplam_tutar), 2) AS ortalama_sepet
+    FROM satislar sa
+    JOIN kullanicilar u ON u.id = sa.kullanici_id
+    WHERE 1=1 ${kosul}
+  `;
+  if (subeId) {
+    sql += ' AND sa.sube_id = ?';
+    params.push(subeId);
+  }
+  sql += ' GROUP BY sa.kullanici_id ORDER BY toplam_ciro DESC';
+
+  const rows = db.prepare(sql).all(...params);
+  cikisYap(req, res, 'personel-performans-raporu', 'Personel Satis Performans Raporu', rows, [
+    { alan: 'personel', baslik: 'Personel' },
+    { alan: 'rol', baslik: 'Rol' },
+    { alan: 'satis_adedi', baslik: 'Satış Adedi' },
+    { alan: 'toplam_ciro', baslik: 'Toplam Ciro (TL)' },
+    { alan: 'ortalama_sepet', baslik: 'Ortalama Sepet (TL)' }
+  ]);
+});
+
 module.exports = router;

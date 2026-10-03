@@ -49,6 +49,27 @@
         { alan: 'musteri_adi', baslik: 'Müşteri' },
         { alan: 'toplam_tutar', baslik: 'Tutar', tl: true }
       ]
+    },
+    'stok-degeri': {
+      baslik: 'Stok Değeri Raporu',
+      kolonlar: [
+        { alan: 'kategori', baslik: 'Kategori' },
+        { alan: 'urun_cesidi', baslik: 'Ürün Çeşidi' },
+        { alan: 'toplam_adet', baslik: 'Toplam Adet' },
+        { alan: 'alis_degeri', baslik: 'Alış Değeri', tl: true },
+        { alan: 'satis_degeri', baslik: 'Satış Değeri', tl: true }
+      ]
+    },
+    'personel-performans': {
+      baslik: 'Personel Satış Performansı',
+      tarih: true,
+      kolonlar: [
+        { alan: 'personel', baslik: 'Personel' },
+        { alan: 'rol', baslik: 'Rol' },
+        { alan: 'satis_adedi', baslik: 'Satış Adedi' },
+        { alan: 'toplam_ciro', baslik: 'Toplam Ciro', tl: true },
+        { alan: 'ortalama_sepet', baslik: 'Ortalama Sepet', tl: true }
+      ]
     }
   };
 
