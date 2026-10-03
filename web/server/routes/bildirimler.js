@@ -1,21 +1,8 @@
 const express = require('express');
-const nodemailer = require('nodemailer');
 const { db } = require('../db');
+const { bildirimGonder } = require('../bildirim');
 
 const router = express.Router();
-
-function smtpYapilandirilmisMi() {
-  return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
-}
-
-function getTransporter() {
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT) || 587,
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
-  });
-}
 
 router.get('/', (req, res) => {
   const { musteri_id, durum } = req.query;
@@ -47,35 +34,7 @@ router.post('/', async (req, res) => {
   const musteri = db.prepare('SELECT * FROM musteriler WHERE id = ?').get(musteri_id);
   if (!musteri) return res.status(404).json({ error: 'Musteri bulunamadi' });
 
-  const insert = db.prepare(
-    `INSERT INTO bildirimler (musteri_id, kanal, mesaj, durum) VALUES (?, ?, ?, 'bekliyor')`
-  );
-  const info = insert.run(musteri_id, kanal, mesaj.trim());
-  const bildirimId = info.lastInsertRowid;
-
-  if (kanal === 'email' && smtpYapilandirilmisMi() && musteri.email) {
-    try {
-      const transporter = getTransporter();
-      await transporter.sendMail({
-        from: process.env.SMTP_FROM || process.env.SMTP_USER,
-        to: musteri.email,
-        subject: 'Eczanem Programi - Hatirlatma',
-        text: mesaj.trim()
-      });
-      db.prepare(`UPDATE bildirimler SET durum='gonderildi' WHERE id=?`).run(bildirimId);
-    } catch (err) {
-      db.prepare(`UPDATE bildirimler SET durum='hata', hata_mesaji=? WHERE id=?`).run(
-        String(err.message).slice(0, 500),
-        bildirimId
-      );
-    }
-  } else {
-    // SMS icin gercek bir saglayici entegrasyonu bu ortamda mevcut degil; e-posta icin
-    // SMTP ayari yoksa veya musterinin e-posta adresi yoksa da ayni sekilde simule edilir.
-    db.prepare(`UPDATE bildirimler SET durum='simule' WHERE id=?`).run(bildirimId);
-  }
-
-  const sonuc = db.prepare('SELECT * FROM bildirimler WHERE id = ?').get(bildirimId);
+  const sonuc = await bildirimGonder(musteri, kanal, mesaj.trim());
   res.status(201).json(sonuc);
 });
 
