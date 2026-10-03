@@ -46,5 +46,22 @@ const UI = (function () {
     return window.confirm(mesaj || 'Silmek istediğinize emin misiniz?');
   }
 
-  return { toast, esc, tl, tarih, openModal, closeModal, confirmSil };
+  function temaAktifMi() {
+    return document.documentElement.getAttribute('data-theme') === 'dark';
+  }
+
+  function temaDegistir() {
+    const koyu = !temaAktifMi();
+    if (koyu) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    try {
+      localStorage.setItem('eczanem-tema', koyu ? 'dark' : 'light');
+    } catch (e) {}
+    return koyu;
+  }
+
+  return { toast, esc, tl, tarih, openModal, closeModal, confirmSil, temaAktifMi, temaDegistir };
 })();
