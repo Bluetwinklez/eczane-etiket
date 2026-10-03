@@ -74,10 +74,15 @@ const AnaSayfaView = {
 
     const yediGunOnce = new Date();
     yediGunOnce.setDate(yediGunOnce.getDate() - 6);
+    const buAy = new Date().toISOString().slice(0, 7);
+    const yoneticiMi = CURRENT_USER.rol === 'admin' || CURRENT_USER.rol === 'eczaci';
 
-    const [uyarilar, satislar7Gun] = await Promise.all([
+    const [uyarilar, satislar7Gun, bekleyenGorevler, buAykiNobetler, bekleyenSiparisler] = await Promise.all([
       Api.get('/api/ilaclar/uyarilar'),
-      Api.get('/api/satislar?baslangic=' + gunStr(yediGunOnce))
+      Api.get('/api/satislar?baslangic=' + gunStr(yediGunOnce)),
+      Api.get('/api/gorevler?durum=bekliyor'),
+      Api.get('/api/nobetler?ay=' + buAy),
+      yoneticiMi ? Api.get('/api/siparisler?durum=beklemede') : Promise.resolve([])
     ]);
 
     const bugun = gunStr(new Date());
@@ -117,6 +122,51 @@ const AnaSayfaView = {
       <div class="card">
         <h3>Son 7 Gün Satış Trendi</h3>
         ${satisTrendSvg(gunlukVeri)}
+      </div>
+      <div class="stat-row" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
+        <div class="card" style="margin-bottom:0">
+          <h3>📋 Bekleyen Görevler (${bekleyenGorevler.length})</h3>
+          ${
+            bekleyenGorevler.length
+              ? '<ul style="margin:0;padding-left:18px;font-size:13px">' +
+                bekleyenGorevler
+                  .slice(0, 5)
+                  .map((g) => `<li style="margin-bottom:4px">${UI.esc(g.baslik)}${g.atanan_adi ? ` <span style="color:var(--text-muted)">→ ${UI.esc(g.atanan_adi)}</span>` : ''}</li>`)
+                  .join('') +
+                '</ul>'
+              : '<p style="color:var(--text-muted);font-size:13px;margin:0">Bekleyen görev yok</p>'
+          }
+          <a href="#gorevler" style="font-size:12px">Tümünü gör →</a>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <h3>⚕ Bu Ayki Nöbetler (${buAykiNobetler.length})</h3>
+          ${
+            buAykiNobetler.length
+              ? '<ul style="margin:0;padding-left:18px;font-size:13px">' +
+                buAykiNobetler.map((n) => `<li style="margin-bottom:4px">${n.tarih}</li>`).join('') +
+                '</ul>'
+              : '<p style="color:var(--text-muted);font-size:13px;margin:0">Bu ay nöbet kaydı yok</p>'
+          }
+          <a href="#nobetler" style="font-size:12px">Takvimi gör →</a>
+        </div>
+        ${
+          yoneticiMi
+            ? `<div class="card" style="margin-bottom:0">
+                <h3>📦 Bekleyen Siparişler (${bekleyenSiparisler.length})</h3>
+                ${
+                  bekleyenSiparisler.length
+                    ? '<ul style="margin:0;padding-left:18px;font-size:13px">' +
+                      bekleyenSiparisler
+                        .slice(0, 5)
+                        .map((s) => `<li style="margin-bottom:4px">#${s.id} — ${UI.esc(s.tedarikci_adi || '-')}</li>`)
+                        .join('') +
+                      '</ul>'
+                    : '<p style="color:var(--text-muted);font-size:13px;margin:0">Bekleyen sipariş yok</p>'
+                }
+                <a href="#siparisler" style="font-size:12px">Tümünü gör →</a>
+              </div>`
+            : ''
+        }
       </div>
       <div class="card">
         <h3>Hoş geldiniz, ${UI.esc(CURRENT_USER.ad_soyad)}</h3>
