@@ -17,6 +17,7 @@ const yedeklemeRoutes = require('./routes/yedekleme');
 const kasaKapanislariRoutes = require('./routes/kasaKapanislari');
 const giderlerRoutes = require('./routes/giderler');
 const siparislerRoutes = require('./routes/siparisler');
+const gorevlerRoutes = require('./routes/gorevler');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -49,6 +50,7 @@ app.use('/api/yedekleme', requireLogin, requireRole('admin'), yedeklemeRoutes);
 app.use('/api/kasa-kapanislari', requireLogin, kasaKapanislariRoutes);
 app.use('/api/giderler', requireLogin, requireRole('admin', 'eczaci'), giderlerRoutes);
 app.use('/api/siparisler', requireLogin, requireRole('admin', 'eczaci'), siparislerRoutes);
+app.use('/api/gorevler', requireLogin, gorevlerRoutes);
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
