@@ -14,6 +14,7 @@ const kullanicilarRoutes = require('./routes/kullanicilar');
 const subelerRoutes = require('./routes/subeler');
 const bildirimlerRoutes = require('./routes/bildirimler');
 const yedeklemeRoutes = require('./routes/yedekleme');
+const kasaKapanislariRoutes = require('./routes/kasaKapanislari');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -43,6 +44,7 @@ app.use('/api/kullanicilar', requireLogin, requireRole('admin'), kullanicilarRou
 app.use('/api/subeler', requireLogin, subelerRoutes);
 app.use('/api/bildirimler', requireLogin, bildirimlerRoutes);
 app.use('/api/yedekleme', requireLogin, requireRole('admin'), yedeklemeRoutes);
+app.use('/api/kasa-kapanislari', requireLogin, kasaKapanislariRoutes);
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
