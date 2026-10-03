@@ -202,7 +202,9 @@
         }
       });
 
-      await yenile();
+      const seed = UI.aramaSeedOku();
+      if (seed) document.getElementById('ilac-ara').value = seed;
+      await yenile(seed);
     }
   };
 
