@@ -202,6 +202,7 @@ sutunEkleGerekirse('satislar', 'ara_toplam', 'REAL NOT NULL DEFAULT 0');
 sutunEkleGerekirse('satislar', 'indirim_tutari', 'REAL NOT NULL DEFAULT 0');
 sutunEkleGerekirse('musteriler', 'saglik_notu', 'TEXT');
 sutunEkleGerekirse('kullanicilar', 'sifre_degistirilmeli', 'INTEGER NOT NULL DEFAULT 0');
+sutunEkleGerekirse('ilaclar', 'urun_tipi', "TEXT NOT NULL DEFAULT 'ilac'");
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS ayarlar (
@@ -313,6 +314,26 @@ function seedIfEmpty() {
     ];
     for (const [ad, barkod, kategori, uretici, receteli, kritikStok, alis, satis, skt, stoklar] of ornekIlaclar) {
       const info = insertIlac.run(ad, barkod, kategori, uretici, receteli, kritikStok, alis, satis, skt);
+      subeler.forEach((sube, idx) => {
+        insertStok.run(info.lastInsertRowid, sube.id, stoklar[idx] ?? 0);
+      });
+    }
+
+    // Eczanelerde ilac disi urunler de satilir; ornek veriler
+    const ilacDisiUrunler = [
+      ['La Roche-Posay Effaclar Jel 200ml', '3337875545723', 'Cilt Bakim', 'La Roche-Posay', 'dermokozmetik', 5, 310.0, 449.0, '2028-01-01', [12, 6]],
+      ['Bioderma Sensibio H2O 250ml', '3401345935571', 'Cilt Bakim', 'Bioderma', 'dermokozmetik', 5, 260.0, 379.0, '2027-11-01', [10, 4]],
+      ['Supradyn Energy 30 Tablet', '8699546352071', 'Vitamin', 'Bayer', 'takviye', 6, 140.0, 219.0, '2027-08-01', [18, 8]],
+      ['Omega-3 Balik Yagi 60 Kapsul', '8681234560017', 'Vitamin', 'Solgar', 'takviye', 6, 190.0, 289.0, '2027-05-01', [9, 4]],
+      ['Omron M3 Tansiyon Aleti', '4015672105911', 'Olcum Cihazi', 'Omron', 'medikal', 2, 1350.0, 1890.0, null, [4, 2]],
+      ['Cerrahi Maske 50li', '8682345670019', 'Koruyucu', 'Medikal Tekstil', 'medikal', 10, 45.0, 79.0, '2029-01-01', [40, 20]]
+    ];
+    const insertUrun = db.prepare(`
+      INSERT INTO ilaclar (ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt, urun_tipi)
+      VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?)
+    `);
+    for (const [ad, barkod, kategori, uretici, tip, kritikStok, alis, satis, skt, stoklar] of ilacDisiUrunler) {
+      const info = insertUrun.run(ad, barkod, kategori, uretici, kritikStok, alis, satis, skt, tip);
       subeler.forEach((sube, idx) => {
         insertStok.run(info.lastInsertRowid, sube.id, stoklar[idx] ?? 0);
       });

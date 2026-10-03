@@ -1,6 +1,14 @@
 window.Views = window.Views || {};
 
 const UI = (function () {
+  const URUN_TIPLERI = {
+    ilac: 'İlaç',
+    dermokozmetik: 'Dermokozmetik',
+    takviye: 'Gıda Takviyesi',
+    medikal: 'Medikal Ürün',
+    diger: 'Diğer'
+  };
+
   function toast(mesaj, tip) {
     const wrap = document.getElementById('toast-wrap');
     const el = document.createElement('div');
@@ -73,5 +81,5 @@ const UI = (function () {
     }
   }
 
-  return { toast, esc, tl, tarih, openModal, closeModal, confirmSil, temaAktifMi, temaDegistir, aramaSeedOku };
+  return { toast, esc, tl, tarih, openModal, closeModal, confirmSil, temaAktifMi, temaDegistir, aramaSeedOku, URUN_TIPLERI };
 })();

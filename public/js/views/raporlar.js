@@ -60,6 +60,17 @@
         { alan: 'satis_degeri', baslik: 'Satış Değeri', tl: true }
       ]
     },
+    'urun-tipi': {
+      baslik: 'Ürün Tipi Bazında Satış',
+      tarih: true,
+      kolonlar: [
+        { alan: 'urun_tipi_adi', baslik: 'Ürün Tipi' },
+        { alan: 'toplam_adet', baslik: 'Satılan Adet' },
+        { alan: 'toplam_ciro', baslik: 'Ciro', tl: true },
+        { alan: 'ciro_payi', baslik: 'Ciro Payı (%)' },
+        { alan: 'brut_kar', baslik: 'Brüt Kâr', tl: true }
+      ]
+    },
     'personel-performans': {
       baslik: 'Personel Satış Performansı',
       tarih: true,

@@ -1,6 +1,11 @@
 const express = require('express');
 const { db } = require('../db');
 const { requireRole } = require('../auth');
+const { URUN_TIPLERI } = require('../sabitler');
+
+function urunTipiGecerliMi(tip) {
+  return tip === undefined || tip === null || tip === '' || Object.prototype.hasOwnProperty.call(URUN_TIPLERI, tip);
+}
 
 const router = express.Router();
 
@@ -37,7 +42,8 @@ router.get('/', (req, res) => {
   const subeId = resolveSubeId(req, req.query.sube_id);
   let rows = ilacWithStok(subeId);
 
-  const { q } = req.query;
+  const { q, urun_tipi } = req.query;
+  if (urun_tipi) rows = rows.filter((r) => r.urun_tipi === urun_tipi);
   if (q) {
     const needle = q.toLowerCase();
     rows = rows.filter(
@@ -81,8 +87,9 @@ router.get('/:id/fiyat-gecmisi', (req, res) => {
 });
 
 router.post('/', requireRole('admin', 'eczaci'), (req, res) => {
-  const { ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt, stok } = req.body;
+  const { ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt, stok, urun_tipi } = req.body;
   if (!ad || !ad.trim()) return res.status(400).json({ error: 'Ilac adi zorunludur' });
+  if (!urunTipiGecerliMi(urun_tipi)) return res.status(400).json({ error: 'Gecersiz urun tipi' });
   if (satis_fiyati == null || Number(satis_fiyati) < 0) {
     return res.status(400).json({ error: 'Gecerli bir satis fiyati girin' });
   }
@@ -90,8 +97,8 @@ router.post('/', requireRole('admin', 'eczaci'), (req, res) => {
   try {
     const info = db
       .prepare(
-        `INSERT INTO ilaclar (ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO ilaclar (ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt, urun_tipi)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         ad.trim(),
@@ -102,7 +109,8 @@ router.post('/', requireRole('admin', 'eczaci'), (req, res) => {
         Number(kritik_stok) || 10,
         Number(alis_fiyati) || 0,
         Number(satis_fiyati),
-        skt || null
+        skt || null,
+        urun_tipi || 'ilac'
       );
 
     const subeler = db.prepare('SELECT id FROM subeler').all();
@@ -126,21 +134,15 @@ router.put('/:id', requireRole('admin', 'eczaci'), (req, res) => {
   const existing = db.prepare('SELECT * FROM ilaclar WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Ilac bulunamadi' });
 
-  const { ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt } = req.body;
+  const { ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt, urun_tipi } = req.body;
   if (!ad || !ad.trim()) return res.status(400).json({ error: 'Ilac adi zorunludur' });
+  if (!urunTipiGecerliMi(urun_tipi)) return res.status(400).json({ error: 'Gecersiz urun tipi' });
 
+  db.exec('BEGIN');
   try {
     const yeniSatisFiyati = Number(satis_fiyati) || 0;
-    if (yeniSatisFiyati !== existing.satis_fiyati) {
-      db.prepare('INSERT INTO fiyat_gecmisi (ilac_id, eski_fiyat, yeni_fiyat) VALUES (?, ?, ?)').run(
-        req.params.id,
-        existing.satis_fiyati,
-        yeniSatisFiyati
-      );
-    }
-
     db.prepare(
-      `UPDATE ilaclar SET ad=?, barkod=?, kategori=?, uretici=?, receteli=?, kritik_stok=?, alis_fiyati=?, satis_fiyati=?, skt=?
+      `UPDATE ilaclar SET ad=?, barkod=?, kategori=?, uretici=?, receteli=?, kritik_stok=?, alis_fiyati=?, satis_fiyati=?, skt=?, urun_tipi=?
        WHERE id=?`
     ).run(
       ad.trim(),
@@ -152,12 +154,23 @@ router.put('/:id', requireRole('admin', 'eczaci'), (req, res) => {
       Number(alis_fiyati) || 0,
       yeniSatisFiyati,
       skt || null,
+      urun_tipi || existing.urun_tipi,
       req.params.id
     );
+
+    if (yeniSatisFiyati !== existing.satis_fiyati) {
+      db.prepare('INSERT INTO fiyat_gecmisi (ilac_id, eski_fiyat, yeni_fiyat) VALUES (?, ?, ?)').run(
+        req.params.id,
+        existing.satis_fiyati,
+        yeniSatisFiyati
+      );
+    }
+    db.exec('COMMIT');
 
     const updated = ilacWithStok(req.user.sube_id).find((r) => r.id === Number(req.params.id));
     res.json(updated);
   } catch (err) {
+    db.exec('ROLLBACK');
     if (String(err.message).includes('UNIQUE')) {
       return res.status(409).json({ error: 'Bu barkod zaten kayitli' });
     }

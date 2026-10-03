@@ -1,6 +1,7 @@
 const express = require('express');
 const { db } = require('../db');
 const { sendCsv, sendPdf } = require('../export');
+const { URUN_TIPLERI } = require('../sabitler');
 
 const router = express.Router();
 
@@ -268,6 +269,44 @@ router.get('/personel-performans', (req, res) => {
     { alan: 'satis_adedi', baslik: 'Satış Adedi' },
     { alan: 'toplam_ciro', baslik: 'Toplam Ciro (TL)' },
     { alan: 'ortalama_sepet', baslik: 'Ortalama Sepet (TL)' }
+  ]);
+});
+
+// 18. Urun tipi bazinda satis (ilac / dermokozmetik / takviye / medikal)
+router.get('/urun-tipi', (req, res) => {
+  const subeId = resolveSubeId(req, req.query.sube_id);
+  const { kosul, params } = tarihFiltresi(req.query.baslangic, req.query.bitis);
+
+  let sql = `
+    SELECT COALESCE(i.urun_tipi, 'ilac') AS urun_tipi,
+           SUM(sk.adet) AS toplam_adet,
+           SUM(sk.ara_toplam) AS toplam_ciro,
+           SUM(sk.ara_toplam - sk.alis_fiyati * sk.adet) AS brut_kar
+    FROM satis_kalemleri sk
+    JOIN satislar sa ON sa.id = sk.satis_id
+    JOIN ilaclar i ON i.id = sk.ilac_id
+    WHERE 1=1 ${kosul}
+  `;
+  if (subeId) {
+    sql += ' AND sa.sube_id = ?';
+    params.push(subeId);
+  }
+  sql += ' GROUP BY urun_tipi ORDER BY toplam_ciro DESC';
+
+  const rows = db.prepare(sql).all(...params);
+  const toplamCiro = rows.reduce((t, r) => t + r.toplam_ciro, 0);
+  const sonuc = rows.map((r) => ({
+    ...r,
+    urun_tipi_adi: URUN_TIPLERI[r.urun_tipi] || r.urun_tipi,
+    ciro_payi: toplamCiro ? Math.round((r.toplam_ciro / toplamCiro) * 1000) / 10 : 0
+  }));
+
+  cikisYap(req, res, 'urun-tipi-raporu', 'Urun Tipi Bazinda Satis', sonuc, [
+    { alan: 'urun_tipi_adi', baslik: 'Ürün Tipi' },
+    { alan: 'toplam_adet', baslik: 'Satılan Adet' },
+    { alan: 'toplam_ciro', baslik: 'Ciro (TL)' },
+    { alan: 'ciro_payi', baslik: 'Ciro Payı (%)' },
+    { alan: 'brut_kar', baslik: 'Brüt Kâr (TL)' }
   ]);
 });
 
