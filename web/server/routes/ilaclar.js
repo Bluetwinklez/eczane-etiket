@@ -5,6 +5,7 @@ const { URUN_TIPLERI } = require('../sabitler');
 const { partiGiris, partiCikis, partiMiktariniKontrolEt, FEFO_SIRASI } = require('../partiler');
 const { karekodCoz } = require('../karekod');
 const { maddeleriAyir } = require('../etkilesim');
+const { satirlariCoz, SABLON } = require('../csvIceAktar');
 
 // "Amoksisilin + Klavulanik asit" -> "amoksisilin, klavulanik asit"
 function etkenMaddeNormallestir(deger) {
@@ -109,6 +110,91 @@ router.get('/uyarilar', (req, res) => {
     .map((r) => ({ ...r, durum: new Date(r.skt) < bugun ? 'sona_ermis' : 'yaklasiyor' }));
 
   res.json({ kritik_stok: kritikStok, skt_yaklasan: sktYaklasan });
+});
+
+// CSV (Excel'den "CSV olarak kaydet") ile toplu urun ekleme/guncelleme.
+// Barkodu kayitli urun guncellenir (yalnizca dolu hucreler), digerleri eklenir.
+router.get('/ice-aktar/sablon', (req, res) => {
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="urun-sablonu.csv"');
+  res.send('﻿' + SABLON);
+});
+
+const ICE_AKTAR_ALANLARI = ['ad', 'barkod', 'kategori', 'uretici', 'receteli', 'alis_fiyati', 'satis_fiyati', 'kritik_stok', 'urun_tipi', 'etken_madde', 'kutu_gun', 'skt'];
+
+router.post('/ice-aktar', requireRole('admin', 'eczaci'), (req, res) => {
+  if (typeof req.body.csv !== 'string' || !req.body.csv.trim()) return res.status(400).json({ error: 'CSV icerigi bos' });
+  const cozum = satirlariCoz(req.body.csv);
+  if (cozum.hata) return res.status(400).json({ error: cozum.hata });
+  if (cozum.satirlar.length > 5000) return res.status(400).json({ error: 'Tek seferde en fazla 5000 satir' });
+
+  const barkodla = db.prepare('SELECT * FROM ilaclar WHERE barkod = ?');
+  const gorulenBarkod = new Set();
+  const plan = cozum.satirlar.map((s) => {
+    const a = s.alanlar;
+    const hatalar = [...s.hatalar];
+    if (a.barkod) {
+      if (gorulenBarkod.has(a.barkod)) hatalar.push('ayni barkod dosyada birden fazla');
+      gorulenBarkod.add(a.barkod);
+    }
+    const mevcut = a.barkod ? barkodla.get(a.barkod) : null;
+    if (!mevcut) {
+      if (!a.ad) hatalar.push('yeni urun icin ad zorunlu');
+      if (a.satis_fiyati == null) hatalar.push('yeni urun icin satis fiyati zorunlu');
+    }
+    const degisen = mevcut ? ICE_AKTAR_ALANLARI.filter((f) => a[f] !== undefined && a[f] !== mevcut[f]) : [];
+    return {
+      satir: s.satir,
+      islem: hatalar.length ? 'hata' : mevcut ? (degisen.length ? 'guncelle' : 'ayni') : 'yeni',
+      ilac_id: mevcut ? mevcut.id : null,
+      ad: a.ad || (mevcut && mevcut.ad) || '',
+      barkod: a.barkod || null,
+      degisen,
+      hatalar,
+      alanlar: a,
+      eski_satis: mevcut ? mevcut.satis_fiyati : null
+    };
+  });
+  const ozet = {
+    yeni: plan.filter((p) => p.islem === 'yeni').length,
+    guncelle: plan.filter((p) => p.islem === 'guncelle').length,
+    ayni: plan.filter((p) => p.islem === 'ayni').length,
+    hata: plan.filter((p) => p.islem === 'hata').length
+  };
+  if (req.body.onizleme) return res.json({ ozet, satirlar: plan, taninan_sutunlar: cozum.sutunlar });
+  if (ozet.hata) return res.status(400).json({ error: `${ozet.hata} satirda hata var; once duzeltin`, ozet, satirlar: plan });
+
+  db.exec('BEGIN');
+  try {
+    const subeler = db.prepare('SELECT id FROM subeler').all();
+    const stokEkle = db.prepare('INSERT OR IGNORE INTO ilac_stok (ilac_id, sube_id, stok) VALUES (?, ?, 0)');
+    const gecmis = db.prepare('INSERT INTO fiyat_gecmisi (ilac_id, eski_fiyat, yeni_fiyat) VALUES (?, ?, ?)');
+    for (const p of plan) {
+      if (p.islem === 'yeni') {
+        const a = p.alanlar;
+        const id = Number(
+          db
+            .prepare(
+              `INSERT INTO ilaclar (ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt, urun_tipi, etken_madde, kutu_gun)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            )
+            .run(a.ad, a.barkod || null, a.kategori || null, a.uretici || null, a.receteli || 0, a.kritik_stok ?? 10, a.alis_fiyati || 0,
+              a.satis_fiyati, a.skt || null, a.urun_tipi || 'ilac', a.etken_madde || null, a.kutu_gun ?? null).lastInsertRowid
+        );
+        for (const s of subeler) stokEkle.run(id, s.id);
+        p.ilac_id = id;
+      } else if (p.islem === 'guncelle') {
+        const set = p.degisen.map((f) => `${f} = ?`).join(', ');
+        db.prepare(`UPDATE ilaclar SET ${set} WHERE id = ?`).run(...p.degisen.map((f) => p.alanlar[f]), p.ilac_id);
+        if (p.degisen.includes('satis_fiyati')) gecmis.run(p.ilac_id, p.eski_satis, p.alanlar.satis_fiyati);
+      }
+    }
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    return res.status(500).json({ error: 'Ice aktarma basarisiz: ' + err.message });
+  }
+  res.json({ ozet, satirlar: plan });
 });
 
 // Son `gun` gun icinde satis fiyati degisen urunler (yeni raf etiketi basmak icin)
