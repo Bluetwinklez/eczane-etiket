@@ -416,6 +416,16 @@ db.exec(`
     skt TEXT
   );
   CREATE INDEX IF NOT EXISTS idx_mal_kabul_kalemleri_ilac ON mal_kabul_kalemleri (ilac_id);
+
+  -- POS'ta bekletilen (park edilen) sepetler
+  CREATE TABLE IF NOT EXISTS bekleyen_sepetler (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    etiket TEXT,
+    veri TEXT NOT NULL,
+    tarih TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `);
 
 // Etken madde ciftleri arasindaki bilinen etkilesimler (madde_a < madde_b sirali saklanir)
