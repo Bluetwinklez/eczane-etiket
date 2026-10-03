@@ -1,6 +1,7 @@
 const express = require('express');
 const { db } = require('../db');
 const { partiCikis } = require('../partiler');
+const { sepetHesapla } = require('../kampanyalar');
 
 const router = express.Router();
 
@@ -11,62 +12,95 @@ function resolveSubeId(req, queryValue) {
   return req.user.sube_id;
 }
 
+// Sepeti dogrular ve stoklari kontrol eder; hata varsa { hata, kod } doner.
+function sepetiHazirla(kalemler, subeId) {
+  if (!Array.isArray(kalemler) || kalemler.length === 0) {
+    return { kod: 400, hata: 'Sepet bos olamaz' };
+  }
+
+  // Ayni urun birden fazla satirda gelirse tek satirda birlestir (stok ve kampanya dogru hesaplansin)
+  const birlesik = new Map();
+  for (const kalem of kalemler) {
+    const adet = Number(kalem.adet);
+    if (!kalem.ilac_id || !Number.isInteger(adet) || adet <= 0) {
+      return { kod: 400, hata: 'Gecersiz sepet kalemi' };
+    }
+    const id = Number(kalem.ilac_id);
+    birlesik.set(id, (birlesik.get(id) || 0) + adet);
+  }
+
+  const hazirlanmis = [];
+  for (const [ilacId, adet] of birlesik) {
+    const ilac = db.prepare('SELECT * FROM ilaclar WHERE id = ?').get(ilacId);
+    if (!ilac) return { kod: 404, hata: `Ilac bulunamadi: ${ilacId}` };
+
+    const stokRow = db.prepare('SELECT stok FROM ilac_stok WHERE ilac_id = ? AND sube_id = ?').get(ilacId, subeId);
+    const mevcutStok = stokRow ? stokRow.stok : 0;
+    if (mevcutStok < adet) {
+      return { kod: 400, hata: `Yetersiz stok: ${ilac.ad} (mevcut: ${mevcutStok})` };
+    }
+    hazirlanmis.push({ ilac, adet, mevcutStok });
+  }
+  return { hazirlanmis };
+}
+
+function indirimYuzdesiOku(deger) {
+  return Math.min(100, Math.max(0, Number(deger) || 0));
+}
+
+// POS ekraninda sepet degistikce kampanyalarla birlikte tutarlari gosterir
+router.post('/onizleme', (req, res) => {
+  const { hazirlanmis, hata, kod } = sepetiHazirla(req.body.kalemler, req.user.sube_id);
+  if (hata) return res.status(kod).json({ error: hata });
+  const hesap = sepetHesapla(hazirlanmis, indirimYuzdesiOku(req.body.indirim_yuzdesi));
+  res.json({
+    ...hesap,
+    kalemler: hesap.kalemler.map((k) => ({
+      ilac_id: k.ilac.id,
+      ilac_adi: k.ilac.ad,
+      adet: k.adet,
+      birim_fiyat: k.ilac.satis_fiyati,
+      brut: k.brut,
+      kalem_indirimi: k.kalem_indirimi,
+      net: k.net,
+      kampanya_id: k.kampanya_id,
+      kampanya_adi: k.kampanya_adi
+    }))
+  });
+});
+
 router.post('/', (req, res) => {
   const { musteri_id, odeme_tipi, sgk_recete, kalemler, indirim_yuzdesi } = req.body;
   const subeId = req.user.sube_id;
 
-  const indirimYuzdesi = Math.min(100, Math.max(0, Number(indirim_yuzdesi) || 0));
+  const { hazirlanmis, hata, kod } = sepetiHazirla(kalemler, subeId);
+  if (hata) return res.status(kod).json({ error: hata });
 
-  if (!Array.isArray(kalemler) || kalemler.length === 0) {
-    return res.status(400).json({ error: 'Sepet bos olamaz' });
-  }
-
-  const hazirlanmis = [];
-  for (const kalem of kalemler) {
-    const adet = Number(kalem.adet);
-    if (!kalem.ilac_id || !Number.isFinite(adet) || adet <= 0) {
-      return res.status(400).json({ error: 'Gecersiz sepet kalemi' });
-    }
-    const ilac = db.prepare('SELECT * FROM ilaclar WHERE id = ?').get(kalem.ilac_id);
-    if (!ilac) return res.status(404).json({ error: `Ilac bulunamadi: ${kalem.ilac_id}` });
-
-    const stokRow = db
-      .prepare('SELECT stok FROM ilac_stok WHERE ilac_id = ? AND sube_id = ?')
-      .get(kalem.ilac_id, subeId);
-    const mevcutStok = stokRow ? stokRow.stok : 0;
-    if (mevcutStok < adet) {
-      return res.status(400).json({ error: `Yetersiz stok: ${ilac.ad} (mevcut: ${mevcutStok})` });
-    }
-
-    hazirlanmis.push({ ilac, adet, mevcutStok });
-  }
-
-  const araToplam = hazirlanmis.reduce((sum, k) => sum + k.adet * k.ilac.satis_fiyati, 0);
-  const indirimTutari = Math.round(araToplam * (indirimYuzdesi / 100) * 100) / 100;
-  const toplamTutar = araToplam - indirimTutari;
+  const hesap = sepetHesapla(hazirlanmis, indirimYuzdesiOku(indirim_yuzdesi));
 
   db.exec('BEGIN');
   try {
     const satisInfo = db
       .prepare(
-        `INSERT INTO satislar (musteri_id, sube_id, kullanici_id, ara_toplam, indirim_tutari, toplam_tutar, odeme_tipi, sgk_recete)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO satislar (musteri_id, sube_id, kullanici_id, ara_toplam, kampanya_indirimi, indirim_tutari, toplam_tutar, odeme_tipi, sgk_recete)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         musteri_id || null,
         subeId,
         req.user.id,
-        araToplam,
-        indirimTutari,
-        toplamTutar,
+        hesap.ara_toplam,
+        hesap.kampanya_indirimi,
+        hesap.indirim_tutari,
+        hesap.toplam_tutar,
         odeme_tipi || 'nakit',
         sgk_recete ? 1 : 0
       );
 
     const satisId = satisInfo.lastInsertRowid;
     const insertKalem = db.prepare(
-      `INSERT INTO satis_kalemleri (satis_id, ilac_id, ilac_adi, adet, birim_fiyat, alis_fiyati, ara_toplam)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO satis_kalemleri (satis_id, ilac_id, ilac_adi, adet, birim_fiyat, alis_fiyati, ara_toplam, kalem_indirimi, kampanya_id, kampanya_adi)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     );
     const updateStok = db.prepare('UPDATE ilac_stok SET stok = ? WHERE ilac_id = ? AND sube_id = ?');
     const insertHareket = db.prepare(
@@ -77,15 +111,20 @@ router.post('/', (req, res) => {
       'INSERT INTO satis_kalemi_partileri (satis_kalem_id, parti_id, adet) VALUES (?, ?, ?)'
     );
 
-    for (const { ilac, adet, mevcutStok } of hazirlanmis) {
-      const kalemInfo = insertKalem.run(satisId, ilac.id, ilac.ad, adet, ilac.satis_fiyati, ilac.alis_fiyati, adet * ilac.satis_fiyati);
+    // Kalem ara_toplam'i kampanya indirimi dusulmus net tutardir (raporlardaki ciro buna dayanir)
+    hesap.kalemler.forEach((k, idx) => {
+      const { ilac, adet } = k;
+      const { mevcutStok } = hazirlanmis[idx];
+      const kalemInfo = insertKalem.run(
+        satisId, ilac.id, ilac.ad, adet, ilac.satis_fiyati, ilac.alis_fiyati, k.net, k.kalem_indirimi, k.kampanya_id, k.kampanya_adi
+      );
       updateStok.run(mevcutStok - adet, ilac.id, subeId);
       // FEFO: SKT'si en yakin partiden dus, iade icin dagilimi sakla
       for (const d of partiCikis(ilac.id, subeId, adet)) {
         insertKalemParti.run(kalemInfo.lastInsertRowid, d.parti_id, d.adet);
       }
       insertHareket.run(ilac.id, subeId, adet, `Satis #${satisId}`);
-    }
+    });
 
     db.exec('COMMIT');
 

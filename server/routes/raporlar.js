@@ -315,6 +315,35 @@ router.get('/urun-tipi', (req, res) => {
   ]);
 });
 
+// Kampanya performansi: hangi kampanya kac kalemde kullanildi, ne kadar indirim verildi
+router.get('/kampanya-performansi', (req, res) => {
+  const subeId = resolveSubeId(req, req.query.sube_id);
+  const { kosul, params } = tarihFiltresi(req.query.baslangic, req.query.bitis);
+  let sql = `
+    SELECT sk.kampanya_adi,
+           COUNT(DISTINCT sk.satis_id) AS satis_adedi,
+           SUM(sk.adet) AS toplam_adet,
+           SUM(sk.kalem_indirimi) AS toplam_indirim,
+           SUM(sk.ara_toplam) AS net_ciro,
+           SUM(sk.ara_toplam - sk.alis_fiyati * sk.adet) AS brut_kar
+    FROM satis_kalemleri sk
+    JOIN satislar sa ON sa.id = sk.satis_id
+    WHERE sk.kampanya_adi IS NOT NULL ${kosul}`;
+  if (subeId) {
+    sql += ' AND sa.sube_id = ?';
+    params.push(subeId);
+  }
+  sql += ' GROUP BY sk.kampanya_adi ORDER BY toplam_indirim DESC';
+  cikisYap(req, res, 'kampanya-performansi', 'Kampanya Performansi', db.prepare(sql).all(...params), [
+    { alan: 'kampanya_adi', baslik: 'Kampanya' },
+    { alan: 'satis_adedi', baslik: 'Satis Adedi' },
+    { alan: 'toplam_adet', baslik: 'Urun Adedi' },
+    { alan: 'toplam_indirim', baslik: 'Verilen Indirim (TL)' },
+    { alan: 'net_ciro', baslik: 'Net Ciro (TL)' },
+    { alan: 'brut_kar', baslik: 'Brut Kar (TL)' }
+  ]);
+});
+
 // Parti bazli SKT raporu: onumuzdeki N gun icinde (varsayilan 180) SKT'si dolacak
 // veya dolmus, elde stogu kalan lotlar ve bunlarin alis maliyeti
 router.get('/parti-skt', (req, res) => {

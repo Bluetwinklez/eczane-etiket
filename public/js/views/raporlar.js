@@ -50,6 +50,18 @@
         { alan: 'toplam_tutar', baslik: 'Tutar', tl: true }
       ]
     },
+    'kampanya-performansi': {
+      baslik: 'Kampanya Performansı',
+      tarih: true,
+      kolonlar: [
+        { alan: 'kampanya_adi', baslik: 'Kampanya' },
+        { alan: 'satis_adedi', baslik: 'Satış Adedi' },
+        { alan: 'toplam_adet', baslik: 'Ürün Adedi' },
+        { alan: 'toplam_indirim', baslik: 'Verilen İndirim', tl: true },
+        { alan: 'net_ciro', baslik: 'Net Ciro', tl: true },
+        { alan: 'brut_kar', baslik: 'Brüt Kâr', tl: true }
+      ]
+    },
     'parti-skt': {
       baslik: 'Parti Bazlı SKT Raporu (180 gün)',
       kolonlar: [
