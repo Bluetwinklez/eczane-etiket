@@ -176,3 +176,10 @@ td.num, th.num { text-align: right; }
   .pos-layout { grid-template-columns: 1fr; }
   .content { padding: 14px; }
 }
+
+@media print {
+  body * { visibility: hidden; }
+  #fis-icerik, #fis-icerik * { visibility: visible; }
+  #fis-icerik { position: absolute; top: 0; left: 0; width: 100%; }
+  .modal-actions, .app-shell > .sidebar, .toast-wrap { display: none !important; }
+}

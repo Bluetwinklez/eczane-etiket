@@ -91,6 +91,8 @@ db.exec(`
     musteri_id INTEGER REFERENCES musteriler(id) ON DELETE SET NULL,
     sube_id INTEGER NOT NULL REFERENCES subeler(id),
     kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    ara_toplam REAL NOT NULL DEFAULT 0,
+    indirim_tutari REAL NOT NULL DEFAULT 0,
     toplam_tutar REAL NOT NULL DEFAULT 0,
     odeme_tipi TEXT NOT NULL DEFAULT 'nakit',
     sgk_recete INTEGER NOT NULL DEFAULT 0,
@@ -118,6 +120,16 @@ db.exec(`
     tarih TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `);
+
+function sutunEkleGerekirse(tablo, sutun, tanim) {
+  const kolonlar = db.prepare(`PRAGMA table_info(${tablo})`).all();
+  if (!kolonlar.some((k) => k.name === sutun)) {
+    db.exec(`ALTER TABLE ${tablo} ADD COLUMN ${sutun} ${tanim}`);
+  }
+}
+
+sutunEkleGerekirse('satislar', 'ara_toplam', 'REAL NOT NULL DEFAULT 0');
+sutunEkleGerekirse('satislar', 'indirim_tutari', 'REAL NOT NULL DEFAULT 0');
 
 function hashPassword(plain, salt = crypto.randomBytes(16).toString('hex')) {
   const hash = crypto.scryptSync(plain, salt, 64).toString('hex');

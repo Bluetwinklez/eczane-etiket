@@ -11,8 +11,10 @@ function resolveSubeId(req, queryValue) {
 }
 
 router.post('/', (req, res) => {
-  const { musteri_id, odeme_tipi, sgk_recete, kalemler } = req.body;
+  const { musteri_id, odeme_tipi, sgk_recete, kalemler, indirim_yuzdesi } = req.body;
   const subeId = req.user.sube_id;
+
+  const indirimYuzdesi = Math.min(100, Math.max(0, Number(indirim_yuzdesi) || 0));
 
   if (!Array.isArray(kalemler) || kalemler.length === 0) {
     return res.status(400).json({ error: 'Sepet bos olamaz' });
@@ -38,16 +40,27 @@ router.post('/', (req, res) => {
     hazirlanmis.push({ ilac, adet, mevcutStok });
   }
 
-  const toplamTutar = hazirlanmis.reduce((sum, k) => sum + k.adet * k.ilac.satis_fiyati, 0);
+  const araToplam = hazirlanmis.reduce((sum, k) => sum + k.adet * k.ilac.satis_fiyati, 0);
+  const indirimTutari = Math.round(araToplam * (indirimYuzdesi / 100) * 100) / 100;
+  const toplamTutar = araToplam - indirimTutari;
 
   db.exec('BEGIN');
   try {
     const satisInfo = db
       .prepare(
-        `INSERT INTO satislar (musteri_id, sube_id, kullanici_id, toplam_tutar, odeme_tipi, sgk_recete)
-         VALUES (?, ?, ?, ?, ?, ?)`
+        `INSERT INTO satislar (musteri_id, sube_id, kullanici_id, ara_toplam, indirim_tutari, toplam_tutar, odeme_tipi, sgk_recete)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
       )
-      .run(musteri_id || null, subeId, req.user.id, toplamTutar, odeme_tipi || 'nakit', sgk_recete ? 1 : 0);
+      .run(
+        musteri_id || null,
+        subeId,
+        req.user.id,
+        araToplam,
+        indirimTutari,
+        toplamTutar,
+        odeme_tipi || 'nakit',
+        sgk_recete ? 1 : 0
+      );
 
     const satisId = satisInfo.lastInsertRowid;
     const insertKalem = db.prepare(
