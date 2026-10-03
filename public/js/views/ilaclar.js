@@ -27,7 +27,7 @@
 
     return `
       <tr>
-        <td>${UI.esc(ilac.ad)} ${ilac.receteli ? '<span class="badge muted">Reçeteli</span>' : ''} ${sktRozeti(ilac.skt)}</td>
+        <td>${UI.esc(ilac.ad)} ${ilac.urun_tipi && ilac.urun_tipi !== 'ilac' ? `<span class="badge tip-${ilac.urun_tipi}">${UI.URUN_TIPLERI[ilac.urun_tipi] || ilac.urun_tipi}</span>` : ''} ${ilac.receteli ? '<span class="badge muted">Reçeteli</span>' : ''} ${sktRozeti(ilac.skt)}</td>
         <td>${UI.esc(ilac.barkod || '-')}</td>
         <td>${UI.esc(ilac.kategori || '-')}</td>
         <td class="num">${ilac.stok} ${stokRozeti}</td>
@@ -46,6 +46,12 @@
         <div class="form-grid">
           <div><label>Ad</label><input name="ad" required value="${UI.esc(i.ad || '')}" /></div>
           <div><label>Barkod</label><input name="barkod" value="${UI.esc(i.barkod || '')}" /></div>
+          <div>
+            <label>Ürün Tipi</label>
+            <select name="urun_tipi">
+              ${Object.entries(UI.URUN_TIPLERI).map(([v, l]) => `<option value="${v}" ${(i.urun_tipi || 'ilac') === v ? 'selected' : ''}>${l}</option>`).join('')}
+            </select>
+          </div>
           <div><label>Kategori</label><input name="kategori" value="${UI.esc(i.kategori || '')}" /></div>
           <div><label>Üretici</label><input name="uretici" value="${UI.esc(i.uretici || '')}" /></div>
           <div><label>Alış Fiyatı</label><input name="alis_fiyati" type="number" step="0.01" min="0" value="${i.alis_fiyati ?? ''}" /></div>
@@ -75,7 +81,8 @@
       kritik_stok: Number(fd.get('kritik_stok')) || 10,
       skt: fd.get('skt') || null,
       stok: fd.has('stok') ? Number(fd.get('stok')) || 0 : undefined,
-      receteli: form.querySelector('[name="receteli"]').checked
+      receteli: form.querySelector('[name="receteli"]').checked,
+      urun_tipi: fd.get('urun_tipi')
     };
   }
 
@@ -145,6 +152,10 @@
       container.innerHTML = `
         <div class="toolbar">
           <input id="ilac-ara" placeholder="İlaç, barkod veya kategori ara..." style="max-width:320px" />
+          <select id="ilac-tip-filtre" style="max-width:200px">
+            <option value="">Tüm ürün tipleri</option>
+            ${Object.entries(UI.URUN_TIPLERI).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}
+          </select>
           <div class="spacer"></div>
           ${yazmaYetkisiVar(ctx) ? '<button id="yeni-ilac-btn">+ Yeni İlaç</button>' : ''}
         </div>
@@ -157,7 +168,11 @@
       `;
 
       const yenile = async (q) => {
-        mevcutListe = await Api.get('/api/ilaclar' + (q ? '?q=' + encodeURIComponent(q) : ''));
+        const params = new URLSearchParams();
+        if (q) params.set('q', q);
+        const tip = document.getElementById('ilac-tip-filtre').value;
+        if (tip) params.set('urun_tipi', tip);
+        mevcutListe = await Api.get('/api/ilaclar?' + params.toString());
         const tbody = document.getElementById('ilac-tbody');
         tbody.innerHTML = mevcutListe.length
           ? mevcutListe.map((i) => satirHtml(i, ctx)).join('')
@@ -165,6 +180,7 @@
       };
 
       let aramaTimer;
+      document.getElementById('ilac-tip-filtre').addEventListener('change', () => yenile(document.getElementById('ilac-ara').value));
       document.getElementById('ilac-ara').addEventListener('input', (e) => {
         clearTimeout(aramaTimer);
         aramaTimer = setTimeout(() => yenile(e.target.value), 250);

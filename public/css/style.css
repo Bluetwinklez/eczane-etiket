@@ -215,6 +215,10 @@ td.num, th.num { text-align: right; }
 .badge.warn { background: var(--warning-soft); color: var(--warning); }
 .badge.danger { background: var(--danger-soft); color: var(--danger); }
 .badge.muted { background: var(--bg); color: var(--text-muted); }
+.badge.tip-dermokozmetik { background: var(--accent-rose-bg); color: var(--accent-rose-fg); }
+.badge.tip-takviye { background: var(--accent-mint-bg); color: var(--accent-mint-fg); }
+.badge.tip-medikal { background: var(--accent-lilac-bg); color: var(--accent-lilac-fg); }
+.badge.tip-diger { background: var(--accent-amber-bg); color: var(--accent-amber-fg); }
 
 .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 20px; }
 .stat-tile { background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 18px; transition: box-shadow var(--motion-base) var(--ease-standard), transform var(--motion-base) var(--ease-standard); }
