@@ -11,6 +11,7 @@
           <div><label>Telefon</label><input name="telefon" value="${UI.esc(x.telefon || '')}" /></div>
           <div><label>E-posta</label><input name="email" type="email" value="${UI.esc(x.email || '')}" /></div>
           <div><label>TC No</label><input name="tc_no" value="${UI.esc(x.tc_no || '')}" /></div>
+          <div><label>Veresiye Limiti (TL)</label><input name="veresiye_limiti" type="number" step="0.01" min="0" placeholder="Boş = limitsiz" value="${x.veresiye_limiti ?? ''}" /></div>
         </div>
         <div><label>Adres</label><textarea name="adres" rows="2">${UI.esc(x.adres || '')}</textarea></div>
         <div>
@@ -36,7 +37,8 @@
         email: fd.get('email') || null,
         tc_no: fd.get('tc_no') || null,
         adres: fd.get('adres') || null,
-        saglik_notu: fd.get('saglik_notu') || null
+        saglik_notu: fd.get('saglik_notu') || null,
+        veresiye_limiti: fd.get('veresiye_limiti') === '' ? null : Number(fd.get('veresiye_limiti'))
       };
       try {
         if (musteri) {
