@@ -84,7 +84,22 @@
     }
   }
 
+  let sonToplam = 0;
+
+  function karmaGuncelle() {
+    const kutu = document.getElementById('pos-karma');
+    if (!kutu) return;
+    kutu.hidden = document.getElementById('pos-odeme').value !== 'karma';
+    const nakit = Number(document.getElementById('pos-karma-nakit').value) || 0;
+    const kart = Math.round((sonToplam - nakit) * 100) / 100;
+    const el = document.getElementById('pos-karma-kart');
+    el.textContent = UI.tl(Math.max(0, kart));
+    el.style.color = kart < 0 ? 'var(--danger)' : '';
+  }
+
   function toplamlariYaz(h) {
+    sonToplam = h.toplam_tutar;
+    karmaGuncelle();
     document.getElementById('pos-ara-toplam').textContent = UI.tl(h.ara_toplam);
     const kampanyaSatiri = document.getElementById('pos-kampanya-satiri');
     kampanyaSatiri.hidden = !(h.kampanya_indirimi > 0);
@@ -220,7 +235,13 @@
                     <option value="kredi_karti">Kredi Kartı</option>
                     <option value="sgk">SGK</option>
                     <option value="veresiye">Veresiye (Cari Hesap)</option>
+                    <option value="karma">Nakit + Kart (bölünmüş)</option>
                   </select>
+                  <div id="pos-karma" hidden style="margin-top:6px">
+                    <label>Nakit Alınan</label>
+                    <input id="pos-karma-nakit" type="number" min="0" step="0.01" placeholder="0,00" />
+                    <p class="form-ipucu" style="margin:4px 0 0">Karttan: <b id="pos-karma-kart">0,00 TL</b></p>
+                  </div>
                 </div>
                 <div>
                   <label>İndirim (%)</label>
@@ -298,6 +319,8 @@
       });
 
       document.getElementById('pos-indirim').addEventListener('input', () => sepetiCiz(container));
+      document.getElementById('pos-odeme').addEventListener('change', karmaGuncelle);
+      document.getElementById('pos-karma-nakit').addEventListener('input', karmaGuncelle);
 
       document.getElementById('pos-musteri').addEventListener('change', async (e) => {
         const uyariDiv = document.getElementById('pos-saglik-uyarisi');
@@ -334,6 +357,20 @@
           );
           if (!onay) return;
         }
+        let odemeler;
+        if (odemeTipi === 'karma') {
+          const nakit = Math.round((Number(document.getElementById('pos-karma-nakit').value) || 0) * 100) / 100;
+          const kart = Math.round((sonToplam - nakit) * 100) / 100;
+          if (nakit <= 0 || kart <= 0) {
+            UI.toast('Bölünmüş ödemede nakit tutarı 0 ile toplam arasında olmalı', 'error');
+            document.getElementById('pos-karma-nakit').focus();
+            return;
+          }
+          odemeler = [
+            { odeme_tipi: 'nakit', tutar: nakit },
+            { odeme_tipi: 'kredi_karti', tutar: kart }
+          ];
+        }
         if (odemeTipi === 'veresiye' && !musteriId) {
           UI.toast('Veresiye satış için müşteri seçin', 'error');
           document.getElementById('pos-musteri').focus();
@@ -347,6 +384,7 @@
             odeme_tipi: odemeTipi,
             sgk_recete: sgkRecete,
             indirim_yuzdesi: indirimYuzdesiOku(),
+            odemeler,
             kalemler: sepet.map((k) => ({ ilac_id: k.ilac_id, adet: k.adet }))
           });
 
@@ -395,6 +433,11 @@
               </table>
               ${indirimSatiri}
               <div class="cart-total"><span>Toplam</span><span>${UI.tl(satis.toplam_tutar)}</span></div>
+              ${
+                satis.odemeler && satis.odemeler.length
+                  ? `<p class="form-ipucu">Ödeme: ${satis.odemeler.map((o) => `${o.odeme_tipi === 'nakit' ? 'Nakit' : 'Kart'} ${UI.tl(o.tutar)}`).join(' + ')}</p>`
+                  : ''
+              }
               ${uyariMetni}
             </div>
             <div class="modal-actions"><button class="secondary" data-action="yazdir">Fiş Yazdır</button><button data-action="kapat">Tamam</button></div>

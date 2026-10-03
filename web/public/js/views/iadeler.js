@@ -1,9 +1,10 @@
 (function () {
-  const ODEME_ETIKETI = { nakit: 'Nakit', kredi_karti: 'Kredi Kartı', sgk: 'SGK', veresiye: 'Veresiye' };
+  const ODEME_ETIKETI = { nakit: 'Nakit', kredi_karti: 'Kredi Kartı', sgk: 'SGK', veresiye: 'Veresiye', karma: 'Nakit + Kart' };
 
   function iadeYontemiMetni(odemeTipi) {
     if (odemeTipi === 'veresiye') return 'Tutar müşterinin veresiye borcundan düşülecek.';
     if (odemeTipi === 'kredi_karti') return 'Tutar karta iade edilecek (POS üzerinden iade yapın).';
+    if (odemeTipi === 'karma') return 'Bölünmüş ödeme: tutar satıştaki nakit/kart oranıyla iade edilir.';
     if (odemeTipi === 'sgk') return 'SGK satışı: iade tutarı SGK toplamından düşülür.';
     return 'Tutar kasadan nakit olarak ödenecek.';
   }

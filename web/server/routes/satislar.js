@@ -4,7 +4,7 @@ const { partiCikis } = require('../partiler');
 const { sepetHesapla } = require('../kampanyalar');
 const { musteriBakiyesi, cariHareketEkle } = require('../cari');
 
-const ODEME_TIPLERI = ['nakit', 'kredi_karti', 'sgk', 'veresiye'];
+const ODEME_TIPLERI = ['nakit', 'kredi_karti', 'sgk', 'veresiye', 'karma'];
 
 const router = express.Router();
 
@@ -128,6 +128,22 @@ router.post('/', (req, res) => {
     musteri = db.prepare('SELECT * FROM musteriler WHERE id = ?').get(musteri_id);
     if (!musteri) return res.status(404).json({ error: 'Musteri bulunamadi' });
   }
+  // Karma odeme: nakit + kart kirilimi toplamla birebir tutmali
+  let odemeler = null;
+  if (odemeTipi === 'karma') {
+    odemeler = (Array.isArray(req.body.odemeler) ? req.body.odemeler : [])
+      .map((o) => ({ odeme_tipi: o.odeme_tipi, tutar: Math.round(Number(o.tutar) * 100) / 100 }))
+      .filter((o) => o.tutar > 0);
+    if (odemeler.some((o) => !['nakit', 'kredi_karti'].includes(o.odeme_tipi) || !Number.isFinite(o.tutar))) {
+      return res.status(400).json({ error: 'Bolunmus odemede yalnizca nakit ve kart kullanilabilir' });
+    }
+    if (odemeler.length < 2) return res.status(400).json({ error: 'Bolunmus odeme en az iki parcadan olusmali' });
+    const toplam = odemeler.reduce((t, o) => t + o.tutar, 0);
+    if (Math.abs(toplam - hesap.toplam_tutar) > 0.009) {
+      return res.status(400).json({ error: `Odemelerin toplami (${toplam.toFixed(2)}) satis tutarina (${hesap.toplam_tutar.toFixed(2)}) esit olmali` });
+    }
+  }
+
   if (odemeTipi === 'veresiye') {
     if (!musteri) return res.status(400).json({ error: 'Veresiye satis icin musteri secilmelidir' });
     if (musteri.veresiye_limiti != null) {
@@ -188,6 +204,11 @@ router.post('/', (req, res) => {
       insertHareket.run(ilac.id, subeId, adet, `Satis #${satisId}`);
     });
 
+    if (odemeler) {
+      const odemeEkle = db.prepare('INSERT INTO satis_odemeleri (satis_id, odeme_tipi, tutar) VALUES (?, ?, ?)');
+      for (const o of odemeler) odemeEkle.run(satisId, o.odeme_tipi, o.tutar);
+    }
+
     if (odemeTipi === 'veresiye') {
       cariHareketEkle({
         musteri_id: musteri.id,
@@ -208,7 +229,8 @@ router.post('/', (req, res) => {
       .filter((k) => k.mevcutStok - k.adet <= k.ilac.kritik_stok)
       .map((k) => ({ ilac_id: k.ilac.id, ad: k.ilac.ad, kalan_stok: k.mevcutStok - k.adet }));
 
-    res.status(201).json({ ...satis, kalemler: items, kritik_stok_uyarisi: dusukStokUyarisi });
+    const odemeDokumu = db.prepare('SELECT odeme_tipi, tutar FROM satis_odemeleri WHERE satis_id = ?').all(satisId);
+    res.status(201).json({ ...satis, kalemler: items, odemeler: odemeDokumu, kritik_stok_uyarisi: dusukStokUyarisi });
   } catch (err) {
     db.exec('ROLLBACK');
     res.status(500).json({ error: 'Satis olusturulamadi' });
