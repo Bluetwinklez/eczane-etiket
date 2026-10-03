@@ -270,3 +270,30 @@ td.num, th.num { text-align: right; }
   #fis-icerik { position: absolute; top: 0; left: 0; width: 100%; }
   .modal-actions, .app-shell > .sidebar, .toast-wrap { display: none !important; }
 }
+
+/* ---- Nobetci eczane takvimi ---- */
+.nobet-haftabaslik { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 6px; }
+.nobet-haftabaslik div { text-align: center; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.nobet-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.nobet-gun {
+  aspect-ratio: 1;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background var(--motion-fast) var(--ease-standard), transform var(--motion-fast) var(--ease-standard);
+}
+.nobet-gun:hover { background: var(--bg); transform: translateY(-1px); }
+.nobet-gun.nobet-bugun { border-color: var(--primary); border-width: 2px; }
+.nobet-gun.nobet-aktif { background: var(--accent-mint-bg); border-color: transparent; }
+.nobet-gun.nobet-aktif span { color: var(--accent-mint-fg); font-weight: 700; }
+.nobet-gun small { font-size: 9px; color: var(--accent-mint-fg); }
+
+@media (max-width: 600px) {
+  .nobet-gun { font-size: 11px; padding: 4px; }
+  .nobet-gun small { display: none; }
+}

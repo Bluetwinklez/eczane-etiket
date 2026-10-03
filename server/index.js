@@ -18,6 +18,7 @@ const kasaKapanislariRoutes = require('./routes/kasaKapanislari');
 const giderlerRoutes = require('./routes/giderler');
 const siparislerRoutes = require('./routes/siparisler');
 const gorevlerRoutes = require('./routes/gorevler');
+const nobetlerRoutes = require('./routes/nobetler');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -51,6 +52,7 @@ app.use('/api/kasa-kapanislari', requireLogin, kasaKapanislariRoutes);
 app.use('/api/giderler', requireLogin, requireRole('admin', 'eczaci'), giderlerRoutes);
 app.use('/api/siparisler', requireLogin, requireRole('admin', 'eczaci'), siparislerRoutes);
 app.use('/api/gorevler', requireLogin, gorevlerRoutes);
+app.use('/api/nobetler', requireLogin, nobetlerRoutes);
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
