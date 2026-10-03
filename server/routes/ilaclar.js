@@ -3,6 +3,7 @@ const { db } = require('../db');
 const { requireRole } = require('../auth');
 const { URUN_TIPLERI } = require('../sabitler');
 const { partiGiris, partiCikis, partiMiktariniKontrolEt, FEFO_SIRASI } = require('../partiler');
+const { karekodCoz } = require('../karekod');
 
 function urunTipiGecerliMi(tip) {
   return tip === undefined || tip === null || tip === '' || Object.prototype.hasOwnProperty.call(URUN_TIPLERI, tip);
@@ -93,6 +94,30 @@ router.get('/uyarilar', (req, res) => {
     .map((r) => ({ ...r, durum: new Date(r.skt) < bugun ? 'sona_ermis' : 'yaklasiyor' }));
 
   res.json({ kritik_stok: kritikStok, skt_yaklasan: sktYaklasan });
+});
+
+// Karekod (GS1 DataMatrix) okutuldugunda urunu, parti ve SKT bilgisini doner
+router.get('/karekod', (req, res) => {
+  const karekod = karekodCoz(req.query.kod);
+  if (!karekod) return res.status(400).json({ error: 'Karekod okunamadi' });
+
+  const subeId = resolveSubeId(req, req.query.sube_id);
+  const ilac = ilacWithStok(subeId).find((r) => r.barkod === karekod.barkod || r.barkod === karekod.gtin) || null;
+
+  let parti = null;
+  if (ilac && karekod.parti_no) {
+    parti =
+      db
+        .prepare('SELECT * FROM ilac_partileri WHERE ilac_id = ? AND parti_no = ? AND (? IS NULL OR sube_id = ?) ORDER BY id DESC')
+        .get(ilac.id, karekod.parti_no, subeId, subeId) || null;
+  }
+  const bugun = new Date().toISOString().slice(0, 10);
+  res.json({
+    karekod,
+    ilac,
+    parti,
+    skt_gecmis: Boolean(karekod.skt && karekod.skt < bugun)
+  });
 });
 
 router.get('/:id', (req, res) => {
