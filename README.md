@@ -10,7 +10,17 @@ Eczane yönetim ve otomasyon sistemi. Node.js + Express + yerleşik `node:sqlite
 
 **İleri seviye**: kullanıcı girişi + rol yönetimi (admin/eczacı/kasiyer), çoklu şube desteği, e-posta/SMS hatırlatma (e-posta SMTP ile gerçek gönderim yapar; SMS ve SMTP tanımsızken e-posta simüle edilir), yedekleme/geri yükleme (JSON export/import).
 
-**Ek özellikler**: POS'ta yüzdelik indirim desteği, yazdırılabilir satış fişi, ilaç bazlı stok hareketleri geçmişi, ana sayfada son 7 günün satış trend grafiği, karanlık/aydınlık tema (kalıcı tercih), POS klavye kısayolları (F2 arama, Enter ile sepete ekle, Ctrl+Enter ile satışı tamamla).
+**Ek özellikler**: POS'ta yüzdelik indirim desteği, yazdırılabilir satış fişi, ilaç bazlı stok hareketleri geçmişi, ana sayfada son 7 günün satış trend grafiği, karanlık/aydınlık tema (kalıcı tercih), POS klavye kısayolları (F2 arama, Enter ile sepete ekle, Ctrl+Enter ile satışı tamamla), her sayfadan `Ctrl+K` ile açılan hızlı komut paleti (sayfa + ilaç/müşteri arama).
+
+**Eczacının günlük işini kolaylaştıran modüller** (ilaç reçetesiyle sınırlı değil):
+- **Gün sonu kasa kapanışı (Z-Raporu)**: nakit/kredi kartı/SGK bazında sistem toplamı önizlemesi, sayılan nakit girişiyle fark hesaplama, kapanış geçmişi.
+- **Gider takibi**: kira/fatura/maaş/vergi/tedarik/diğer giderler; kâr-zarar raporuna otomatik yansıyıp net kâr hesaplanıyor.
+- **Tedarikçi sipariş yönetimi**: kritik stok altındaki ilaçlar için otomatik sipariş önerisi, sipariş oluşturma, durum takibi (beklemede → gönderildi → teslim alındı — teslim alınınca stok otomatik güncellenir).
+- **Müşteri sağlık notu**: alerji/kronik hastalık notu; POS'ta müşteri seçilince uyarı olarak gösterilir.
+- **Görev/hatırlatma panosu**: ekip içi operasyonel görevler (öncelik, atama, tamamlama).
+- **Nöbetçi eczane takvimi**: aylık takvim görünümünde nöbet günlerini işaretleme/görüntüleme, CSV (Excel) dışa aktarma.
+- **Stok değeri ve personel performans raporları**: envanter değerlemesi (muhasebe için) ve personel bazlı satış performansı.
+- **Ana sayfa özet widget'ları**: bekleyen görevler, bu ayki nöbetler, bekleyen siparişler tek bakışta.
 
 ## Kurulum
 
