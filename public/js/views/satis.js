@@ -3,8 +3,14 @@
   let musteriler = [];
   let sonAramaSonuclari = [];
 
-  function sepetToplam() {
+  function sepetAraToplam() {
     return sepet.reduce((sum, k) => sum + k.adet * k.satis_fiyati, 0);
+  }
+
+  function indirimYuzdesiOku() {
+    const el = document.getElementById('pos-indirim');
+    if (!el) return 0;
+    return Math.min(100, Math.max(0, Number(el.value) || 0));
   }
 
   function sepetiCiz(container) {
@@ -21,7 +27,13 @@
           )
           .join('')
       : '<div class="empty-state">Sepet boş</div>';
-    document.getElementById('sepet-toplam').textContent = UI.tl(sepetToplam());
+
+    const araToplam = sepetAraToplam();
+    const yuzde = indirimYuzdesiOku();
+    const indirimTutari = Math.round(araToplam * (yuzde / 100) * 100) / 100;
+    document.getElementById('pos-ara-toplam').textContent = UI.tl(araToplam);
+    document.getElementById('pos-indirim-tutari').textContent = '-' + UI.tl(indirimTutari);
+    document.getElementById('sepet-toplam').textContent = UI.tl(araToplam - indirimTutari);
   }
 
   function sepeteEkle(ilac, container) {
@@ -76,8 +88,7 @@
             <div class="card">
               <h3>Sepet</h3>
               <div id="sepet-liste"></div>
-              <div class="cart-total"><span>Toplam</span><span id="sepet-toplam">0,00 TL</span></div>
-              <div class="form-grid">
+              <div class="form-grid" style="margin-top:10px">
                 <div>
                   <label>Müşteri (opsiyonel)</label>
                   <select id="pos-musteri">
@@ -93,7 +104,18 @@
                     <option value="sgk">SGK</option>
                   </select>
                 </div>
+                <div>
+                  <label>İndirim (%)</label>
+                  <input id="pos-indirim" type="number" min="0" max="100" step="1" value="0" />
+                </div>
               </div>
+              <div class="cart-total" style="font-size:14px;font-weight:400;padding:6px 0;border-top:none">
+                <span>Ara Toplam</span><span id="pos-ara-toplam">0,00 TL</span>
+              </div>
+              <div class="cart-total" style="font-size:14px;font-weight:400;padding:0 0 6px;border-top:none;color:var(--danger)">
+                <span>İndirim</span><span id="pos-indirim-tutari">-0,00 TL</span>
+              </div>
+              <div class="cart-total"><span>Toplam</span><span id="sepet-toplam">0,00 TL</span></div>
               <label><input type="checkbox" id="pos-recete" style="width:auto" /> Reçeteli / SGK işlemi</label>
               <button id="pos-tamamla" style="width:100%;margin-top:14px;padding:12px">Satışı Tamamla</button>
             </div>
@@ -133,6 +155,8 @@
         sepetiCiz(container);
       });
 
+      document.getElementById('pos-indirim').addEventListener('input', () => sepetiCiz(container));
+
       document.getElementById('pos-tamamla').addEventListener('click', async () => {
         if (sepet.length === 0) {
           UI.toast('Sepet boş', 'error');
@@ -147,6 +171,7 @@
             musteri_id: musteriId || null,
             odeme_tipi: odemeTipi,
             sgk_recete: sgkRecete,
+            indirim_yuzdesi: indirimYuzdesiOku(),
             kalemler: sepet.map((k) => ({ ilac_id: k.ilac_id, adet: k.adet }))
           });
 
@@ -156,19 +181,34 @@
               ' kritik stok seviyesinde.</p>'
             : '';
 
+          const indirimSatiri =
+            satis.indirim_tutari > 0
+              ? `<div class="cart-total" style="font-size:13px;font-weight:400;padding:4px 0;border-top:none">
+                   <span>Ara Toplam</span><span>${UI.tl(satis.ara_toplam)}</span>
+                 </div>
+                 <div class="cart-total" style="font-size:13px;font-weight:400;padding:0 0 4px;border-top:none;color:var(--danger)">
+                   <span>İndirim</span><span>-${UI.tl(satis.indirim_tutari)}</span>
+                 </div>`
+              : '';
+
           const modal = UI.openModal(`
-            <h3>Satış Tamamlandı #${satis.id}</h3>
-            <table>
-              <thead><tr><th>Ürün</th><th class="num">Adet</th><th class="num">Tutar</th></tr></thead>
-              <tbody>
-                ${satis.kalemler.map((k) => `<tr><td>${UI.esc(k.ilac_adi)}</td><td class="num">${k.adet}</td><td class="num">${UI.tl(k.ara_toplam)}</td></tr>`).join('')}
-              </tbody>
-            </table>
-            <div class="cart-total"><span>Toplam</span><span>${UI.tl(satis.toplam_tutar)}</span></div>
-            ${uyariMetni}
-            <div class="modal-actions"><button data-action="kapat">Tamam</button></div>
+            <div id="fis-icerik">
+              <h3>Satış Tamamlandı #${satis.id}</h3>
+              <p style="color:var(--text-muted);font-size:12px">${UI.tarih(satis.tarih)}</p>
+              <table>
+                <thead><tr><th>Ürün</th><th class="num">Adet</th><th class="num">Tutar</th></tr></thead>
+                <tbody>
+                  ${satis.kalemler.map((k) => `<tr><td>${UI.esc(k.ilac_adi)}</td><td class="num">${k.adet}</td><td class="num">${UI.tl(k.ara_toplam)}</td></tr>`).join('')}
+                </tbody>
+              </table>
+              ${indirimSatiri}
+              <div class="cart-total"><span>Toplam</span><span>${UI.tl(satis.toplam_tutar)}</span></div>
+              ${uyariMetni}
+            </div>
+            <div class="modal-actions"><button class="secondary" data-action="yazdir">Fiş Yazdır</button><button data-action="kapat">Tamam</button></div>
           `);
           modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));
+          modal.querySelector('[data-action="yazdir"]').addEventListener('click', () => window.print());
 
           UI.toast('Satış tamamlandı', 'success');
           view.render(container);
