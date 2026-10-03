@@ -28,15 +28,62 @@ const TITLES = {
 
 let CURRENT_USER = null;
 
+function gunStr(tarih) {
+  return tarih.toISOString().slice(0, 10);
+}
+
+function satisTrendSvg(gunlukVeri) {
+  const genislik = 640;
+  const yukseklik = 140;
+  const altBosluk = 22;
+  const maxTutar = Math.max(1, ...gunlukVeri.map((g) => g.toplam));
+  const barGenislik = genislik / gunlukVeri.length;
+
+  const barlar = gunlukVeri
+    .map((g, i) => {
+      const barYukseklik = (g.toplam / maxTutar) * (yukseklik - altBosluk - 10);
+      const x = i * barGenislik + barGenislik * 0.15;
+      const y = yukseklik - altBosluk - barYukseklik;
+      const w = barGenislik * 0.7;
+      const etiket = g.gun.slice(5).replace('-', '/');
+      return `
+        <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${barYukseklik.toFixed(1)}" rx="3" fill="var(--primary)">
+          <title>${g.gun}: ${g.toplam.toFixed(2)} TL</title>
+        </rect>
+        <text x="${(x + w / 2).toFixed(1)}" y="${yukseklik - 6}" font-size="10" fill="var(--text-muted)" text-anchor="middle">${etiket}</text>
+      `;
+    })
+    .join('');
+
+  return `<svg viewBox="0 0 ${genislik} ${yukseklik}" width="100%" height="${yukseklik}" role="img" aria-label="Son 7 gun satis grafigi">${barlar}</svg>`;
+}
+
 const AnaSayfaView = {
   async render(container) {
     container.innerHTML = '<div class="empty-state">Yükleniyor...</div>';
-    const [uyarilar, satislarBugun] = await Promise.all([
+
+    const yediGunOnce = new Date();
+    yediGunOnce.setDate(yediGunOnce.getDate() - 6);
+
+    const [uyarilar, satislar7Gun] = await Promise.all([
       Api.get('/api/ilaclar/uyarilar'),
-      Api.get('/api/satislar?baslangic=' + new Date().toISOString().slice(0, 10))
+      Api.get('/api/satislar?baslangic=' + gunStr(yediGunOnce))
     ]);
 
+    const bugun = gunStr(new Date());
+    const satislarBugun = satislar7Gun.filter((s) => s.tarih.slice(0, 10) === bugun);
     const bugunkuCiro = satislarBugun.reduce((sum, s) => sum + s.toplam_tutar, 0);
+
+    const gunlukVeri = [];
+    for (let i = 6; i >= 0; i--) {
+      const tarih = new Date();
+      tarih.setDate(tarih.getDate() - i);
+      const gunKey = gunStr(tarih);
+      const toplam = satislar7Gun
+        .filter((s) => s.tarih.slice(0, 10) === gunKey)
+        .reduce((sum, s) => sum + s.toplam_tutar, 0);
+      gunlukVeri.push({ gun: gunKey, toplam });
+    }
 
     container.innerHTML = `
       <div class="stat-row">
@@ -56,6 +103,10 @@ const AnaSayfaView = {
           <div class="label">SKT Uyarısı</div>
           <div class="value">${uyarilar.skt_yaklasan.length}</div>
         </div>
+      </div>
+      <div class="card">
+        <h3>Son 7 Gün Satış Trendi</h3>
+        ${satisTrendSvg(gunlukVeri)}
       </div>
       <div class="card">
         <h3>Hoş geldiniz, ${UI.esc(CURRENT_USER.ad_soyad)}</h3>
