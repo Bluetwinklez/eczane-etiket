@@ -274,6 +274,9 @@ td.num, th.num { text-align: right; }
   body * { visibility: hidden; }
   #fis-icerik, #fis-icerik * { visibility: visible; }
   #fis-icerik { position: absolute; top: 0; left: 0; width: 100%; }
+  #etiket-sayfa, #etiket-sayfa * { visibility: visible; }
+  #etiket-sayfa { position: absolute; top: 0; left: 0; width: 100%; background: #fff; }
+  .raf-etiket { break-inside: avoid; }
   .modal-actions, .app-shell > .sidebar, .toast-wrap { display: none !important; }
 }
 
@@ -354,3 +357,21 @@ td.num, th.num { text-align: right; }
 .etkilesim small { opacity: 0.9; }
 .etk-cip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 4px 4px 10px; font-size: 12.5px; }
 .etk-cip button { padding: 0 6px; font-size: 11px; line-height: 18px; }
+
+/* ---- Raf/fiyat etiketleri ---- */
+.etiket-duzen { display: grid; grid-template-columns: minmax(280px, 380px) 1fr; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .etiket-duzen { grid-template-columns: 1fr; } }
+.etiket-sayfa { display: grid; grid-template-columns: repeat(var(--etiket-sutun, 4), 1fr); gap: 4px; background: #fff; padding: 6px; border-radius: var(--radius-sm); }
+.raf-etiket { border: 1px dashed #bbb; padding: 6px 7px; color: #111; background: #fff; display: flex; flex-direction: column; gap: 2px; min-height: 92px; }
+.raf-ad { font-size: 11px; font-weight: 600; line-height: 1.2; max-height: 2.4em; overflow: hidden; }
+.raf-fiyat { color: #000; line-height: 1; }
+.raf-lira { font-size: 24px; font-weight: 800; }
+.raf-kurus { font-size: 12px; font-weight: 700; }
+.raf-barkod .barkod-svg { width: 100%; height: 30px; display: block; }
+.raf-barkod-no { font-size: 8px; letter-spacing: 0.08em; text-align: center; font-family: monospace; }
+.raf-alt { font-size: 8px; color: #555; }
+.boyut-buyuk .raf-lira { font-size: 30px; }
+.boyut-buyuk .raf-ad { font-size: 13px; }
+.boyut-buyuk .raf-barkod .barkod-svg { height: 38px; }
+.boyut-kucuk .raf-lira { font-size: 19px; }
+.boyut-kucuk .raf-ad { font-size: 9.5px; }
