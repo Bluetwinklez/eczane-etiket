@@ -51,6 +51,43 @@
         { alan: 'toplam_tutar', baslik: 'Tutar', tl: true }
       ]
     },
+    'olu-stok': {
+      baslik: 'Ölü Stok (90 gündür satılmayan)',
+      kolonlar: [
+        { alan: 'ad', baslik: 'Ürün' },
+        { alan: 'kategori', baslik: 'Kategori' },
+        { alan: 'stok', baslik: 'Stok' },
+        { alan: 'son_satis', baslik: 'Son Satış' },
+        { alan: 'en_yakin_skt', baslik: 'En Yakın SKT' },
+        { alan: 'bagli_sermaye', baslik: 'Bağlı Sermaye', tl: true }
+      ]
+    },
+    abc: {
+      baslik: 'ABC Analizi (ciro payına göre)',
+      tarih: true,
+      kolonlar: [
+        { alan: 'sinif', baslik: 'Sınıf' },
+        { alan: 'ad', baslik: 'Ürün' },
+        { alan: 'adet', baslik: 'Adet' },
+        { alan: 'ciro', baslik: 'Ciro', tl: true },
+        { alan: 'pay', baslik: 'Pay (%)' },
+        { alan: 'kumulatif_pay', baslik: 'Kümülatif (%)' },
+        { alan: 'brut_kar', baslik: 'Brüt Kâr', tl: true }
+      ]
+    },
+    'tedarikci-fiyat': {
+      baslik: 'Tedarikçi Fiyat Karşılaştırma',
+      kolonlar: [
+        { alan: 'ilac_adi', baslik: 'Ürün' },
+        { alan: 'tedarikci', baslik: 'Tedarikçi' },
+        { alan: 'son_maliyet', baslik: 'Son Birim Maliyet', tl: true },
+        { alan: 'ortalama_maliyet', baslik: 'Ortalama', tl: true },
+        { alan: 'fark_yuzde', baslik: 'En Ucuzdan Fark (%)' },
+        { alan: 'en_ucuz', baslik: 'En Ucuz' },
+        { alan: 'alim_sayisi', baslik: 'Alım Sayısı' },
+        { alan: 'son_alim', baslik: 'Son Alım' }
+      ]
+    },
     iadeler: {
       baslik: 'İade Raporu',
       tarih: true,
