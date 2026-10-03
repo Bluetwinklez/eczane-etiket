@@ -51,6 +51,45 @@ function indirimYuzdesiOku(deger) {
   return Math.min(100, Math.max(0, Number(deger) || 0));
 }
 
+// Bekletilen sepetler: subedeki tum kasalar gorur (musteri baska kasaya gecebilir)
+router.get('/bekleyen', (req, res) => {
+  const rows = db
+    .prepare(
+      `SELECT b.*, u.ad_soyad AS kullanici_adi FROM bekleyen_sepetler b
+       LEFT JOIN kullanicilar u ON u.id = b.kullanici_id
+       WHERE b.sube_id = ? ORDER BY b.id`
+    )
+    .all(req.user.sube_id);
+  res.json(rows.map((r) => ({ ...r, veri: JSON.parse(r.veri) })));
+});
+
+router.post('/bekleyen', (req, res) => {
+  const veri = req.body.veri;
+  if (!veri || !Array.isArray(veri.sepet) || !veri.sepet.length) return res.status(400).json({ error: 'Bos sepet bekletilemez' });
+  const metin = JSON.stringify(veri);
+  if (metin.length > 100000) return res.status(400).json({ error: 'Sepet cok buyuk' });
+  const sayi = db.prepare('SELECT COUNT(*) AS c FROM bekleyen_sepetler WHERE sube_id = ?').get(req.user.sube_id).c;
+  if (sayi >= 20) return res.status(400).json({ error: 'En fazla 20 sepet bekletilebilir' });
+  const info = db
+    .prepare('INSERT INTO bekleyen_sepetler (sube_id, kullanici_id, etiket, veri) VALUES (?, ?, ?, ?)')
+    .run(req.user.sube_id, req.user.id, req.body.etiket ? String(req.body.etiket).slice(0, 60) : null, metin);
+  res.status(201).json({ id: Number(info.lastInsertRowid) });
+});
+
+// Geri alinan sepet silinir ve icerigi doner
+router.post('/bekleyen/:id/geri-al', (req, res) => {
+  const row = db.prepare('SELECT * FROM bekleyen_sepetler WHERE id = ? AND sube_id = ?').get(req.params.id, req.user.sube_id);
+  if (!row) return res.status(404).json({ error: 'Bekleyen sepet bulunamadi' });
+  db.prepare('DELETE FROM bekleyen_sepetler WHERE id = ?').run(row.id);
+  res.json(JSON.parse(row.veri));
+});
+
+router.delete('/bekleyen/:id', (req, res) => {
+  const info = db.prepare('DELETE FROM bekleyen_sepetler WHERE id = ? AND sube_id = ?').run(req.params.id, req.user.sube_id);
+  if (!info.changes) return res.status(404).json({ error: 'Bekleyen sepet bulunamadi' });
+  res.status(204).end();
+});
+
 // POS ekraninda sepet degistikce kampanyalarla birlikte tutarlari gosterir
 router.post('/onizleme', (req, res) => {
   const { hazirlanmis, hata, kod } = sepetiHazirla(req.body.kalemler, req.user.sube_id);

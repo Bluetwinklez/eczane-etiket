@@ -192,7 +192,12 @@
           </div>
           <div>
             <div class="card">
-              <h3>Sepet</h3>
+              <div class="toolbar" style="margin:0 0 6px">
+                <h3 style="margin:0">Sepet</h3>
+                <div class="spacer"></div>
+                <button class="secondary" id="pos-beklet" title="Sepeti beklet (F8)">⏸ Beklet</button>
+                <button class="secondary" id="pos-bekleyenler">Bekleyenler <span class="badge muted" id="pos-bekleyen-sayi">0</span></button>
+              </div>
               ${
                 aktifKampanyalar.length
                   ? `<div class="pos-kampanyalar">🏷️ Aktif kampanyalar: ${aktifKampanyalar.map((k) => UI.esc(k.ad)).join(' · ')}</div>`
@@ -236,7 +241,7 @@
               <label><input type="checkbox" id="pos-recete" style="width:auto" /> Reçeteli / SGK işlemi</label>
               <button id="pos-tamamla" style="width:100%;margin-top:14px;padding:12px">Satışı Tamamla</button>
               <p style="color:var(--text-muted);font-size:11px;margin-top:8px">
-                Kısayollar: <b>F2</b> aramaya odaklan · arama kutusunda <b>Enter</b> ilk sonucu sepete ekler · <b>Ctrl+Enter</b> satışı tamamlar
+                Kısayollar: <b>F2</b> aramaya odaklan · arama kutusunda <b>Enter</b> ilk sonucu sepete ekler · <b>Ctrl+Enter</b> satışı tamamlar · <b>F8</b> sepeti beklet
               </p>
             </div>
           </div>
@@ -404,12 +409,101 @@
         }
       });
 
+      const bekleyenSayisiniGuncelle = async () => {
+        const liste = await Api.get('/api/satislar/bekleyen').catch(() => []);
+        const el = document.getElementById('pos-bekleyen-sayi');
+        if (el) {
+          el.textContent = liste.length;
+          el.className = 'badge ' + (liste.length ? 'warn' : 'muted');
+        }
+        return liste;
+      };
+      bekleyenSayisiniGuncelle();
+
+      const sepetiBeklet = async () => {
+        if (!sepet.length) {
+          UI.toast('Sepet boş', 'error');
+          return;
+        }
+        const musteriSel = document.getElementById('pos-musteri');
+        const musteriAdi = musteriSel.value ? musteriSel.selectedOptions[0].textContent : '';
+        const etiket = window.prompt('Bekleyen sepet için kısa not (örn. müşteri adı):', musteriAdi);
+        if (etiket === null) return;
+        try {
+          await Api.post('/api/satislar/bekleyen', {
+            etiket,
+            veri: {
+              sepet,
+              musteri_id: musteriSel.value || null,
+              odeme_tipi: document.getElementById('pos-odeme').value,
+              indirim_yuzdesi: indirimYuzdesiOku(),
+              sgk_recete: document.getElementById('pos-recete').checked
+            }
+          });
+          UI.toast('Sepet bekletildi', 'success');
+          view.render(container);
+        } catch (err) {
+          UI.toast(err.message, 'error');
+        }
+      };
+
+      document.getElementById('pos-beklet').addEventListener('click', sepetiBeklet);
+      document.getElementById('pos-bekleyenler').addEventListener('click', async () => {
+        const liste = await bekleyenSayisiniGuncelle();
+        const modal = UI.openModal(`
+          <h3>Bekleyen Sepetler</h3>
+          ${
+            liste.length
+              ? `<table><thead><tr><th>Not</th><th>Ürünler</th><th>Kasiyer</th><th>Saat</th><th></th></tr></thead><tbody>${liste
+                  .map(
+                    (b) => `<tr><td>${UI.esc(b.etiket || '-')}</td>
+                      <td>${b.veri.sepet.map((k) => `${UI.esc(k.ad)} ×${k.adet}`).join(', ')}</td>
+                      <td>${UI.esc(b.kullanici_adi || '-')}</td><td>${UI.tarih(b.tarih).slice(11)}</td>
+                      <td class="actions-col"><button data-geri="${b.id}">Geri Al</button><button class="danger secondary" data-sil="${b.id}">Sil</button></td></tr>`
+                  )
+                  .join('')}</tbody></table>`
+              : '<div class="empty-state">Bekleyen sepet yok</div>'
+          }
+          <div class="modal-actions"><button class="secondary" data-action="kapat">Kapat</button></div>`);
+        modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));
+        modal.addEventListener('click', async (e) => {
+          const geri = e.target.closest('[data-geri]');
+          const sil = e.target.closest('[data-sil]');
+          if (geri) {
+            if (sepet.length && !window.confirm('Mevcut sepet silinecek. Devam edilsin mi? (Önce bekletmek için Vazgeç deyin)')) return;
+            try {
+              const veri = await Api.post(`/api/satislar/bekleyen/${geri.dataset.geri}/geri-al`, {});
+              UI.closeModal(modal);
+              sepet = veri.sepet;
+              document.getElementById('pos-musteri').value = veri.musteri_id || '';
+              document.getElementById('pos-musteri').dispatchEvent(new Event('change'));
+              document.getElementById('pos-odeme').value = veri.odeme_tipi || 'nakit';
+              document.getElementById('pos-indirim').value = veri.indirim_yuzdesi || 0;
+              document.getElementById('pos-recete').checked = Boolean(veri.sgk_recete);
+              sepetiCiz(container);
+              bekleyenSayisiniGuncelle();
+              UI.toast('Sepet geri alındı', 'success');
+            } catch (err) {
+              UI.toast(err.message, 'error');
+            }
+          } else if (sil) {
+            if (!window.confirm('Bekleyen sepet silinsin mi?')) return;
+            await Api.del(`/api/satislar/bekleyen/${sil.dataset.sil}`);
+            sil.closest('tr').remove();
+            bekleyenSayisiniGuncelle();
+          }
+        });
+      });
+
       if (genelKisayolDinleyici) document.removeEventListener('keydown', genelKisayolDinleyici);
       genelKisayolDinleyici = (e) => {
         if (location.hash !== '#satis') return;
         if (e.key === 'F2') {
           e.preventDefault();
           document.getElementById('pos-arama')?.focus();
+        } else if (e.key === 'F8') {
+          e.preventDefault();
+          document.getElementById('pos-beklet')?.click();
         } else if (e.key === 'Enter' && e.ctrlKey) {
           e.preventDefault();
           document.getElementById('pos-tamamla')?.click();
