@@ -1,58 +1,32 @@
 const express = require('express');
 const { db } = require('../db');
 const { partileriEsitle } = require('../partiler');
+const { TABLO_SIRASI, yedekVerisi, otomatikYedekAl, otomatikYedekleriListele, yedekDosyaYolu } = require('../yedek');
 
 const router = express.Router();
 
-const TABLO_SIRASI = [
-  'subeler',
-  'kullanicilar',
-  'ilaclar',
-  'musteriler',
-  'tedarikciler',
-  'ilac_stok',
-  'fiyat_gecmisi',
-  'stok_hareketleri',
-  'satislar',
-  'satis_kalemleri',
-  'bildirimler',
-  'kasa_kapanislari',
-  'giderler',
-  'siparisler',
-  'siparis_kalemleri',
-  'gorevler',
-  'nobetler',
-  'ilac_partileri',
-  'satis_kalemi_partileri',
-  'kampanyalar',
-  'cari_hareketler',
-  'iadeler',
-  'iade_kalemleri',
-  'etkilesimler',
-  'ilac_hatirlatmalari',
-  'sayimlar',
-  'sayim_kalemleri',
-  'transferler',
-  'transfer_kalemleri',
-  'mal_kabulleri',
-  'mal_kabul_kalemleri',
-  'satis_odemeleri',
-  'bekleyen_sepetler',
-  'puan_hareketleri',
-  'istekler',
-  'emanetler'
-];
+
 
 router.get('/export', (req, res) => {
-  const veri = {};
-  for (const tablo of TABLO_SIRASI) {
-    veri[tablo] = db.prepare(`SELECT * FROM ${tablo}`).all();
-  }
-
   const dosyaAdi = `eczanem-yedek-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.json`;
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Content-Disposition', `attachment; filename="${dosyaAdi}"`);
-  res.json({ olusturma_tarihi: new Date().toISOString(), tablolar: veri });
+  res.json(yedekVerisi());
+});
+
+// Otomatik (zamanlanmis) yedekler: listeleme, hemen alma, indirme
+router.get('/otomatik', (req, res) => {
+  res.json(otomatikYedekleriListele());
+});
+
+router.post('/otomatik/simdi', (req, res) => {
+  res.status(201).json(otomatikYedekAl({ zorla: true }));
+});
+
+router.get('/otomatik/:dosya', (req, res) => {
+  const yol = yedekDosyaYolu(req.params.dosya);
+  if (!yol) return res.status(404).json({ error: 'Yedek bulunamadi' });
+  res.download(yol, req.params.dosya);
 });
 
 router.post('/import', (req, res) => {
