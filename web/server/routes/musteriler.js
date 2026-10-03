@@ -1,6 +1,8 @@
 const express = require('express');
 const { db } = require('../db');
 const { musteriBakiyesi } = require('../cari');
+const sadakat = require('../sadakat');
+const { requireRole } = require('../auth');
 
 function limitOku(deger) {
   if (deger === undefined || deger === null || deger === '') return null;
@@ -17,18 +19,44 @@ router.get('/', (req, res) => {
     return res.json(
       db
         .prepare(
-          'SELECT * FROM musteriler WHERE ad_soyad LIKE ? OR telefon LIKE ? OR tc_no LIKE ? ORDER BY ad_soyad'
+          `SELECT m.*, COALESCE((SELECT SUM(puan) FROM puan_hareketleri p WHERE p.musteri_id = m.id), 0) AS puan
+           FROM musteriler m WHERE ad_soyad LIKE ? OR telefon LIKE ? OR tc_no LIKE ? ORDER BY ad_soyad`
         )
         .all(like, like, like)
     );
   }
-  res.json(db.prepare('SELECT * FROM musteriler ORDER BY ad_soyad').all());
+  res.json(
+    db
+      .prepare(
+        `SELECT m.*, COALESCE((SELECT SUM(puan) FROM puan_hareketleri p WHERE p.musteri_id = m.id), 0) AS puan
+         FROM musteriler m ORDER BY m.ad_soyad`
+      )
+      .all()
+  );
+});
+
+// Sadakat puani ayarlari (herkes okur, yalnizca admin degistirir)
+router.get('/sadakat/ayarlar', (req, res) => res.json(sadakat.ayarlar()));
+router.put('/sadakat/ayarlar', requireRole('admin'), (req, res) => {
+  const kazanim = Number(req.body.kazanim_orani);
+  const deger = Number(req.body.puan_degeri);
+  if (!(kazanim >= 0 && kazanim <= 100) || !(deger > 0 && deger <= 10)) {
+    return res.status(400).json({ error: 'Kazanim orani 0-100, puan degeri 0-10 TL arasinda olmali' });
+  }
+  res.json(sadakat.ayarlariKaydet({ kazanim_orani: kazanim, puan_degeri: deger, aktif: req.body.aktif !== false }));
+});
+
+router.get('/:id/puan', (req, res) => {
+  const hareketler = db
+    .prepare('SELECT * FROM puan_hareketleri WHERE musteri_id = ? ORDER BY id DESC LIMIT 200')
+    .all(req.params.id);
+  res.json({ bakiye: sadakat.puanBakiyesi(Number(req.params.id)), hareketler });
 });
 
 router.get('/:id', (req, res) => {
   const row = db.prepare('SELECT * FROM musteriler WHERE id = ?').get(req.params.id);
   if (!row) return res.status(404).json({ error: 'Musteri bulunamadi' });
-  res.json({ ...row, veresiye_bakiyesi: musteriBakiyesi(row.id) });
+  res.json({ ...row, veresiye_bakiyesi: musteriBakiyesi(row.id), puan: sadakat.puanBakiyesi(row.id) });
 });
 
 router.get('/:id/satislar', (req, res) => {

@@ -105,6 +105,20 @@
     kampanyaSatiri.hidden = !(h.kampanya_indirimi > 0);
     document.getElementById('pos-kampanya-tutari').textContent = '-' + UI.tl(h.kampanya_indirimi);
     document.getElementById('pos-indirim-tutari').textContent = '-' + UI.tl(h.indirim_tutari);
+    const puanSatiri = document.getElementById('pos-puan-satiri');
+    puanSatiri.hidden = !(h.puan_indirimi > 0);
+    document.getElementById('pos-puan-tutari').textContent = '-' + UI.tl(h.puan_indirimi || 0);
+    const kazan = document.getElementById('pos-kazanilacak');
+    kazan.hidden = !(h.kazanilacak_puan > 0);
+    kazan.textContent = `Bu alışverişte kazanılacak puan: ${h.kazanilacak_puan || 0}`;
+    const puanKutu = document.getElementById('pos-puan');
+    if (h.puan_bakiyesi != null) {
+      puanKutu.hidden = false;
+      document.getElementById('pos-puan-bakiye').textContent = `(bakiye ${h.puan_bakiyesi})`;
+      document.getElementById('pos-puan-kullan').max = h.puan_bakiyesi;
+    } else {
+      puanKutu.hidden = true;
+    }
     document.getElementById('sepet-toplam').textContent = UI.tl(h.toplam_tutar);
   }
 
@@ -115,8 +129,13 @@
     try {
       const h = await Api.post('/api/satislar/onizleme', {
         kalemler: sepet.map((k) => ({ ilac_id: k.ilac_id, adet: k.adet })),
-        indirim_yuzdesi: indirimYuzdesiOku()
+        indirim_yuzdesi: indirimYuzdesiOku(),
+        musteri_id: document.getElementById('pos-musteri').value || null,
+        puan_kullan: Number(document.getElementById('pos-puan-kullan').value) || 0,
+        odeme_tipi: document.getElementById('pos-odeme').value,
+        sgk_recete: document.getElementById('pos-recete').checked
       });
+      if (h.puan_hatasi) UI.toast(h.puan_hatasi, 'error');
       if (sayac !== onizlemeSayaci || !document.getElementById('sepet-toplam')) return;
       h.kalemler.forEach((k) => {
         const el = document.querySelector(`.kampanya-etiketi[data-ilac="${k.ilac_id}"]`);
@@ -227,6 +246,10 @@
                     ${musteriler.map((m) => `<option value="${m.id}">${UI.esc(m.ad_soyad)}</option>`).join('')}
                   </select>
                   <div id="pos-saglik-uyarisi"></div>
+                  <div id="pos-puan" hidden style="margin-top:6px">
+                    <label>Puan Kullan <span class="form-ipucu" id="pos-puan-bakiye"></span></label>
+                    <div style="display:flex;gap:6px"><input id="pos-puan-kullan" type="number" min="0" step="1" value="0" /><button type="button" class="secondary" id="pos-puan-tumu">Tümü</button></div>
+                  </div>
                 </div>
                 <div>
                   <label>Ödeme Tipi</label>
@@ -258,6 +281,10 @@
               <div class="cart-total" style="font-size:14px;font-weight:400;padding:0 0 6px;border-top:none;color:var(--danger)">
                 <span>İndirim</span><span id="pos-indirim-tutari">-0,00 TL</span>
               </div>
+              <div class="cart-total" id="pos-puan-satiri" hidden style="font-size:14px;font-weight:400;padding:0 0 6px;border-top:none;color:var(--success)">
+                <span>Puan İndirimi</span><span id="pos-puan-tutari">-0,00 TL</span>
+              </div>
+              <p class="form-ipucu" id="pos-kazanilacak" hidden style="margin:0 0 6px"></p>
               <div class="cart-total"><span>Toplam</span><span id="sepet-toplam">0,00 TL</span></div>
               <label><input type="checkbox" id="pos-recete" style="width:auto" /> Reçeteli / SGK işlemi</label>
               <button id="pos-tamamla" style="width:100%;margin-top:14px;padding:12px">Satışı Tamamla</button>
@@ -319,10 +346,26 @@
       });
 
       document.getElementById('pos-indirim').addEventListener('input', () => sepetiCiz(container));
-      document.getElementById('pos-odeme').addEventListener('change', karmaGuncelle);
+      document.getElementById('pos-odeme').addEventListener('change', () => {
+        karmaGuncelle();
+        onizlemeGuncelle();
+      });
+      document.getElementById('pos-recete').addEventListener('change', onizlemeGuncelle);
+      let puanZamanlayici;
+      document.getElementById('pos-puan-kullan').addEventListener('input', () => {
+        clearTimeout(puanZamanlayici);
+        puanZamanlayici = setTimeout(onizlemeGuncelle, 250);
+      });
+      document.getElementById('pos-puan-tumu').addEventListener('click', () => {
+        const inp = document.getElementById('pos-puan-kullan');
+        inp.value = inp.max || 0;
+        onizlemeGuncelle();
+      });
       document.getElementById('pos-karma-nakit').addEventListener('input', karmaGuncelle);
 
       document.getElementById('pos-musteri').addEventListener('change', async (e) => {
+        document.getElementById('pos-puan-kullan').value = 0;
+        onizlemeGuncelle();
         const uyariDiv = document.getElementById('pos-saglik-uyarisi');
         const musteri = musteriler.find((m) => String(m.id) === e.target.value);
         etkilesimKontrolEt();
@@ -385,6 +428,7 @@
             sgk_recete: sgkRecete,
             indirim_yuzdesi: indirimYuzdesiOku(),
             odemeler,
+            puan_kullan: Number(document.getElementById('pos-puan-kullan').value) || 0,
             kalemler: sepet.map((k) => ({ ilac_id: k.ilac_id, adet: k.adet }))
           });
 
@@ -395,7 +439,7 @@
             : '';
 
           const indirimSatiri =
-            satis.indirim_tutari > 0 || satis.kampanya_indirimi > 0
+            satis.indirim_tutari > 0 || satis.kampanya_indirimi > 0 || satis.puan_indirimi > 0
               ? `<div class="cart-total" style="font-size:13px;font-weight:400;padding:4px 0;border-top:none">
                    <span>Ara Toplam</span><span>${UI.tl(satis.ara_toplam)}</span>
                  </div>
@@ -410,6 +454,13 @@
                    satis.indirim_tutari > 0
                      ? `<div class="cart-total" style="font-size:13px;font-weight:400;padding:0 0 4px;border-top:none;color:var(--danger)">
                           <span>İndirim</span><span>-${UI.tl(satis.indirim_tutari)}</span>
+                        </div>`
+                     : ''
+                 }
+                 ${
+                   satis.puan_indirimi > 0
+                     ? `<div class="cart-total" style="font-size:13px;font-weight:400;padding:0 0 4px;border-top:none;color:var(--success)">
+                          <span>Puan (${satis.kullanilan_puan})</span><span>-${UI.tl(satis.puan_indirimi)}</span>
                         </div>`
                      : ''
                  }`
@@ -438,6 +489,7 @@
                   ? `<p class="form-ipucu">Ödeme: ${satis.odemeler.map((o) => `${o.odeme_tipi === 'nakit' ? 'Nakit' : 'Kart'} ${UI.tl(o.tutar)}`).join(' + ')}</p>`
                   : ''
               }
+              ${satis.kazanilan_puan > 0 ? `<p class="form-ipucu">Kazanılan puan: <b>${satis.kazanilan_puan}</b></p>` : ''}
               ${uyariMetni}
             </div>
             <div class="modal-actions"><button class="secondary" data-action="yazdir">Fiş Yazdır</button><button data-action="kapat">Tamam</button></div>
