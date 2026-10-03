@@ -22,20 +22,22 @@
           </select>
         </div>
       </div>
-      <p style="color:var(--text-muted);font-size:13px">Kritik stok altındaki ilaçlar otomatik öneri olarak listelendi. Sipariş edilecekleri seçin, gerekirse adedi değiştirin.</p>
+      <p style="color:var(--text-muted);font-size:13px">Kritik stok altındaki veya son 30 günün satış hızına göre 7 günden önce bitecek ürünler önerildi. Önerilen adet stoğu 30 günlük ihtiyaca tamamlar.</p>
       <table>
-        <thead><tr><th></th><th>İlaç</th><th class="num">Mevcut Stok</th><th class="num">Sipariş Adedi</th></tr></thead>
+        <thead><tr><th></th><th>İlaç</th><th class="num">Stok</th><th class="num">30 Gün Satış</th><th class="num">Yeter</th><th class="num">Sipariş Adedi</th></tr></thead>
         <tbody id="sp-oneri-tbody">
           ${oneriler
             .map(
               (o) => `<tr>
                 <td><input type="checkbox" class="sp-sec" data-id="${o.ilac_id}" style="width:auto" /></td>
-                <td>${UI.esc(o.ad)}</td>
+                <td>${UI.esc(o.ad)} ${o.neden === 'hizli_tukeniyor' ? '<span class="badge warn">Hızlı tükeniyor</span>' : '<span class="badge danger">Kritik</span>'}</td>
                 <td class="num">${o.stok}</td>
+                <td class="num">${o.son_satis}</td>
+                <td class="num">${o.yetecek_gun === null ? '-' : o.yetecek_gun + ' gün'}</td>
                 <td class="num"><input type="number" class="sp-adet" data-id="${o.ilac_id}" min="1" value="${o.onerilen_adet}" style="width:80px" /></td>
               </tr>`
             )
-            .join('') || '<tr><td colspan="4" class="empty-state">Kritik stok altında ilaç yok</td></tr>'}
+            .join('') || '<tr><td colspan="6" class="empty-state">Sipariş önerisi yok</td></tr>'}
         </tbody>
       </table>
       <div><label>Not (opsiyonel)</label><textarea id="sp-not" rows="2"></textarea></div>
@@ -145,7 +147,7 @@
         ${
           oneriler.length
             ? `<div class="card" style="border-left:4px solid var(--warning)">
-                <h3>⚠️ ${oneriler.length} ilaç kritik stok altında</h3>
+                <h3>⚠️ ${oneriler.length} ürün için sipariş önerisi var</h3>
                 <p style="color:var(--text-muted);font-size:13px;margin:0">Yeni sipariş oluştururken bu ilaçlar otomatik önerilecek.</p>
               </div>`
             : ''
