@@ -140,7 +140,9 @@
         }
       });
 
-      await yenile();
+      const seed = UI.aramaSeedOku();
+      if (seed) document.getElementById('musteri-ara').value = seed;
+      await yenile(seed);
     }
   };
 
