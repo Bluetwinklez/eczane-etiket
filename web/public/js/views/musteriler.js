@@ -72,16 +72,17 @@
   }
 
   const view = {
-    async render(container) {
+    async render(container, ctx) {
       container.innerHTML = `
         <div class="toolbar">
           <input id="musteri-ara" placeholder="Müşteri ara..." style="max-width:320px" />
           <div class="spacer"></div>
+          ${ctx && ctx.user.rol === 'admin' ? '<button class="secondary" id="sadakat-ayar-btn">Puan Ayarları</button>' : ''}
           <button id="yeni-musteri-btn">+ Yeni Müşteri</button>
         </div>
         <div class="card">
           <table>
-            <thead><tr><th>Ad Soyad</th><th>Telefon</th><th>E-posta</th><th></th></tr></thead>
+            <thead><tr><th>Ad Soyad</th><th>Telefon</th><th>E-posta</th><th class="num">Puan</th><th></th></tr></thead>
             <tbody id="musteri-tbody"></tbody>
           </table>
         </div>
@@ -97,6 +98,7 @@
                   <td>${UI.esc(m.ad_soyad)} ${m.saglik_notu ? '<span class="badge danger" title="' + UI.esc(m.saglik_notu) + '">⚕ Sağlık Notu</span>' : ''}</td>
                   <td>${UI.esc(m.telefon || '-')}</td>
                   <td>${UI.esc(m.email || '-')}</td>
+                  <td class="num">${m.puan ? `<span class="badge ok">${m.puan}</span>` : '-'}</td>
                   <td class="actions-col">
                     <button class="secondary" data-action="gecmis" data-id="${m.id}">Satış Geçmişi</button>
                     <button class="secondary" data-action="duzenle" data-id="${m.id}">Düzenle</button>
@@ -105,13 +107,40 @@
                 </tr>`
               )
               .join('')
-          : '<tr><td colspan="4" class="empty-state">Kayıt bulunamadı</td></tr>';
+          : '<tr><td colspan="5" class="empty-state">Kayıt bulunamadı</td></tr>';
       };
 
       let timer;
       document.getElementById('musteri-ara').addEventListener('input', (e) => {
         clearTimeout(timer);
         timer = setTimeout(() => yenile(e.target.value), 250);
+      });
+
+      document.getElementById('sadakat-ayar-btn')?.addEventListener('click', async () => {
+        const a = await Api.get('/api/musteriler/sadakat/ayarlar');
+        const modal = UI.openModal(`
+          <h3>Sadakat Puanı Ayarları</h3>
+          <form id="sadakat-form">
+            <div class="form-grid">
+              <div><label>1 TL alışverişte kazanılan puan</label><input name="kazanim_orani" type="number" step="0.1" min="0" value="${a.kazanim_orani}" /></div>
+              <div><label>1 puanın değeri (TL)</label><input name="puan_degeri" type="number" step="0.001" min="0.001" value="${a.puan_degeri}" /></div>
+            </div>
+            <label><input type="checkbox" name="aktif" style="width:auto" ${a.aktif ? 'checked' : ''} /> Puan sistemi açık</label>
+            <p class="form-ipucu">Reçeteli ilaçlar ve SGK satışları puan kazandırmaz, puanla ödenemez. Varsayılan: 1 TL = 1 puan, 100 puan = 1 TL (%1).</p>
+            <div class="modal-actions"><button type="button" class="secondary" data-action="kapat">Vazgeç</button><button type="submit">Kaydet</button></div>
+          </form>`);
+        modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));
+        modal.querySelector('#sadakat-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const f = e.target;
+          try {
+            await Api.put('/api/musteriler/sadakat/ayarlar', { kazanim_orani: Number(f.kazanim_orani.value), puan_degeri: Number(f.puan_degeri.value), aktif: f.aktif.checked });
+            UI.toast('Puan ayarları kaydedildi', 'success');
+            UI.closeModal(modal);
+          } catch (err) {
+            UI.toast(err.message, 'error');
+          }
+        });
       });
 
       document.getElementById('yeni-musteri-btn').addEventListener('click', () => {

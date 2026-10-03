@@ -331,6 +331,9 @@ sutunEkleGerekirse('kasa_kapanislari', 'iade_sistem', 'REAL NOT NULL DEFAULT 0')
 sutunEkleGerekirse('ilaclar', 'etken_madde', 'TEXT');
 // Bir kutunun kac gun yettigi (kronik ilaclar icin bitis hatirlatmasi); bos = takip edilmez
 sutunEkleGerekirse('ilaclar', 'kutu_gun', 'INTEGER');
+sutunEkleGerekirse('satislar', 'puan_indirimi', 'REAL NOT NULL DEFAULT 0');
+sutunEkleGerekirse('satislar', 'kullanilan_puan', 'INTEGER NOT NULL DEFAULT 0');
+sutunEkleGerekirse('satislar', 'kazanilan_puan', 'INTEGER NOT NULL DEFAULT 0');
 
 // Ayni ilac bitis donemi icin musteriye tekrar tekrar hatirlatma gitmesin
 db.exec(`
@@ -425,6 +428,18 @@ db.exec(`
     tutar REAL NOT NULL CHECK (tutar > 0)
   );
   CREATE INDEX IF NOT EXISTS idx_satis_odemeleri_satis ON satis_odemeleri (satis_id);
+
+  -- Sadakat puani hareketleri (+ kazanim / - kullanim, iadede ters kayit)
+  CREATE TABLE IF NOT EXISTS puan_hareketleri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    musteri_id INTEGER NOT NULL REFERENCES musteriler(id) ON DELETE CASCADE,
+    satis_id INTEGER REFERENCES satislar(id) ON DELETE SET NULL,
+    iade_id INTEGER REFERENCES iadeler(id) ON DELETE SET NULL,
+    puan INTEGER NOT NULL,
+    aciklama TEXT,
+    tarih TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_puan_hareketleri_musteri ON puan_hareketleri (musteri_id);
 
   -- POS'ta bekletilen (park edilen) sepetler
   CREATE TABLE IF NOT EXISTS bekleyen_sepetler (

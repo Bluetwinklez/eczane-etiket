@@ -3,6 +3,7 @@ const { db } = require('../db');
 const { partiCikis } = require('../partiler');
 const { sepetHesapla } = require('../kampanyalar');
 const { musteriBakiyesi, cariHareketEkle } = require('../cari');
+const { puanUygula, puanHareketi } = require('../sadakat');
 
 const ODEME_TIPLERI = ['nakit', 'kredi_karti', 'sgk', 'veresiye', 'karma'];
 
@@ -95,8 +96,12 @@ router.post('/onizleme', (req, res) => {
   const { hazirlanmis, hata, kod } = sepetiHazirla(req.body.kalemler, req.user.sube_id);
   if (hata) return res.status(kod).json({ error: hata });
   const hesap = sepetHesapla(hazirlanmis, indirimYuzdesiOku(req.body.indirim_yuzdesi));
+  const musteri = req.body.musteri_id ? db.prepare('SELECT * FROM musteriler WHERE id = ?').get(req.body.musteri_id) : null;
+  const puan = puanUygula(hesap, { musteri, puanKullan: req.body.puan_kullan, sgk: req.body.odeme_tipi === 'sgk' || req.body.sgk_recete });
   res.json({
     ...hesap,
+    ...puan,
+    toplam_tutar: Math.round((hesap.toplam_tutar - puan.puan_indirimi) * 100) / 100,
     kalemler: hesap.kalemler.map((k) => ({
       ilac_id: k.ilac.id,
       ilac_adi: k.ilac.ad,
@@ -128,6 +133,11 @@ router.post('/', (req, res) => {
     musteri = db.prepare('SELECT * FROM musteriler WHERE id = ?').get(musteri_id);
     if (!musteri) return res.status(404).json({ error: 'Musteri bulunamadi' });
   }
+  // Sadakat puani: kullanilan puan toplamdan duser, kazanilacak puan hesaplanir
+  const puan = puanUygula(hesap, { musteri, puanKullan: req.body.puan_kullan, sgk: odemeTipi === 'sgk' || sgk_recete });
+  if (puan.puan_hatasi) return res.status(400).json({ error: puan.puan_hatasi });
+  hesap.toplam_tutar = Math.round((hesap.toplam_tutar - puan.puan_indirimi) * 100) / 100;
+
   // Karma odeme: nakit + kart kirilimi toplamla birebir tutmali
   let odemeler = null;
   if (odemeTipi === 'karma') {
@@ -160,8 +170,9 @@ router.post('/', (req, res) => {
   try {
     const satisInfo = db
       .prepare(
-        `INSERT INTO satislar (musteri_id, sube_id, kullanici_id, ara_toplam, kampanya_indirimi, indirim_tutari, toplam_tutar, odeme_tipi, sgk_recete)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO satislar (musteri_id, sube_id, kullanici_id, ara_toplam, kampanya_indirimi, indirim_tutari, toplam_tutar, odeme_tipi, sgk_recete,
+                               puan_indirimi, kullanilan_puan, kazanilan_puan)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         musteri_id || null,
@@ -172,7 +183,10 @@ router.post('/', (req, res) => {
         hesap.indirim_tutari,
         hesap.toplam_tutar,
         odemeTipi,
-        sgk_recete ? 1 : 0
+        sgk_recete ? 1 : 0,
+        puan.puan_indirimi,
+        puan.kullanilan_puan,
+        puan.kazanilacak_puan
       );
 
     const satisId = satisInfo.lastInsertRowid;
@@ -203,6 +217,11 @@ router.post('/', (req, res) => {
       }
       insertHareket.run(ilac.id, subeId, adet, `Satis #${satisId}`);
     });
+
+    if (musteri) {
+      puanHareketi(musteri.id, -puan.kullanilan_puan, `Satis #${satisId} puan kullanimi`, satisId);
+      puanHareketi(musteri.id, puan.kazanilacak_puan, `Satis #${satisId} kazanim`, satisId);
+    }
 
     if (odemeler) {
       const odemeEkle = db.prepare('INSERT INTO satis_odemeleri (satis_id, odeme_tipi, tutar) VALUES (?, ?, ?)');
