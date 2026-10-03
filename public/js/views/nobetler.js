@@ -48,6 +48,7 @@
         <h3 style="margin:0">${ayAdi(suankiAy)}</h3>
         <button id="nobet-sonraki" class="secondary">Sonraki Ay →</button>
         <div class="spacer"></div>
+        <a href="/api/nobetler/export?ay=${suankiAy}" download="nobetci-listesi-${suankiAy}.csv"><button type="button" class="secondary">Excel'e Aktar (CSV)</button></a>
       </div>
       <div class="card">
         ${yazmaYetkisiVar(ctx) ? '<p style="color:var(--text-muted);font-size:13px;margin-top:0">Bir güne tıklayarak nöbetçi eczane olarak işaretleyin/kaldırın.</p>' : ''}

@@ -1,6 +1,7 @@
 const express = require('express');
 const { db } = require('../db');
 const { requireRole } = require('../auth');
+const { sendCsv } = require('../export');
 
 const router = express.Router();
 
@@ -28,6 +29,31 @@ router.get('/', (req, res) => {
   }
   sql += ' ORDER BY n.tarih';
   res.json(db.prepare(sql).all(...params));
+});
+
+router.get('/export', (req, res) => {
+  const subeId = resolveSubeId(req, req.query.sube_id);
+  const ay = req.query.ay || new Date().toISOString().slice(0, 7);
+
+  let sql = `
+    SELECT n.tarih, s.ad AS sube_adi, n.notlar
+    FROM nobetler n
+    LEFT JOIN subeler s ON s.id = n.sube_id
+    WHERE n.tarih LIKE ?
+  `;
+  const params = [ay + '%'];
+  if (subeId) {
+    sql += ' AND n.sube_id = ?';
+    params.push(subeId);
+  }
+  sql += ' ORDER BY n.tarih';
+  const rows = db.prepare(sql).all(...params);
+
+  sendCsv(res, `nobetci-listesi-${ay}.csv`, rows, [
+    { alan: 'tarih', baslik: 'Tarih' },
+    { alan: 'sube_adi', baslik: 'Şube' },
+    { alan: 'notlar', baslik: 'Not' }
+  ]);
 });
 
 router.post('/', requireRole('admin', 'eczaci'), (req, res) => {
