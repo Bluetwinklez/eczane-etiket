@@ -12,6 +12,13 @@ function etkenMaddeNormallestir(deger) {
   return maddeler.length ? maddeler.join(', ') : null;
 }
 
+// Bos birakilirsa takip edilmez; 1-365 gun arasi tam sayi olmali
+function kutuGunOku(deger) {
+  if (deger === undefined || deger === null || deger === '') return null;
+  const n = Number(deger);
+  return Number.isInteger(n) && n >= 1 && n <= 365 ? n : NaN;
+}
+
 function urunTipiGecerliMi(tip) {
   return tip === undefined || tip === null || tip === '' || Object.prototype.hasOwnProperty.call(URUN_TIPLERI, tip);
 }
@@ -162,6 +169,8 @@ router.get('/:id/fiyat-gecmisi', (req, res) => {
 router.post('/', requireRole('admin', 'eczaci'), (req, res) => {
   const { ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt, stok, urun_tipi, etken_madde } = req.body;
   if (!ad || !ad.trim()) return res.status(400).json({ error: 'Ilac adi zorunludur' });
+  const kutuGun = kutuGunOku(req.body.kutu_gun);
+  if (Number.isNaN(kutuGun)) return res.status(400).json({ error: 'Kutu suresi 1-365 gun arasinda olmali' });
   if (!urunTipiGecerliMi(urun_tipi)) return res.status(400).json({ error: 'Gecersiz urun tipi' });
   if (satis_fiyati == null || Number(satis_fiyati) < 0) {
     return res.status(400).json({ error: 'Gecerli bir satis fiyati girin' });
@@ -171,8 +180,8 @@ router.post('/', requireRole('admin', 'eczaci'), (req, res) => {
   try {
     const info = db
       .prepare(
-        `INSERT INTO ilaclar (ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt, urun_tipi, etken_madde)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO ilaclar (ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt, urun_tipi, etken_madde, kutu_gun)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         ad.trim(),
@@ -185,7 +194,8 @@ router.post('/', requireRole('admin', 'eczaci'), (req, res) => {
         Number(satis_fiyati),
         skt || null,
         urun_tipi || 'ilac',
-        etkenMaddeNormallestir(etken_madde)
+        etkenMaddeNormallestir(etken_madde),
+        kutuGun
       );
 
     const subeler = db.prepare('SELECT id FROM subeler').all();
@@ -220,6 +230,9 @@ router.put('/:id', requireRole('admin', 'eczaci'), (req, res) => {
 
   const { ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt, urun_tipi, etken_madde } = req.body;
   if (!ad || !ad.trim()) return res.status(400).json({ error: 'Ilac adi zorunludur' });
+  // kutu_gun gonderilmezse mevcut deger korunur
+  const kutuGun = 'kutu_gun' in req.body ? kutuGunOku(req.body.kutu_gun) : existing.kutu_gun;
+  if (Number.isNaN(kutuGun)) return res.status(400).json({ error: 'Kutu suresi 1-365 gun arasinda olmali' });
   if (!urunTipiGecerliMi(urun_tipi)) return res.status(400).json({ error: 'Gecersiz urun tipi' });
 
   db.exec('BEGIN');
@@ -227,7 +240,7 @@ router.put('/:id', requireRole('admin', 'eczaci'), (req, res) => {
     const yeniSatisFiyati = Number(satis_fiyati) || 0;
     db.prepare(
       `UPDATE ilaclar SET ad=?, barkod=?, kategori=?, uretici=?, receteli=?, kritik_stok=?, alis_fiyati=?, satis_fiyati=?, skt=?, urun_tipi=?,
-       etken_madde=? WHERE id=?`
+       etken_madde=?, kutu_gun=? WHERE id=?`
     ).run(
       ad.trim(),
       barkod || null,
@@ -240,6 +253,7 @@ router.put('/:id', requireRole('admin', 'eczaci'), (req, res) => {
       skt || null,
       urun_tipi || existing.urun_tipi,
       etken_madde === undefined ? existing.etken_madde : etkenMaddeNormallestir(etken_madde),
+      kutuGun,
       req.params.id
     );
 

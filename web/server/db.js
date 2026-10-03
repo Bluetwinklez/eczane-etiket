@@ -329,6 +329,22 @@ db.exec(`
 sutunEkleGerekirse('satis_kalemi_partileri', 'iade_edilen', 'INTEGER NOT NULL DEFAULT 0');
 sutunEkleGerekirse('kasa_kapanislari', 'iade_sistem', 'REAL NOT NULL DEFAULT 0');
 sutunEkleGerekirse('ilaclar', 'etken_madde', 'TEXT');
+// Bir kutunun kac gun yettigi (kronik ilaclar icin bitis hatirlatmasi); bos = takip edilmez
+sutunEkleGerekirse('ilaclar', 'kutu_gun', 'INTEGER');
+
+// Ayni ilac bitis donemi icin musteriye tekrar tekrar hatirlatma gitmesin
+db.exec(`
+  CREATE TABLE IF NOT EXISTS ilac_hatirlatmalari (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    musteri_id INTEGER NOT NULL REFERENCES musteriler(id) ON DELETE CASCADE,
+    ilac_id INTEGER NOT NULL REFERENCES ilaclar(id) ON DELETE CASCADE,
+    bitis_tarihi TEXT NOT NULL,
+    bildirim_id INTEGER REFERENCES bildirimler(id) ON DELETE SET NULL,
+    kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    tarih TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (musteri_id, ilac_id, bitis_tarihi)
+  );
+`);
 
 // Etken madde ciftleri arasindaki bilinen etkilesimler (madde_a < madde_b sirali saklanir)
 db.exec(`
@@ -355,6 +371,21 @@ const ORNEK_ETKEN_MADDELER = {
   '8699504010098': 'hidrotalsit',
   '8699504010104': 'metoprolol'
 };
+// Ornek katalogdaki kronik kullanim ilaclari: bir kutu kac gun yeter
+const ORNEK_KUTU_GUNLERI = {
+  '8699504010029': 30,
+  '8699504010050': 28,
+  '8699504010074': 30,
+  '8699504010104': 28,
+  '8699546352071': 30,
+  '8681234560017': 60
+};
+
+function ornekKutuGunleriniDoldur() {
+  const guncelle = db.prepare('UPDATE ilaclar SET kutu_gun = ? WHERE barkod = ? AND kutu_gun IS NULL');
+  for (const [barkod, gun] of Object.entries(ORNEK_KUTU_GUNLERI)) guncelle.run(gun, barkod);
+}
+
 function ornekEtkenMaddeleriDoldur() {
   const guncelle = db.prepare('UPDATE ilaclar SET etken_madde = ? WHERE barkod = ? AND etken_madde IS NULL');
   for (const [barkod, madde] of Object.entries(ORNEK_ETKEN_MADDELER)) guncelle.run(madde, barkod);
@@ -508,5 +539,6 @@ function seedIfEmpty() {
 
 seedIfEmpty();
 ornekEtkenMaddeleriDoldur();
+ornekKutuGunleriniDoldur();
 
 module.exports = { db, hashPassword, verifyPassword, ayarOku, ayarYaz };
