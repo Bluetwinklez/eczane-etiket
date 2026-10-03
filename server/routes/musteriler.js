@@ -34,12 +34,12 @@ router.get('/:id/satislar', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { ad_soyad, telefon, email, tc_no, adres } = req.body;
+  const { ad_soyad, telefon, email, tc_no, adres, saglik_notu } = req.body;
   if (!ad_soyad || !ad_soyad.trim()) return res.status(400).json({ error: 'Ad soyad zorunludur' });
 
   const info = db
-    .prepare('INSERT INTO musteriler (ad_soyad, telefon, email, tc_no, adres) VALUES (?, ?, ?, ?, ?)')
-    .run(ad_soyad.trim(), telefon || null, email || null, tc_no || null, adres || null);
+    .prepare('INSERT INTO musteriler (ad_soyad, telefon, email, tc_no, adres, saglik_notu) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(ad_soyad.trim(), telefon || null, email || null, tc_no || null, adres || null, saglik_notu || null);
   res.status(201).json(db.prepare('SELECT * FROM musteriler WHERE id = ?').get(info.lastInsertRowid));
 });
 
@@ -47,15 +47,16 @@ router.put('/:id', (req, res) => {
   const existing = db.prepare('SELECT * FROM musteriler WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Musteri bulunamadi' });
 
-  const { ad_soyad, telefon, email, tc_no, adres } = req.body;
+  const { ad_soyad, telefon, email, tc_no, adres, saglik_notu } = req.body;
   if (!ad_soyad || !ad_soyad.trim()) return res.status(400).json({ error: 'Ad soyad zorunludur' });
 
-  db.prepare('UPDATE musteriler SET ad_soyad=?, telefon=?, email=?, tc_no=?, adres=? WHERE id=?').run(
+  db.prepare('UPDATE musteriler SET ad_soyad=?, telefon=?, email=?, tc_no=?, adres=?, saglik_notu=? WHERE id=?').run(
     ad_soyad.trim(),
     telefon || null,
     email || null,
     tc_no || null,
     adres || null,
+    saglik_notu || null,
     req.params.id
   );
   res.json(db.prepare('SELECT * FROM musteriler WHERE id = ?').get(req.params.id));

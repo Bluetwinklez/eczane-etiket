@@ -13,6 +13,10 @@
           <div><label>TC No</label><input name="tc_no" value="${UI.esc(x.tc_no || '')}" /></div>
         </div>
         <div><label>Adres</label><textarea name="adres" rows="2">${UI.esc(x.adres || '')}</textarea></div>
+        <div>
+          <label>Sağlık Notu <span style="color:var(--text-muted);font-weight:400">(alerji, kronik hastalık, dikkat edilmesi gereken ilaçlar)</span></label>
+          <textarea name="saglik_notu" rows="2" placeholder="örn. Penisilin alerjisi, tip 2 diyabet">${UI.esc(x.saglik_notu || '')}</textarea>
+        </div>
         <div class="modal-actions">
           <button type="button" class="secondary" data-action="kapat">Vazgeç</button>
           <button type="submit">Kaydet</button>
@@ -31,7 +35,8 @@
         telefon: fd.get('telefon') || null,
         email: fd.get('email') || null,
         tc_no: fd.get('tc_no') || null,
-        adres: fd.get('adres') || null
+        adres: fd.get('adres') || null,
+        saglik_notu: fd.get('saglik_notu') || null
       };
       try {
         if (musteri) {
@@ -87,7 +92,7 @@
           ? liste
               .map(
                 (m) => `<tr>
-                  <td>${UI.esc(m.ad_soyad)}</td>
+                  <td>${UI.esc(m.ad_soyad)} ${m.saglik_notu ? '<span class="badge danger" title="' + UI.esc(m.saglik_notu) + '">⚕ Sağlık Notu</span>' : ''}</td>
                   <td>${UI.esc(m.telefon || '-')}</td>
                   <td>${UI.esc(m.email || '-')}</td>
                   <td class="actions-col">

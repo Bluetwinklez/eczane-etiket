@@ -96,6 +96,7 @@
                     <option value="">- Müşteri seçilmedi -</option>
                     ${musteriler.map((m) => `<option value="${m.id}">${UI.esc(m.ad_soyad)}</option>`).join('')}
                   </select>
+                  <div id="pos-saglik-uyarisi"></div>
                 </div>
                 <div>
                   <label>Ödeme Tipi</label>
@@ -167,6 +168,15 @@
       });
 
       document.getElementById('pos-indirim').addEventListener('input', () => sepetiCiz(container));
+
+      document.getElementById('pos-musteri').addEventListener('change', (e) => {
+        const uyariDiv = document.getElementById('pos-saglik-uyarisi');
+        const musteri = musteriler.find((m) => String(m.id) === e.target.value);
+        uyariDiv.innerHTML =
+          musteri && musteri.saglik_notu
+            ? `<p style="background:var(--danger-soft);color:var(--danger);padding:8px 10px;border-radius:var(--radius-sm);font-size:12px;margin-top:6px">⚕ ${UI.esc(musteri.saglik_notu)}</p>`
+            : '';
+      });
 
       document.getElementById('pos-tamamla').addEventListener('click', async () => {
         if (sepet.length === 0) {
