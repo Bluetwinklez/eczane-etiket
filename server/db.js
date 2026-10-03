@@ -214,6 +214,22 @@ db.exec(`
     veri TEXT NOT NULL,
     bitis INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS islem_kayitlari (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tarih TEXT NOT NULL DEFAULT (datetime('now')),
+    kullanici_id INTEGER,
+    kullanici_adi TEXT,
+    sube_id INTEGER,
+    yontem TEXT NOT NULL,
+    yol TEXT NOT NULL,
+    kaynak TEXT,
+    kayit_id TEXT,
+    durum_kodu INTEGER NOT NULL,
+    detay TEXT,
+    ip TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_islem_kayitlari_tarih ON islem_kayitlari (tarih);
 `);
 
 function ayarOku(anahtar) {

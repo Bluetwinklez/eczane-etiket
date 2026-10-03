@@ -6,6 +6,7 @@ const session = require('express-session');
 const { requireLogin, requireRole } = require('./auth');
 const { db, ayarOku, ayarYaz } = require('./db');
 const SqliteOturumDeposu = require('./oturumDeposu');
+const { islemKaydiMiddleware } = require('./islemKaydi');
 const authRoutes = require('./routes/auth');
 const ilaclarRoutes = require('./routes/ilaclar');
 const satislarRoutes = require('./routes/satislar');
@@ -21,6 +22,7 @@ const giderlerRoutes = require('./routes/giderler');
 const siparislerRoutes = require('./routes/siparisler');
 const gorevlerRoutes = require('./routes/gorevler');
 const nobetlerRoutes = require('./routes/nobetler');
+const islemKayitlariRoutes = require('./routes/islemKayitlari');
 
 const app = express();
 
@@ -54,6 +56,7 @@ app.use(
   })
 );
 
+app.use('/api', islemKaydiMiddleware);
 app.use('/api/auth', authRoutes);
 app.use('/api/ilaclar', requireLogin, ilaclarRoutes);
 app.use('/api/satislar', requireLogin, satislarRoutes);
@@ -69,6 +72,7 @@ app.use('/api/giderler', requireLogin, requireRole('admin', 'eczaci'), giderlerR
 app.use('/api/siparisler', requireLogin, requireRole('admin', 'eczaci'), siparislerRoutes);
 app.use('/api/gorevler', requireLogin, gorevlerRoutes);
 app.use('/api/nobetler', requireLogin, nobetlerRoutes);
+app.use('/api/islem-kayitlari', requireLogin, requireRole('admin'), islemKayitlariRoutes);
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
