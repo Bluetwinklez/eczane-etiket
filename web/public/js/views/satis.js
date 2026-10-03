@@ -25,7 +25,8 @@
           .map(
             (k, idx) => `
         <div class="cart-item">
-          <div class="name">${UI.esc(k.ad)}<br /><small>${UI.tl(k.satis_fiyati)} / adet</small><div class="kampanya-etiketi" data-ilac="${k.ilac_id}"></div></div>
+          <div class="name">${UI.esc(k.ad)}<br /><small>${UI.tl(k.satis_fiyati)} / adet</small><div class="kampanya-etiketi" data-ilac="${k.ilac_id}"></div>
+            ${['ilac', 'takviye'].includes(k.urun_tipi || 'ilac') ? `<input class="sepet-kullanim" data-idx="${idx}" placeholder="Kullanım (örn. Günde 2x1 tok)" value="${UI.esc(k.kullanim || '')}" />` : ''}</div>
           <input type="number" min="1" max="${k.mevcutStok}" value="${k.adet}" data-idx="${idx}" class="sepet-adet" />
           <button class="secondary" data-action="cikar" data-idx="${idx}">Sil</button>
         </div>`
@@ -187,7 +188,9 @@
         adet: 1,
         mevcutStok: ilac.stok,
         receteli: ilac.receteli,
-        recete_turu: ilac.recete_turu || null
+        recete_turu: ilac.recete_turu || null,
+        urun_tipi: ilac.urun_tipi || 'ilac',
+        kullanim: ''
       });
     }
     sepetiCiz(container);
@@ -368,6 +371,10 @@
       });
 
       document.getElementById('sepet-liste').addEventListener('input', (e) => {
+        if (e.target.classList.contains('sepet-kullanim')) {
+          sepet[Number(e.target.dataset.idx)].kullanim = e.target.value;
+          return;
+        }
         if (!e.target.classList.contains('sepet-adet')) return;
         const idx = Number(e.target.dataset.idx);
         let val = Number(e.target.value) || 1;
@@ -479,7 +486,7 @@
                   recete_tarihi: document.getElementById('pos-recete-tarihi').value || null,
                   hasta_tc: document.getElementById('pos-hasta-tc').value || null
                 }),
-            kalemler: sepet.map((k) => ({ ilac_id: k.ilac_id, adet: k.adet }))
+            kalemler: sepet.map((k) => ({ ilac_id: k.ilac_id, adet: k.adet, kullanim: k.kullanim || null }))
           });
 
           const uyariMetni = satis.kritik_stok_uyarisi.length
