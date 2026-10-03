@@ -29,7 +29,7 @@
               ${subeler.map((s) => `<option value="${s.id}" ${x.sube_id === s.id ? 'selected' : ''}>${UI.esc(s.ad)}</option>`).join('')}
             </select>
           </div>
-          <div><label>${k ? 'Yeni Şifre (opsiyonel)' : 'Şifre'}</label><input name="sifre" type="password" ${k ? '' : 'required'} minlength="6" /></div>
+          <div><label>${k ? 'Yeni Şifre (opsiyonel)' : 'Şifre'}</label><input name="sifre" type="password" ${k ? '' : 'required'} minlength="8" /></div>
         </div>
         ${k ? `<label><input type="checkbox" name="aktif" style="width:auto" ${x.aktif ? 'checked' : ''} /> Aktif</label>` : ''}
         <div class="modal-actions">
