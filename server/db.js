@@ -254,7 +254,29 @@ db.exec(`
     adet INTEGER NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_satis_kalemi_partileri_kalem ON satis_kalemi_partileri (satis_kalem_id);
+
+  -- Kampanyalar: yuzde indirim veya "X al Y ode"; urun, kategori, urun tipi
+  -- ya da tum (recetesiz) urunler icin tanimlanabilir.
+  CREATE TABLE IF NOT EXISTS kampanyalar (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ad TEXT NOT NULL,
+    tip TEXT NOT NULL CHECK (tip IN ('yuzde', 'x_al_y_ode')),
+    hedef_tip TEXT NOT NULL CHECK (hedef_tip IN ('tumu', 'urun', 'kategori', 'urun_tipi')),
+    hedef_deger TEXT,
+    indirim_yuzdesi REAL,
+    al_adet INTEGER,
+    ode_adet INTEGER,
+    baslangic TEXT,
+    bitis TEXT,
+    aktif INTEGER NOT NULL DEFAULT 1,
+    olusturma_tarihi TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `);
+
+sutunEkleGerekirse('satis_kalemleri', 'kalem_indirimi', 'REAL NOT NULL DEFAULT 0');
+sutunEkleGerekirse('satis_kalemleri', 'kampanya_id', 'INTEGER');
+sutunEkleGerekirse('satis_kalemleri', 'kampanya_adi', 'TEXT');
+sutunEkleGerekirse('satislar', 'kampanya_indirimi', 'REAL NOT NULL DEFAULT 0');
 
 function ayarOku(anahtar) {
   const row = db.prepare('SELECT deger FROM ayarlar WHERE anahtar = ?').get(anahtar);
