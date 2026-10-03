@@ -344,6 +344,28 @@ db.exec(`
     tarih TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE (musteri_id, ilac_id, bitis_tarihi)
   );
+
+  -- Stok sayimi: sayilan adetler girilir, tamamlaninca farklar stoga islenir
+  CREATE TABLE IF NOT EXISTS sayimlar (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    durum TEXT NOT NULL DEFAULT 'acik' CHECK (durum IN ('acik', 'tamamlandi', 'iptal')),
+    kapsam TEXT,
+    aciklama TEXT,
+    baslangic TEXT NOT NULL DEFAULT (datetime('now')),
+    bitis TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS sayim_kalemleri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sayim_id INTEGER NOT NULL REFERENCES sayimlar(id) ON DELETE CASCADE,
+    ilac_id INTEGER NOT NULL REFERENCES ilaclar(id) ON DELETE CASCADE,
+    sayilan INTEGER NOT NULL,
+    sistem_stok INTEGER,
+    fark INTEGER,
+    UNIQUE (sayim_id, ilac_id)
+  );
 `);
 
 // Etken madde ciftleri arasindaki bilinen etkilesimler (madde_a < madde_b sirali saklanir)
