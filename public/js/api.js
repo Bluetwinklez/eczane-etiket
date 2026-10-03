@@ -10,18 +10,22 @@ const Api = (function () {
       opts.body = JSON.stringify(body);
     }
     const res = await fetch(url, opts);
-
-    if (res.status === 401) {
-      if (!location.pathname.endsWith('login.html')) {
-        window.location.href = 'login.html';
-      }
-      throw new Error('Oturum sona erdi');
-    }
+    const girisSayfasindaMi = location.pathname.endsWith('login.html');
 
     if (res.status === 204) return null;
 
     const contentType = res.headers.get('content-type') || '';
     const data = contentType.includes('application/json') ? await res.json() : await res.text();
+
+    if (res.status === 401) {
+      if (!girisSayfasindaMi) window.location.href = 'login.html';
+      throw new Error((data && data.error) || 'Oturum sona erdi');
+    }
+
+    if (res.status === 403 && data && data.kod === 'SIFRE_DEGISTIRILMELI') {
+      if (!girisSayfasindaMi) window.location.href = 'login.html';
+      throw new Error(data.error);
+    }
 
     if (!res.ok) {
       const message = (data && data.error) || 'Bir hata olustu';

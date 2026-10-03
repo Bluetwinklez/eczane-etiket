@@ -1,5 +1,7 @@
 const { db, verifyPassword } = require('./db');
 
+const MIN_SIFRE_UZUNLUGU = 8;
+
 function findUserByUsername(kullaniciAdi) {
   return db.prepare('SELECT * FROM kullanicilar WHERE kullanici_adi = ?').get(kullaniciAdi);
 }
@@ -21,13 +23,43 @@ function login(kullaniciAdi, sifre) {
   return user;
 }
 
-function requireLogin(req, res, next) {
+function sifreKuraliHatasi(sifre) {
+  if (typeof sifre !== 'string' || sifre.length < MIN_SIFRE_UZUNLUGU) {
+    return `Sifre en az ${MIN_SIFRE_UZUNLUGU} karakter olmalidir`;
+  }
+  if (!/[A-Za-zÇĞİÖŞÜçğıöşü]/.test(sifre) || !/\d/.test(sifre)) {
+    return 'Sifre en az bir harf ve bir rakam icermelidir';
+  }
+  return null;
+}
+
+function oturumKullanicisiniYukle(req, res) {
   if (!req.session || !req.session.userId) {
-    return res.status(401).json({ error: 'Oturum acmaniz gerekiyor' });
+    res.status(401).json({ error: 'Oturum acmaniz gerekiyor' });
+    return null;
   }
   const user = findUserById(req.session.userId);
   if (!user || !user.aktif) {
-    return res.status(401).json({ error: 'Oturum gecersiz' });
+    res.status(401).json({ error: 'Oturum gecersiz' });
+    return null;
+  }
+  return user;
+}
+
+// Sifre degistirme zorunlulugu olan kullaniciyi da kabul eder; yalnizca
+// /api/auth/me ve /api/auth/sifre-degistir gibi uclar icin.
+function requireOturum(req, res, next) {
+  const user = oturumKullanicisiniYukle(req, res);
+  if (!user) return;
+  req.user = user;
+  next();
+}
+
+function requireLogin(req, res, next) {
+  const user = oturumKullanicisiniYukle(req, res);
+  if (!user) return;
+  if (user.sifre_degistirilmeli) {
+    return res.status(403).json({ error: 'Devam etmeden once sifrenizi degistirmelisiniz', kod: 'SIFRE_DEGISTIRILMELI' });
   }
   req.user = user;
   next();
@@ -42,4 +74,14 @@ function requireRole(...roller) {
   };
 }
 
-module.exports = { findUserByUsername, findUserById, toPublicUser, login, requireLogin, requireRole };
+module.exports = {
+  findUserByUsername,
+  findUserById,
+  toPublicUser,
+  login,
+  requireLogin,
+  requireOturum,
+  requireRole,
+  sifreKuraliHatasi,
+  MIN_SIFRE_UZUNLUGU
+};

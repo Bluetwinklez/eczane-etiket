@@ -1,7 +1,6 @@
 // Her test dosyasi node --test tarafindan ayri bir proseste calistirilir;
 // bu yuzden her dosya kendi izole, bellek ici veritabanini alir.
 process.env.ECZANEM_DB_PATH = ':memory:';
-process.env.ECZANEM_TEST = '1';
 
 const app = require('../server/app');
 
@@ -59,11 +58,24 @@ const DEMO = {
   kasiyer: ['kasiyer', 'kasiyer123']
 };
 
+// Demo hesaplar ilk giriste sifre degistirmeye zorlanir; degisen sifreyi
+// bu proses icinde hatirlar ki ayni rolle tekrar giris yapilabilsin.
+const guncelSifreler = {};
+
 async function girisliIstemci(base, rol) {
+  const [kullaniciAdi, ilkSifre] = DEMO[rol];
+  const sifre = guncelSifreler[kullaniciAdi] || ilkSifre;
   const c = istemci(base);
-  const res = await c.girisYap(...DEMO[rol]);
+  const res = await c.girisYap(kullaniciAdi, sifre);
   if (res.status !== 200) throw new Error(`${rol} girisi basarisiz: ${res.status} ${JSON.stringify(res.data)}`);
+
+  if (res.data.user.sifre_degistirilmeli) {
+    const yeni = `${kullaniciAdi}Yeni2026`;
+    const d = await c.post('/api/auth/sifre-degistir', { mevcut_sifre: sifre, yeni_sifre: yeni });
+    if (d.status !== 200) throw new Error(`${rol} sifre degisimi basarisiz: ${JSON.stringify(d.data)}`);
+    guncelSifreler[kullaniciAdi] = yeni;
+  }
   return c;
 }
 
-module.exports = { sunucuBaslat, istemci, girisliIstemci };
+module.exports = { sunucuBaslat, istemci, girisliIstemci, DEMO };

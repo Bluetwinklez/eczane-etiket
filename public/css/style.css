@@ -329,3 +329,6 @@ td.num, th.num { text-align: right; }
 .cp-baslik { font-size: 14px; }
 .cp-alt { font-size: 12px; color: var(--text-muted); }
 .cp-footer { padding: 8px 20px; font-size: 11px; color: var(--text-muted); border-top: 1px solid var(--border-soft); }
+
+.sifre-kural { font-size: 12px; color: var(--text-muted); margin: 8px 0 12px; }
+#sifre-form button.secondary { width: 100%; }

@@ -4,6 +4,8 @@ const express = require('express');
 const session = require('express-session');
 
 const { requireLogin, requireRole } = require('./auth');
+const { db, ayarOku, ayarYaz } = require('./db');
+const SqliteOturumDeposu = require('./oturumDeposu');
 const authRoutes = require('./routes/auth');
 const ilaclarRoutes = require('./routes/ilaclar');
 const satislarRoutes = require('./routes/satislar');
@@ -22,16 +24,31 @@ const nobetlerRoutes = require('./routes/nobetler');
 
 const app = express();
 
+// SESSION_SECRET verilmemisse uretilen anahtar DB'de saklanir; boylece
+// sunucu yeniden basladiginda acik oturumlar gecersiz olmaz.
+function oturumAnahtari() {
+  if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
+  let anahtar = ayarOku('session_secret');
+  if (!anahtar) {
+    anahtar = crypto.randomBytes(32).toString('hex');
+    ayarYaz('session_secret', anahtar);
+  }
+  return anahtar;
+}
+
+app.set('trust proxy', process.env.TRUST_PROXY === '1');
 app.use(express.json({ limit: '10mb' }));
 app.use(
   session({
     name: 'eczanem.sid',
-    secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
+    secret: oturumAnahtari(),
+    store: new SqliteOturumDeposu(db),
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
       sameSite: 'lax',
+      secure: process.env.COOKIE_SECURE === '1',
       maxAge: 8 * 60 * 60 * 1000
     }
   })

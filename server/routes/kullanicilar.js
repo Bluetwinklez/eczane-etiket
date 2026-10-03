@@ -1,6 +1,6 @@
 const express = require('express');
 const { db, hashPassword } = require('../db');
-const { toPublicUser } = require('../auth');
+const { toPublicUser, sifreKuraliHatasi } = require('../auth');
 
 const router = express.Router();
 
@@ -23,16 +23,15 @@ router.post('/', (req, res) => {
   if (!['admin', 'eczaci', 'kasiyer'].includes(rol)) {
     return res.status(400).json({ error: 'Gecersiz rol' });
   }
-  if (sifre.length < 6) {
-    return res.status(400).json({ error: 'Sifre en az 6 karakter olmalidir' });
-  }
+  const kuralHatasi = sifreKuraliHatasi(sifre);
+  if (kuralHatasi) return res.status(400).json({ error: kuralHatasi });
 
   try {
     const { hash, salt } = hashPassword(sifre);
     const info = db
       .prepare(
-        `INSERT INTO kullanicilar (kullanici_adi, sifre_hash, sifre_salt, ad_soyad, rol, sube_id)
-         VALUES (?, ?, ?, ?, ?, ?)`
+        `INSERT INTO kullanicilar (kullanici_adi, sifre_hash, sifre_salt, ad_soyad, rol, sube_id, sifre_degistirilmeli)
+         VALUES (?, ?, ?, ?, ?, ?, 1)`
       )
       .run(kullanici_adi.trim(), hash, salt, ad_soyad.trim(), rol, sube_id || null);
     const created = db.prepare('SELECT * FROM kullanicilar WHERE id = ?').get(info.lastInsertRowid);
@@ -57,6 +56,10 @@ router.put('/:id', (req, res) => {
   if (existing.id === req.user.id && aktif === false) {
     return res.status(400).json({ error: 'Kendi hesabinizi pasif hale getiremezsiniz' });
   }
+  if (sifre) {
+    const kuralHatasi = sifreKuraliHatasi(sifre);
+    if (kuralHatasi) return res.status(400).json({ error: kuralHatasi });
+  }
 
   db.prepare('UPDATE kullanicilar SET ad_soyad=?, rol=?, sube_id=?, aktif=? WHERE id=?').run(
     ad_soyad.trim(),
@@ -67,9 +70,13 @@ router.put('/:id', (req, res) => {
   );
 
   if (sifre) {
-    if (sifre.length < 6) return res.status(400).json({ error: 'Sifre en az 6 karakter olmalidir' });
     const { hash, salt } = hashPassword(sifre);
-    db.prepare('UPDATE kullanicilar SET sifre_hash=?, sifre_salt=? WHERE id=?').run(hash, salt, req.params.id);
+    // Yonetici tarafindan sifirlanan sifre ilk giriste kullanici tarafindan degistirilmeli
+    db.prepare('UPDATE kullanicilar SET sifre_hash=?, sifre_salt=?, sifre_degistirilmeli=1 WHERE id=?').run(
+      hash,
+      salt,
+      req.params.id
+    );
   }
 
   const updated = db.prepare('SELECT * FROM kullanicilar WHERE id = ?').get(req.params.id);
