@@ -1,0 +1,203 @@
+(function () {
+  let ilaclar = [];
+  let satirlar = [];
+
+  function birimMaliyet(s) {
+    const adet = Number(s.adet) || 0;
+    const mf = Number(s.mf) || 0;
+    return adet > 0 ? (Number(s.alis_fiyati) * adet) / (adet + mf) : 0;
+  }
+
+  function satirlariCiz() {
+    const tbody = document.getElementById('mk-satirlar');
+    tbody.innerHTML = satirlar.length
+      ? satirlar
+          .map((s, i) => {
+            const ilac = ilaclar.find((x) => x.id === s.ilac_id);
+            return `<tr>
+              <td>${UI.esc(ilac ? ilac.ad : '?')}</td>
+              <td><input type="number" min="1" data-i="${i}" data-alan="adet" value="${s.adet}" style="width:70px" /></td>
+              <td><input type="number" min="0" data-i="${i}" data-alan="mf" value="${s.mf}" style="width:60px" title="Mal fazlası (bedelsiz)" /></td>
+              <td><input type="number" min="0" step="0.01" data-i="${i}" data-alan="alis_fiyati" value="${s.alis_fiyati}" style="width:90px" /></td>
+              <td><input data-i="${i}" data-alan="parti_no" value="${UI.esc(s.parti_no || '')}" style="width:100px" /></td>
+              <td><input type="date" data-i="${i}" data-alan="skt" value="${s.skt || ''}" /></td>
+              <td class="num mk-birim">${UI.tl(birimMaliyet(s))}</td>
+              <td class="num mk-tutar">${UI.tl(Number(s.alis_fiyati) * Number(s.adet || 0))}</td>
+              <td><button type="button" class="secondary" data-sil="${i}">Sil</button></td>
+            </tr>`;
+          })
+          .join('')
+      : '<tr><td colspan="9" class="empty-state">Karekod okutun veya ürün ekleyin</td></tr>';
+    toplamCiz();
+  }
+
+  function toplamCiz() {
+    const toplam = satirlar.reduce((t, s) => t + Number(s.alis_fiyati) * Number(s.adet || 0), 0);
+    const adet = satirlar.reduce((t, s) => t + Number(s.adet || 0) + Number(s.mf || 0), 0);
+    document.getElementById('mk-toplam').textContent = `${adet} kutu · Fatura toplamı ${UI.tl(toplam)}`;
+  }
+
+  function satirEkle(ilac, ek) {
+    satirlar.push({ ilac_id: ilac.id, adet: 1, mf: 0, alis_fiyati: ilac.alis_fiyati, parti_no: '', skt: '', ...ek });
+    satirlariCiz();
+  }
+
+  async function detayGoster(id) {
+    const k = await Api.get(`/api/mal-kabul/${id}`);
+    const modal = UI.openModal(`
+      <h3 class="modal-genis">Mal Kabul #${k.id}</h3>
+      <p class="form-ipucu">${UI.esc(k.tedarikci_adi || 'Tedarikçi belirtilmedi')} · Fatura ${UI.esc(k.fatura_no || '-')} ${k.fatura_tarihi ? '(' + k.fatura_tarihi + ')' : ''} · ${UI.tarih(k.tarih)} · ${UI.esc(k.kullanici_adi || '')}${k.siparis_id ? ` · Sipariş #${k.siparis_id}` : ''}</p>
+      <table><thead><tr><th>Ürün</th><th class="num">Adet</th><th class="num">MF</th><th class="num">Alış</th><th class="num">Birim Maliyet</th><th>Parti</th><th>SKT</th></tr></thead>
+      <tbody>${k.kalemler
+        .map(
+          (x) => `<tr><td>${UI.esc(x.ilac_adi)}</td><td class="num">${x.adet}</td><td class="num">${x.mf || '-'}</td><td class="num">${UI.tl(x.alis_fiyati)}</td>
+            <td class="num">${UI.tl(x.birim_maliyet)}</td><td>${UI.esc(x.parti_no || '-')}</td><td>${x.skt || '-'}</td></tr>`
+        )
+        .join('')}</tbody></table>
+      <div class="cart-total"><span>Fatura Toplamı</span><span>${UI.tl(k.toplam_tutar)}</span></div>
+      <div class="modal-actions"><button class="secondary" data-action="kapat">Kapat</button></div>
+    `);
+    modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));
+  }
+
+  const view = {
+    async render(container) {
+      satirlar = [];
+      const [tedarikciler, siparisler, gecmis] = await Promise.all([
+        Api.get('/api/tedarikciler'),
+        Api.get('/api/siparisler'),
+        Api.get('/api/mal-kabul')
+      ]);
+      ilaclar = await Api.get('/api/ilaclar');
+      const bekleyen = siparisler.filter((s) => s.durum === 'beklemede' || s.durum === 'gonderildi');
+
+      container.innerHTML = `
+        <div class="card">
+          <h3>Yeni Mal Kabul</h3>
+          <div class="form-grid">
+            <div><label>Tedarikçi</label><select id="mk-tedarikci"><option value="">-</option>${tedarikciler.map((t) => `<option value="${t.id}">${UI.esc(t.firma_adi)}</option>`).join('')}</select></div>
+            <div><label>Fatura / İrsaliye No</label><input id="mk-fatura" /></div>
+            <div><label>Fatura Tarihi</label><input id="mk-tarih" type="date" value="${new Date().toISOString().slice(0, 10)}" /></div>
+            <div><label>Siparişten Doldur</label><select id="mk-siparis"><option value="">-</option>${bekleyen.map((s) => `<option value="${s.id}">#${s.id} · ${UI.esc(s.tedarikci_adi || '')} · ${s.kalem_sayisi} kalem</option>`).join('')}</select></div>
+          </div>
+          <div class="form-grid" style="margin-top:8px">
+            <div><label>Karekod / Barkod Okut</label><input id="mk-okut" placeholder="Okutun ve Enter (ürün, parti, SKT dolar)" /></div>
+            <div><label>veya Ürün Seç</label><select id="mk-ilac">${ilaclar.map((i) => `<option value="${i.id}">${UI.esc(i.ad)}</option>`).join('')}</select></div>
+            <div><label>&nbsp;</label><button type="button" class="secondary" id="mk-ekle">+ Ekle</button></div>
+          </div>
+          <div class="tablo-kaydir" style="margin-top:10px">
+            <table><thead><tr><th>Ürün</th><th>Adet</th><th>MF</th><th>Alış Fiyatı</th><th>Parti No</th><th>SKT</th><th class="num">Birim Maliyet</th><th class="num">Tutar</th><th></th></tr></thead>
+            <tbody id="mk-satirlar"></tbody></table>
+          </div>
+          <div class="toolbar" style="margin-top:10px">
+            <label style="margin:0"><input type="checkbox" id="mk-alis-guncelle" style="width:auto" checked /> Ürünlerin alış fiyatını birim maliyete güncelle</label>
+            <div class="spacer"></div>
+            <b id="mk-toplam"></b>
+            <button id="mk-kaydet">Mal Kabulü Kaydet</button>
+          </div>
+          <p class="form-ipucu">MF (mal fazlası): bedelsiz gelen adet. Örn. 10+1'de adet 10, MF 1 girilir; stoğa 11 girer, birim maliyet düşer.</p>
+        </div>
+        <div class="card">
+          <h3>Geçmiş Mal Kabuller</h3>
+          <table><thead><tr><th>No</th><th>Tarih</th><th>Tedarikçi</th><th>Fatura</th><th class="num">Kalem</th><th class="num">Kutu</th><th class="num">Tutar</th><th></th></tr></thead>
+          <tbody>${
+            gecmis.length
+              ? gecmis
+                  .map(
+                    (k) => `<tr><td>#${k.id}</td><td>${UI.tarih(k.tarih)}</td><td>${UI.esc(k.tedarikci_adi || '-')}</td><td>${UI.esc(k.fatura_no || '-')}</td>
+                      <td class="num">${k.kalem_sayisi}</td><td class="num">${k.toplam_adet}</td><td class="num">${UI.tl(k.toplam_tutar)}</td>
+                      <td class="actions-col"><button class="secondary" data-detay="${k.id}">Detay</button></td></tr>`
+                  )
+                  .join('')
+              : '<tr><td colspan="8" class="empty-state">Henüz mal kabul yok</td></tr>'
+          }</tbody></table>
+        </div>
+      `;
+      satirlariCiz();
+
+      document.getElementById('mk-ekle').addEventListener('click', () => {
+        const ilac = ilaclar.find((i) => i.id === Number(document.getElementById('mk-ilac').value));
+        if (ilac) satirEkle(ilac);
+      });
+      document.getElementById('mk-okut').addEventListener('keydown', async (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        const metin = e.target.value.trim();
+        e.target.value = '';
+        if (!metin) return;
+        try {
+          let barkod = metin;
+          let ek = {};
+          if (UI.karekodaBenziyor(metin)) {
+            const k = (await UI.karekodSorgula(metin)).karekod;
+            barkod = k.barkod;
+            ek = { parti_no: k.parti_no || '', skt: k.skt || '' };
+          }
+          const ilac = ilaclar.find((i) => i.barkod === barkod);
+          if (!ilac) {
+            UI.toast(`Ürün kayıtlı değil (barkod ${barkod})`, 'error');
+            return;
+          }
+          // Ayni urun ve parti zaten varsa adedini artir
+          const mevcut = satirlar.find((s) => s.ilac_id === ilac.id && (s.parti_no || '') === (ek.parti_no || '') && (s.skt || '') === (ek.skt || ''));
+          if (mevcut) {
+            mevcut.adet = Number(mevcut.adet) + 1;
+            satirlariCiz();
+          } else {
+            satirEkle(ilac, ek);
+          }
+        } catch (err) {
+          UI.toast(err.message, 'error');
+        }
+      });
+      document.getElementById('mk-siparis').addEventListener('change', async (e) => {
+        if (!e.target.value) return;
+        const s = await Api.get(`/api/siparisler/${e.target.value}`);
+        document.getElementById('mk-tedarikci').value = s.tedarikci_id || '';
+        satirlar = s.kalemler.map((k) => ({ ilac_id: k.ilac_id, adet: k.istenen_adet, mf: 0, alis_fiyati: k.tahmini_birim_fiyat, parti_no: '', skt: '' }));
+        satirlariCiz();
+      });
+      const tbody = document.getElementById('mk-satirlar');
+      tbody.addEventListener('input', (e) => {
+        const i = e.target.dataset.i;
+        if (i === undefined) return;
+        satirlar[Number(i)][e.target.dataset.alan] = e.target.value;
+        const tr = e.target.closest('tr');
+        const s = satirlar[Number(i)];
+        tr.querySelector('.mk-birim').textContent = UI.tl(birimMaliyet(s));
+        tr.querySelector('.mk-tutar').textContent = UI.tl(Number(s.alis_fiyati) * Number(s.adet || 0));
+        toplamCiz();
+      });
+      tbody.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-sil]');
+        if (b) {
+          satirlar.splice(Number(b.dataset.sil), 1);
+          satirlariCiz();
+        }
+      });
+      document.getElementById('mk-kaydet').addEventListener('click', async () => {
+        if (!satirlar.length) {
+          UI.toast('En az bir kalem ekleyin', 'error');
+          return;
+        }
+        try {
+          const k = await Api.post('/api/mal-kabul', {
+            tedarikci_id: Number(document.getElementById('mk-tedarikci').value) || null,
+            siparis_id: Number(document.getElementById('mk-siparis').value) || null,
+            fatura_no: document.getElementById('mk-fatura').value || null,
+            fatura_tarihi: document.getElementById('mk-tarih').value || null,
+            alis_fiyati_guncelle: document.getElementById('mk-alis-guncelle').checked,
+            kalemler: satirlar.map((s) => ({ ...s, adet: Number(s.adet), mf: Number(s.mf) || 0, alis_fiyati: Number(s.alis_fiyati) }))
+          });
+          UI.toast(`Mal kabul #${k.id} kaydedildi, stoğa işlendi`, 'success');
+          view.render(container);
+        } catch (err) {
+          UI.toast(err.message, 'error');
+        }
+      });
+      container.querySelectorAll('[data-detay]').forEach((b) => b.addEventListener('click', () => detayGoster(Number(b.dataset.detay))));
+    }
+  };
+
+  Views.malKabul = view;
+})();

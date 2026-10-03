@@ -12,6 +12,7 @@
     { key: 'hatirlatmalar', etiket: 'İlaç Hatırlatmaları', ikon: '⏰' },
     { key: 'tedarikciler', etiket: 'Tedarikçiler', ikon: '🚚' },
     { key: 'siparisler', etiket: 'Siparişler', ikon: '📋', roller: ['admin', 'eczaci'] },
+    { key: 'mal-kabul', etiket: 'Mal Kabul', ikon: '📥', roller: ['admin', 'eczaci'] },
     { key: 'raporlar', etiket: 'Raporlar', ikon: '📊', roller: ['admin', 'eczaci'] },
     { key: 'kasa-kapanisi', etiket: 'Kasa Kapanışı', ikon: '💰' },
     { key: 'giderler', etiket: 'Giderler', ikon: '💸', roller: ['admin', 'eczaci'] },
