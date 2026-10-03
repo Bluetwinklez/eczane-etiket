@@ -194,6 +194,80 @@
     });
   }
 
+  function topluFiyatModali(onUygulandi) {
+    const kategoriler = [...new Set(mevcutListe.map((i) => i.kategori).filter(Boolean))].sort();
+    const modal = UI.openModal(`
+      <h3 class="modal-genis">Toplu Fiyat Güncelleme</h3>
+      <form id="tf-form" class="form-grid">
+        <div>
+          <label>Hangi Ürünler</label>
+          <select name="hedef">
+            <option value="tumu|">Tüm ürünler</option>
+            <option value="receteli|">Reçeteli ilaçlar</option>
+            <option value="recetesiz|">Reçetesiz ürünler</option>
+            <optgroup label="Ürün tipi">${Object.entries(UI.URUN_TIPLERI).map(([v, l]) => `<option value="urun_tipi|${v}">${l}</option>`).join('')}</optgroup>
+            <optgroup label="Kategori">${kategoriler.map((k) => `<option value="kategori|${UI.esc(k)}">${UI.esc(k)}</option>`).join('')}</optgroup>
+          </select>
+        </div>
+        <div><label>Değişim (%)</label><input name="yuzde" type="number" step="0.1" value="10" title="Zam için pozitif, indirim için negatif" /></div>
+        <div>
+          <label>Hangi Fiyat</label>
+          <select name="alan"><option value="satis">Satış fiyatı</option><option value="alis">Alış fiyatı</option><option value="ikisi">İkisi birden</option></select>
+        </div>
+        <div>
+          <label>Satış Fiyatı Yuvarlama</label>
+          <select name="yuvarlama"><option value="kurus">Kuruş (12,34)</option><option value="yarim">0,50'ye (12,50)</option><option value="lira">Tam lira (12,00)</option><option value="doksan">,90 ile biten (11,90)</option></select>
+        </div>
+      </form>
+      <div id="tf-onizleme"></div>
+      <div class="modal-actions">
+        <button class="secondary" data-action="kapat">Vazgeç</button>
+        <button class="secondary" data-action="onizle">Önizle</button>
+        <button data-action="uygula" disabled>Uygula</button>
+      </div>
+    `);
+    const form = modal.querySelector('#tf-form');
+    const govde = (onizleme) => {
+      const [tip, deger] = form.hedef.value.split('|');
+      return { hedef: { tip, deger }, yuzde: Number(form.yuzde.value), alan: form.alan.value, yuvarlama: form.yuvarlama.value, onizleme };
+    };
+    const uygulaBtn = modal.querySelector('[data-action="uygula"]');
+    form.addEventListener('input', () => (uygulaBtn.disabled = true));
+    modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));
+    modal.querySelector('[data-action="onizle"]').addEventListener('click', async () => {
+      try {
+        const r = await Api.post('/api/ilaclar/toplu-fiyat', govde(true));
+        const zararina = r.degisiklikler.filter((d) => d.zararina).length;
+        modal.querySelector('#tf-onizleme').innerHTML = `
+          <p class="form-ipucu">${r.urun_sayisi} ürün güncellenecek.${zararina ? ` <b style="color:var(--danger)">${zararina} üründe satış fiyatı alışın altına düşüyor!</b>` : ''}</p>
+          <div class="tablo-kaydir" style="max-height:320px;overflow-y:auto">
+            <table><thead><tr><th>Ürün</th><th class="num">Satış (eski → yeni)</th><th class="num">Alış (eski → yeni)</th></tr></thead>
+            <tbody>${r.degisiklikler
+              .map(
+                (d) => `<tr${d.zararina ? ' style="color:var(--danger)"' : ''}><td>${UI.esc(d.ad)}</td>
+                  <td class="num">${UI.tl(d.eski_satis)} → <b>${UI.tl(d.yeni_satis)}</b></td>
+                  <td class="num">${UI.tl(d.eski_alis)} → ${UI.tl(d.yeni_alis)}</td></tr>`
+              )
+              .join('')}</tbody></table>
+          </div>`;
+        uygulaBtn.disabled = r.urun_sayisi === 0;
+      } catch (err) {
+        UI.toast(err.message, 'error');
+      }
+    });
+    uygulaBtn.addEventListener('click', async () => {
+      if (!window.confirm('Fiyatlar güncellenecek. Emin misiniz?')) return;
+      try {
+        const r = await Api.post('/api/ilaclar/toplu-fiyat', govde(false));
+        UI.toast(`${r.urun_sayisi} ürünün fiyatı güncellendi`, 'success');
+        UI.closeModal(modal);
+        onUygulandi();
+      } catch (err) {
+        UI.toast(err.message, 'error');
+      }
+    });
+  }
+
   const HAREKET_ROZETI = {
     giris: '<span class="badge ok">Giriş</span>',
     cikis: '<span class="badge danger">Çıkış</span>'
@@ -229,7 +303,7 @@
             ${Object.entries(UI.URUN_TIPLERI).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}
           </select>
           <div class="spacer"></div>
-          ${yazmaYetkisiVar(ctx) ? '<button id="yeni-ilac-btn">+ Yeni İlaç</button>' : ''}
+          ${yazmaYetkisiVar(ctx) ? '<button class="secondary" id="toplu-fiyat-btn">Toplu Fiyat</button><button id="yeni-ilac-btn">+ Yeni İlaç</button>' : ''}
         </div>
         <div class="card">
           <table>
@@ -267,6 +341,9 @@
       });
 
       if (yazmaYetkisiVar(ctx)) {
+        document.getElementById('toplu-fiyat-btn').addEventListener('click', () =>
+          topluFiyatModali(() => yenile(document.getElementById('ilac-ara').value))
+        );
         document.getElementById('yeni-ilac-btn').addEventListener('click', () => {
           const modal = UI.openModal(formHtml(null));
           formuBagla(modal, null, () => yenile(document.getElementById('ilac-ara').value));
