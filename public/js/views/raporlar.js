@@ -50,6 +50,18 @@
         { alan: 'toplam_tutar', baslik: 'Tutar', tl: true }
       ]
     },
+    'parti-skt': {
+      baslik: 'Parti Bazlı SKT Raporu (180 gün)',
+      kolonlar: [
+        { alan: 'ilac_adi', baslik: 'Ürün' },
+        { alan: 'parti_no', baslik: 'Parti No' },
+        { alan: 'sube_adi', baslik: 'Şube' },
+        { alan: 'skt', baslik: 'SKT' },
+        { alan: 'kalan_gun', baslik: 'Kalan Gün' },
+        { alan: 'miktar', baslik: 'Miktar' },
+        { alan: 'alis_degeri', baslik: 'Alış Değeri', tl: true }
+      ]
+    },
     'stok-degeri': {
       baslik: 'Stok Değeri Raporu',
       kolonlar: [
