@@ -334,6 +334,14 @@ sutunEkleGerekirse('ilaclar', 'kutu_gun', 'INTEGER');
 sutunEkleGerekirse('satislar', 'puan_indirimi', 'REAL NOT NULL DEFAULT 0');
 sutunEkleGerekirse('satislar', 'kullanilan_puan', 'INTEGER NOT NULL DEFAULT 0');
 sutunEkleGerekirse('satislar', 'kazanilan_puan', 'INTEGER NOT NULL DEFAULT 0');
+// Recete bilgisi (satisa bagli) ve ilacin gerektirdigi recete turu
+sutunEkleGerekirse('satislar', 'recete_no', 'TEXT');
+sutunEkleGerekirse('satislar', 'recete_turu', 'TEXT');
+sutunEkleGerekirse('satislar', 'recete_tarihi', 'TEXT');
+sutunEkleGerekirse('satislar', 'doktor_adi', 'TEXT');
+sutunEkleGerekirse('satislar', 'hasta_tc', 'TEXT');
+// null: normal; 'kirmizi' / 'yesil': kontrollu (defter tutulur); 'mor' / 'turuncu': ozel receteli
+sutunEkleGerekirse('ilaclar', 'recete_turu', 'TEXT');
 
 // Ayni ilac bitis donemi icin musteriye tekrar tekrar hatirlatma gitmesin
 db.exec(`
@@ -521,6 +529,11 @@ const ORNEK_KUTU_GUNLERI = {
   '8681234560017': 60
 };
 
+// Ornek katalog: Xanax (alprazolam) Turkiye'de yesil receteyle satilir
+function ornekReceteTurleriniDoldur() {
+  db.prepare("UPDATE ilaclar SET recete_turu = 'yesil' WHERE barkod = '8699504010081' AND recete_turu IS NULL").run();
+}
+
 function ornekKutuGunleriniDoldur() {
   const guncelle = db.prepare('UPDATE ilaclar SET kutu_gun = ? WHERE barkod = ? AND kutu_gun IS NULL');
   for (const [barkod, gun] of Object.entries(ORNEK_KUTU_GUNLERI)) guncelle.run(gun, barkod);
@@ -680,5 +693,6 @@ function seedIfEmpty() {
 seedIfEmpty();
 ornekEtkenMaddeleriDoldur();
 ornekKutuGunleriniDoldur();
+ornekReceteTurleriniDoldur();
 
 module.exports = { db, hashPassword, verifyPassword, ayarOku, ayarYaz };

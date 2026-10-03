@@ -48,7 +48,27 @@
         { alan: 'id', baslik: 'Satış No' },
         { alan: 'tarih', baslik: 'Tarih' },
         { alan: 'musteri_adi', baslik: 'Müşteri' },
+        { alan: 'recete_no', baslik: 'Reçete No' },
+        { alan: 'recete_turu', baslik: 'Tür' },
+        { alan: 'doktor_adi', baslik: 'Doktor' },
         { alan: 'toplam_tutar', baslik: 'Tutar', tl: true }
+      ]
+    },
+    'kontrollu-ilac': {
+      baslik: 'Kontrollü İlaç Defteri (kırmızı/yeşil reçete)',
+      tarih: true,
+      kolonlar: [
+        { alan: 'tarih', baslik: 'Tarih' },
+        { alan: 'ilac_adi', baslik: 'İlaç' },
+        { alan: 'recete_rengi', baslik: 'Reçete' },
+        { alan: 'giris', baslik: 'Giriş' },
+        { alan: 'cikis', baslik: 'Çıkış' },
+        { alan: 'bakiye', baslik: 'Bakiye' },
+        { alan: 'recete_no', baslik: 'Reçete No' },
+        { alan: 'doktor', baslik: 'Doktor' },
+        { alan: 'hasta', baslik: 'Hasta' },
+        { alan: 'hasta_tc', baslik: 'Hasta TC' },
+        { alan: 'aciklama', baslik: 'Açıklama' }
       ]
     },
     'olu-stok': {

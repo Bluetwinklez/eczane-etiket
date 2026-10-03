@@ -1,6 +1,13 @@
 window.Views = window.Views || {};
 
 const UI = (function () {
+  const RECETE_TURLERI = {
+    beyaz: 'Beyaz',
+    kirmizi: 'Kırmızı',
+    yesil: 'Yeşil',
+    mor: 'Mor',
+    turuncu: 'Turuncu'
+  };
   const URUN_TIPLERI = {
     ilac: 'İlaç',
     dermokozmetik: 'Dermokozmetik',
@@ -91,5 +98,5 @@ const UI = (function () {
     return Api.get('/api/ilaclar/karekod?kod=' + encodeURIComponent(String(metin).trim()));
   }
 
-  return { toast, esc, tl, tarih, openModal, closeModal, confirmSil, temaAktifMi, temaDegistir, aramaSeedOku, URUN_TIPLERI, karekodaBenziyor, karekodSorgula };
+  return { toast, esc, tl, tarih, openModal, closeModal, confirmSil, temaAktifMi, temaDegistir, aramaSeedOku, URUN_TIPLERI, RECETE_TURLERI, karekodaBenziyor, karekodSorgula };
 })();
