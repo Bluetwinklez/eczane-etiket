@@ -393,3 +393,15 @@ td.num, th.num { text-align: right; }
 .isi-gun { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; }
 .isi-hucre { height: 30px; min-width: 18px; border-radius: 4px; font-size: 10px; display: flex; align-items: center; justify-content: center;
   background: color-mix(in srgb, var(--primary) calc(var(--oran) * 100%), var(--bg)); color: var(--text); border: 1px solid var(--border-soft); }
+.vardiya-tablo th, .vardiya-tablo td { text-align: center; }
+.vardiya-tablo td:first-child, .vardiya-tablo th:first-child { text-align: left; }
+.vardiya-hucre { min-width: 92px; height: 52px; }
+.vardiya-hucre.tiklanir { cursor: pointer; }
+.vardiya-hucre.tiklanir:hover { background: var(--accent-mint-bg); }
+.vardiya-hucre small { display: block; color: var(--text-muted); font-size: 10.5px; }
+.vardiya-saat { font-weight: 600; font-size: 12.5px; }
+.vardiya-bos { color: var(--border); font-size: 18px; }
+.vardiya-bugun { background: var(--accent-amber-bg); }
+.devir-notlari { list-style: none; padding: 0; margin: 0; }
+.devir-notlari li { padding: 6px 0; border-bottom: 1px solid var(--border-soft); }
+.devir-notlari li.tamam label { text-decoration: line-through; color: var(--text-muted); }

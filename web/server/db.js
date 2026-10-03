@@ -487,6 +487,29 @@ db.exec(`
     kapanis_tarihi TEXT
   );
 
+  -- Personel vardiya cizelgesi: kisi basina gunde bir kayit
+  CREATE TABLE IF NOT EXISTS vardiyalar (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    kullanici_id INTEGER NOT NULL REFERENCES kullanicilar(id) ON DELETE CASCADE,
+    tarih TEXT NOT NULL,
+    tip TEXT NOT NULL DEFAULT 'calisma' CHECK (tip IN ('calisma', 'izin', 'rapor')),
+    baslangic TEXT,
+    bitis TEXT,
+    notlar TEXT,
+    UNIQUE (kullanici_id, tarih)
+  );
+
+  -- Vardiya devir notlari (bir sonraki vardiyaya aktarilacaklar)
+  CREATE TABLE IF NOT EXISTS vardiya_notlari (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    metin TEXT NOT NULL,
+    tamamlandi INTEGER NOT NULL DEFAULT 0,
+    tarih TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   -- Aylik satis hedefleri (sube bazinda)
   CREATE TABLE IF NOT EXISTS satis_hedefleri (
     sube_id INTEGER NOT NULL REFERENCES subeler(id),
