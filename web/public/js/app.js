@@ -15,6 +15,7 @@ const NAV = [
   { key: 'siparisler', label: 'Siparişler', roles: ['admin', 'eczaci'] },
   { key: 'mal-kabul', label: 'Mal Kabul', roles: ['admin', 'eczaci'] },
   { key: 'raporlar', label: 'Raporlar', roles: ['admin', 'eczaci'] },
+  { key: 'analiz', label: 'Satış Analizi & Hedef' },
   { key: 'kasa-kapanisi', label: 'Kasa Kapanışı' },
   { key: 'giderler', label: 'Giderler', roles: ['admin', 'eczaci'] },
   { key: 'kampanyalar', label: 'Kampanyalar' },
@@ -46,6 +47,7 @@ const TITLES = {
   siparisler: 'Siparişler',
   'mal-kabul': 'Mal Kabul (İrsaliye / Fatura)',
   raporlar: 'Raporlar',
+  analiz: 'Satış Analizi ve Hedef',
   'kasa-kapanisi': 'Kasa Kapanışı',
   giderler: 'Giderler',
   kampanyalar: 'Kampanyalar',
@@ -101,12 +103,13 @@ const AnaSayfaView = {
     const buAy = new Date().toISOString().slice(0, 7);
     const yoneticiMi = CURRENT_USER.rol === 'admin' || CURRENT_USER.rol === 'eczaci';
 
-    const [uyarilar, satislar7Gun, bekleyenGorevler, buAykiNobetler, bekleyenSiparisler] = await Promise.all([
+    const [uyarilar, satislar7Gun, bekleyenGorevler, buAykiNobetler, bekleyenSiparisler, hedef] = await Promise.all([
       Api.get('/api/ilaclar/uyarilar'),
       Api.get('/api/satislar?baslangic=' + gunStr(yediGunOnce)),
       Api.get('/api/gorevler?durum=bekliyor'),
       Api.get('/api/nobetler?ay=' + buAy),
-      yoneticiMi ? Api.get('/api/siparisler?durum=beklemede') : Promise.resolve([])
+      yoneticiMi ? Api.get('/api/siparisler?durum=beklemede') : Promise.resolve([]),
+      Api.get('/api/hedefler/aktif').catch(() => null)
     ]);
 
     const bugun = gunStr(new Date());
@@ -143,6 +146,16 @@ const AnaSayfaView = {
           <div class="value">${uyarilar.skt_yaklasan.length}</div>
         </div>
       </div>
+      ${
+        hedef && hedef.hedef
+          ? `<div class="card">
+              <div class="toolbar" style="margin:0 0 8px"><h3 style="margin:0">🎯 Aylık Hedef</h3><div class="spacer"></div>
+                <span style="font-size:13px">${UI.tl(hedef.gerceklesen)} / ${UI.tl(hedef.hedef)} · <b>%${hedef.yuzde}</b></span></div>
+              <div class="hedef-cubuk"><div style="width:${Math.min(100, hedef.yuzde)}%;background:${hedef.yuzde >= 100 ? 'var(--success)' : 'var(--primary)'}"></div></div>
+              <a href="#analiz" style="font-size:12px">Ayrıntılar →</a>
+            </div>`
+          : ''
+      }
       <div class="card">
         <h3>Son 7 Gün Satış Trendi</h3>
         ${satisTrendSvg(gunlukVeri)}
@@ -234,6 +247,7 @@ const VIEW_MAP = {
   siparisler: () => Views.siparisler,
   'mal-kabul': () => Views.malKabul,
   raporlar: () => Views.raporlar,
+  analiz: () => Views.analiz,
   'kasa-kapanisi': () => Views.kasaKapanisi,
   giderler: () => Views.giderler,
   kampanyalar: () => Views.kampanyalar,

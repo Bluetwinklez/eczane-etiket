@@ -38,7 +38,8 @@ const TABLO_SIRASI = [
   'bekleyen_sepetler',
   'puan_hareketleri',
   'istekler',
-  'emanetler'
+  'emanetler',
+  'satis_hedefleri'
 ];
 
 const DOSYA_DESENI = /^eczanem-otomatik-\d{4}-\d{2}-\d{2}-\d{6}\.json$/;
