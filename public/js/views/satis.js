@@ -2,6 +2,7 @@
   let sepet = [];
   let musteriler = [];
   let sonAramaSonuclari = [];
+  let genelKisayolDinleyici = null;
 
   function sepetAraToplam() {
     return sepet.reduce((sum, k) => sum + k.adet * k.satis_fiyati, 0);
@@ -118,6 +119,9 @@
               <div class="cart-total"><span>Toplam</span><span id="sepet-toplam">0,00 TL</span></div>
               <label><input type="checkbox" id="pos-recete" style="width:auto" /> Reçeteli / SGK işlemi</label>
               <button id="pos-tamamla" style="width:100%;margin-top:14px;padding:12px">Satışı Tamamla</button>
+              <p style="color:var(--text-muted);font-size:11px;margin-top:8px">
+                Kısayollar: <b>F2</b> aramaya odaklan · arama kutusunda <b>Enter</b> ilk sonucu sepete ekler · <b>Ctrl+Enter</b> satışı tamamlar
+              </p>
             </div>
           </div>
         </div>
@@ -127,9 +131,16 @@
       aramaSonuclariniCiz('');
 
       let aramaTimer;
-      document.getElementById('pos-arama').addEventListener('input', (e) => {
+      const aramaInput = document.getElementById('pos-arama');
+      aramaInput.addEventListener('input', (e) => {
         clearTimeout(aramaTimer);
         aramaTimer = setTimeout(() => aramaSonuclariniCiz(e.target.value.trim()), 200);
+      });
+      aramaInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && sonAramaSonuclari.length > 0) {
+          e.preventDefault();
+          sepeteEkle(sonAramaSonuclari[0], container);
+        }
       });
 
       document.getElementById('arama-tbody').addEventListener('click', (e) => {
@@ -216,6 +227,19 @@
           UI.toast(err.message, 'error');
         }
       });
+
+      if (genelKisayolDinleyici) document.removeEventListener('keydown', genelKisayolDinleyici);
+      genelKisayolDinleyici = (e) => {
+        if (location.hash !== '#satis') return;
+        if (e.key === 'F2') {
+          e.preventDefault();
+          document.getElementById('pos-arama')?.focus();
+        } else if (e.key === 'Enter' && e.ctrlKey) {
+          e.preventDefault();
+          document.getElementById('pos-tamamla')?.click();
+        }
+      };
+      document.addEventListener('keydown', genelKisayolDinleyici);
     }
   };
 
