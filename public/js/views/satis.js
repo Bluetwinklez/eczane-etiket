@@ -3,6 +3,8 @@
   let musteriler = [];
   let sonAramaSonuclari = [];
   let genelKisayolDinleyici = null;
+  let onizlemeSayaci = 0;
+  let aktifKampanyalar = [];
 
   function sepetAraToplam() {
     return sepet.reduce((sum, k) => sum + k.adet * k.satis_fiyati, 0);
@@ -21,7 +23,7 @@
           .map(
             (k, idx) => `
         <div class="cart-item">
-          <div class="name">${UI.esc(k.ad)}<br /><small>${UI.tl(k.satis_fiyati)} / adet</small></div>
+          <div class="name">${UI.esc(k.ad)}<br /><small>${UI.tl(k.satis_fiyati)} / adet</small><div class="kampanya-etiketi" data-ilac="${k.ilac_id}"></div></div>
           <input type="number" min="1" max="${k.mevcutStok}" value="${k.adet}" data-idx="${idx}" class="sepet-adet" />
           <button class="secondary" data-action="cikar" data-idx="${idx}">Sil</button>
         </div>`
@@ -32,9 +34,41 @@
     const araToplam = sepetAraToplam();
     const yuzde = indirimYuzdesiOku();
     const indirimTutari = Math.round(araToplam * (yuzde / 100) * 100) / 100;
-    document.getElementById('pos-ara-toplam').textContent = UI.tl(araToplam);
-    document.getElementById('pos-indirim-tutari').textContent = '-' + UI.tl(indirimTutari);
-    document.getElementById('sepet-toplam').textContent = UI.tl(araToplam - indirimTutari);
+    toplamlariYaz({ ara_toplam: araToplam, kampanya_indirimi: 0, indirim_tutari: indirimTutari, toplam_tutar: araToplam - indirimTutari });
+    onizlemeGuncelle();
+  }
+
+  function toplamlariYaz(h) {
+    document.getElementById('pos-ara-toplam').textContent = UI.tl(h.ara_toplam);
+    const kampanyaSatiri = document.getElementById('pos-kampanya-satiri');
+    kampanyaSatiri.hidden = !(h.kampanya_indirimi > 0);
+    document.getElementById('pos-kampanya-tutari').textContent = '-' + UI.tl(h.kampanya_indirimi);
+    document.getElementById('pos-indirim-tutari').textContent = '-' + UI.tl(h.indirim_tutari);
+    document.getElementById('sepet-toplam').textContent = UI.tl(h.toplam_tutar);
+  }
+
+  // Kampanya indirimlerini sunucudaki ayni hesapla gosterir; eski yanitlar yok sayilir
+  async function onizlemeGuncelle() {
+    if (sepet.length === 0) return;
+    const sayac = ++onizlemeSayaci;
+    try {
+      const h = await Api.post('/api/satislar/onizleme', {
+        kalemler: sepet.map((k) => ({ ilac_id: k.ilac_id, adet: k.adet })),
+        indirim_yuzdesi: indirimYuzdesiOku()
+      });
+      if (sayac !== onizlemeSayaci || !document.getElementById('sepet-toplam')) return;
+      h.kalemler.forEach((k) => {
+        const el = document.querySelector(`.kampanya-etiketi[data-ilac="${k.ilac_id}"]`);
+        if (el) {
+          el.innerHTML = k.kampanya_adi
+            ? `<span class="badge ok">🏷️ ${UI.esc(k.kampanya_adi)}: -${UI.tl(k.kalem_indirimi)}</span>`
+            : '';
+        }
+      });
+      toplamlariYaz(h);
+    } catch (err) {
+      // Onizleme hatasi satisi engellemez; satis sirasinda sunucu yine dogrular
+    }
   }
 
   function sepeteEkle(ilac, container) {
@@ -71,7 +105,10 @@
 
   const view = {
     async render(container) {
-      musteriler = await Api.get('/api/musteriler');
+      [musteriler, aktifKampanyalar] = await Promise.all([
+        Api.get('/api/musteriler'),
+        Api.get('/api/kampanyalar/aktif').catch(() => [])
+      ]);
       sepet = [];
 
       container.innerHTML = `
@@ -88,6 +125,11 @@
           <div>
             <div class="card">
               <h3>Sepet</h3>
+              ${
+                aktifKampanyalar.length
+                  ? `<div class="pos-kampanyalar">🏷️ Aktif kampanyalar: ${aktifKampanyalar.map((k) => UI.esc(k.ad)).join(' · ')}</div>`
+                  : ''
+              }
               <div id="sepet-liste"></div>
               <div class="form-grid" style="margin-top:10px">
                 <div>
@@ -113,6 +155,9 @@
               </div>
               <div class="cart-total" style="font-size:14px;font-weight:400;padding:6px 0;border-top:none">
                 <span>Ara Toplam</span><span id="pos-ara-toplam">0,00 TL</span>
+              </div>
+              <div class="cart-total" id="pos-kampanya-satiri" hidden style="font-size:14px;font-weight:400;padding:0 0 6px;border-top:none;color:var(--success)">
+                <span>Kampanya İndirimi</span><span id="pos-kampanya-tutari">-0,00 TL</span>
               </div>
               <div class="cart-total" style="font-size:14px;font-weight:400;padding:0 0 6px;border-top:none;color:var(--danger)">
                 <span>İndirim</span><span id="pos-indirim-tutari">-0,00 TL</span>
@@ -203,13 +248,24 @@
             : '';
 
           const indirimSatiri =
-            satis.indirim_tutari > 0
+            satis.indirim_tutari > 0 || satis.kampanya_indirimi > 0
               ? `<div class="cart-total" style="font-size:13px;font-weight:400;padding:4px 0;border-top:none">
                    <span>Ara Toplam</span><span>${UI.tl(satis.ara_toplam)}</span>
                  </div>
-                 <div class="cart-total" style="font-size:13px;font-weight:400;padding:0 0 4px;border-top:none;color:var(--danger)">
-                   <span>İndirim</span><span>-${UI.tl(satis.indirim_tutari)}</span>
-                 </div>`
+                 ${
+                   satis.kampanya_indirimi > 0
+                     ? `<div class="cart-total" style="font-size:13px;font-weight:400;padding:0 0 4px;border-top:none;color:var(--success)">
+                          <span>Kampanya İndirimi</span><span>-${UI.tl(satis.kampanya_indirimi)}</span>
+                        </div>`
+                     : ''
+                 }
+                 ${
+                   satis.indirim_tutari > 0
+                     ? `<div class="cart-total" style="font-size:13px;font-weight:400;padding:0 0 4px;border-top:none;color:var(--danger)">
+                          <span>İndirim</span><span>-${UI.tl(satis.indirim_tutari)}</span>
+                        </div>`
+                     : ''
+                 }`
               : '';
 
           const modal = UI.openModal(`
@@ -219,7 +275,13 @@
               <table>
                 <thead><tr><th>Ürün</th><th class="num">Adet</th><th class="num">Tutar</th></tr></thead>
                 <tbody>
-                  ${satis.kalemler.map((k) => `<tr><td>${UI.esc(k.ilac_adi)}</td><td class="num">${k.adet}</td><td class="num">${UI.tl(k.ara_toplam)}</td></tr>`).join('')}
+                  ${satis.kalemler
+                    .map(
+                      (k) => `<tr><td>${UI.esc(k.ilac_adi)}${
+                        k.kampanya_adi ? `<br /><small style="color:var(--success)">${UI.esc(k.kampanya_adi)} (-${UI.tl(k.kalem_indirimi)})</small>` : ''
+                      }</td><td class="num">${k.adet}</td><td class="num">${UI.tl(k.birim_fiyat * k.adet)}</td></tr>`
+                    )
+                    .join('')}
                 </tbody>
               </table>
               ${indirimSatiri}

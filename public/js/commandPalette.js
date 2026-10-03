@@ -10,6 +10,7 @@
     { key: 'raporlar', etiket: 'Raporlar', ikon: '📊', roller: ['admin', 'eczaci'] },
     { key: 'kasa-kapanisi', etiket: 'Kasa Kapanışı', ikon: '💰' },
     { key: 'giderler', etiket: 'Giderler', ikon: '💸', roller: ['admin', 'eczaci'] },
+    { key: 'kampanyalar', etiket: 'Kampanyalar', ikon: '🏷️' },
     { key: 'gorevler', etiket: 'Görevler', ikon: '✅' },
     { key: 'nobetler', etiket: 'Nöbetçi Takvimi', ikon: '⚕' },
     { key: 'bildirimler', etiket: 'Bildirimler', ikon: '🔔' },
