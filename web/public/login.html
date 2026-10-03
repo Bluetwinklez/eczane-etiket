@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Eczanem Programı - Giriş</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script>
+    (function () {
+      try {
+        if (localStorage.getItem('eczanem-tema') === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="login-card">
+      <h1>Eczanem Programı</h1>
+      <p class="sub" id="alt-baslik">Eczane yönetim sistemine giriş yapın</p>
+      <div id="error" class="login-error" hidden></div>
+      <form id="login-form">
+        <div class="field">
+          <label for="kullanici_adi">Kullanıcı adı</label>
+          <input id="kullanici_adi" name="kullanici_adi" autocomplete="username" required />
+        </div>
+        <div class="field">
+          <label for="sifre">Şifre</label>
+          <input id="sifre" name="sifre" type="password" autocomplete="current-password" required />
+        </div>
+        <button type="submit">Giriş Yap</button>
+      </form>
+      <form id="sifre-form" hidden>
+        <div class="field">
+          <label for="mevcut_sifre">Mevcut şifre</label>
+          <input id="mevcut_sifre" type="password" autocomplete="current-password" required />
+        </div>
+        <div class="field">
+          <label for="yeni_sifre">Yeni şifre</label>
+          <input id="yeni_sifre" type="password" autocomplete="new-password" minlength="8" required />
+        </div>
+        <div class="field">
+          <label for="yeni_sifre2">Yeni şifre (tekrar)</label>
+          <input id="yeni_sifre2" type="password" autocomplete="new-password" minlength="8" required />
+        </div>
+        <p class="sifre-kural">En az 8 karakter, en az bir harf ve bir rakam.</p>
+        <button type="submit">Şifreyi Değiştir ve Devam Et</button>
+        <button type="button" id="vazgec-btn" class="secondary" style="margin-top:8px">Çıkış Yap</button>
+      </form>
+      <div class="demo-hints" id="demo-hints">
+        Demo hesaplar (ilk girişte şifre değiştirmeniz istenir):<br />
+        admin / admin123 (yönetici)<br />
+        eczaci / eczaci123 (eczacı)<br />
+        kasiyer / kasiyer123 (kasiyer)
+      </div>
+    </div>
+  </div>
+  <script src="js/api.js"></script>
+  <script>
+    const loginForm = document.getElementById('login-form');
+    const sifreForm = document.getElementById('sifre-form');
+    const errorBox = document.getElementById('error');
+
+    function hataGoster(mesaj) {
+      errorBox.textContent = mesaj;
+      errorBox.hidden = false;
+    }
+
+    function sifreDegisimiGoster(mevcutSifre) {
+      loginForm.hidden = true;
+      sifreForm.hidden = false;
+      document.getElementById('demo-hints').hidden = true;
+      document.getElementById('alt-baslik').textContent =
+        'Güvenliğiniz için devam etmeden önce şifrenizi değiştirmeniz gerekiyor.';
+      if (mevcutSifre) document.getElementById('mevcut_sifre').value = mevcutSifre;
+      document.getElementById(mevcutSifre ? 'yeni_sifre' : 'mevcut_sifre').focus();
+    }
+
+    (async function init() {
+      try {
+        const { user } = await Api.get('/api/auth/me');
+        if (user.sifre_degistirilmeli) sifreDegisimiGoster();
+        else window.location.href = 'index.html';
+      } catch (e) {
+        // Oturum yok, giriş formunda kal.
+      }
+    })();
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorBox.hidden = true;
+      const kullanici_adi = document.getElementById('kullanici_adi').value.trim();
+      const sifre = document.getElementById('sifre').value;
+      try {
+        const { user } = await Api.post('/api/auth/login', { kullanici_adi, sifre });
+        if (user.sifre_degistirilmeli) sifreDegisimiGoster(sifre);
+        else window.location.href = 'index.html';
+      } catch (err) {
+        hataGoster(err.message || 'Giriş başarısız');
+      }
+    });
+
+    sifreForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorBox.hidden = true;
+      const mevcut_sifre = document.getElementById('mevcut_sifre').value;
+      const yeni_sifre = document.getElementById('yeni_sifre').value;
+      if (yeni_sifre !== document.getElementById('yeni_sifre2').value) {
+        hataGoster('Yeni şifreler eşleşmiyor');
+        return;
+      }
+      try {
+        await Api.post('/api/auth/sifre-degistir', { mevcut_sifre, yeni_sifre });
+        window.location.href = 'index.html';
+      } catch (err) {
+        hataGoster(err.message || 'Şifre değiştirilemedi');
+      }
+    });
+
+    document.getElementById('vazgec-btn').addEventListener('click', async () => {
+      await Api.post('/api/auth/logout');
+      window.location.reload();
+    });
+  </script>
+</body>
+</html>
