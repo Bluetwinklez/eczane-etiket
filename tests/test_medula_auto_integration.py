@@ -6,10 +6,10 @@ from eczane_etiket import medula_watcher
 
 
 @pytest.fixture
-def app():
+def app(app_olusturucu):
     # Tkinter root başlat
     try:
-        root = App()
+        root = app_olusturucu(App)
     except tk.TclError:
         pytest.skip("Tkinter display not available")
     root.withdraw()

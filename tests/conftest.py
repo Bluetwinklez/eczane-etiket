@@ -1,5 +1,8 @@
 import os
 import sys
+import time
+
+import pytest
 
 def _configure_tcl_tk():
     """Ensure TCL_LIBRARY and TK_LIBRARY are robustly configured across local and CI environments."""
@@ -37,3 +40,36 @@ def _configure_tcl_tk():
                 return
 
 _configure_tcl_tk()
+
+
+# Windows CI runner'larında aynı süreçte Tk ikinci kez oluşturulurken Tcl, var olan
+# init.tcl dosyasını ara sıra okuyamıyor ("couldn't read file ...: No error").
+# Hata geçici: hemen ardından yapılan deneme başarılı oluyor. Bu yüzden yalnızca
+# bu hata için kısa beklemeyle yeniden denenir; diğer TclError'lar aynen yükselir.
+TK_DENEME_SAYISI = 5
+TK_BEKLEME_SN = 0.5
+
+
+def tk_gecici_hata_mi(exc):
+    return "init.tcl" in str(exc)
+
+
+def app_olustur(app_sinifi=None, deneme=TK_DENEME_SAYISI, bekleme=TK_BEKLEME_SN):
+    import tkinter as tk
+
+    if app_sinifi is None:
+        from eczane_etiket.main import App as app_sinifi
+
+    for i in range(deneme):
+        try:
+            return app_sinifi()
+        except tk.TclError as exc:
+            if not tk_gecici_hata_mi(exc) or i == deneme - 1:
+                raise
+            time.sleep(bekleme)
+
+
+@pytest.fixture(scope="session")
+def app_olusturucu():
+    """Testlerin App örneğini geçici Tcl hatalarına karşı dayanıklı oluşturması için."""
+    return app_olustur
