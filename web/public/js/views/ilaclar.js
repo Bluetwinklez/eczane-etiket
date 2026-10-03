@@ -194,6 +194,68 @@
     });
   }
 
+  const ISLEM_ROZETI = {
+    yeni: '<span class="badge ok">Yeni</span>',
+    guncelle: '<span class="badge warn">Güncellenecek</span>',
+    ayni: '<span class="badge muted">Değişiklik yok</span>',
+    hata: '<span class="badge danger">Hata</span>'
+  };
+
+  function iceAktarModali(onUygulandi) {
+    let csv = '';
+    const modal = UI.openModal(`
+      <h3 class="modal-genis">CSV ile Ürün İçe Aktar</h3>
+      <p class="form-ipucu">Excel'de listeyi "CSV (noktalı virgülle ayrılmış)" olarak kaydedip seçin. Barkodu kayıtlı ürünler güncellenir (boş hücreler mevcut değeri silmez), diğerleri yeni ürün olarak eklenir. Stok miktarı içe aktarılmaz; stok girişi Mal Kabul ile yapılır.
+        <a href="/api/ilaclar/ice-aktar/sablon" download>Örnek şablonu indir</a></p>
+      <input type="file" id="ia-dosya" accept=".csv,text/csv,.txt" />
+      <div id="ia-sonuc" style="margin-top:10px"></div>
+      <div class="modal-actions">
+        <button class="secondary" data-action="kapat">Vazgeç</button>
+        <button data-action="uygula" disabled>İçe Aktar</button>
+      </div>
+    `);
+    const uygulaBtn = modal.querySelector('[data-action="uygula"]');
+    modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));
+    modal.querySelector('#ia-dosya').addEventListener('change', async (e) => {
+      const dosya = e.target.files[0];
+      if (!dosya) return;
+      // Excel bazen Windows-1254 kaydeder; UTF-8 bozuksa Turkce kodlamayla tekrar oku
+      const tampon = await dosya.arrayBuffer();
+      csv = new TextDecoder('utf-8').decode(tampon);
+      if (csv.includes('�')) csv = new TextDecoder('windows-1254').decode(tampon);
+      try {
+        const r = await Api.post('/api/ilaclar/ice-aktar', { csv, onizleme: true });
+        const o = r.ozet;
+        modal.querySelector('#ia-sonuc').innerHTML = `
+          <p><b>${o.yeni}</b> yeni · <b>${o.guncelle}</b> güncellenecek · ${o.ayni} değişiklik yok · <b style="color:var(--danger)">${o.hata}</b> hatalı satır</p>
+          <p class="form-ipucu">Tanınan sütunlar: ${r.taninan_sutunlar.join(', ')}</p>
+          <div class="tablo-kaydir" style="max-height:320px;overflow-y:auto">
+            <table><thead><tr><th>Satır</th><th>İşlem</th><th>Ürün</th><th>Barkod</th><th>Ayrıntı</th></tr></thead>
+            <tbody>${r.satirlar
+              .map(
+                (s) => `<tr><td>${s.satir}</td><td>${ISLEM_ROZETI[s.islem]}</td><td>${UI.esc(s.ad)}</td><td>${UI.esc(s.barkod || '-')}</td>
+                  <td>${s.hatalar.length ? `<span style="color:var(--danger)">${UI.esc(s.hatalar.join('; '))}</span>` : UI.esc(s.degisen.join(', '))}</td></tr>`
+              )
+              .join('')}</tbody></table>
+          </div>`;
+        uygulaBtn.disabled = o.hata > 0 || o.yeni + o.guncelle === 0;
+        if (o.hata) UI.toast('Hatalı satırları düzeltip dosyayı tekrar seçin', 'error');
+      } catch (err) {
+        UI.toast(err.message, 'error');
+      }
+    });
+    uygulaBtn.addEventListener('click', async () => {
+      try {
+        const r = await Api.post('/api/ilaclar/ice-aktar', { csv });
+        UI.toast(`${r.ozet.yeni} ürün eklendi, ${r.ozet.guncelle} ürün güncellendi`, 'success');
+        UI.closeModal(modal);
+        onUygulandi();
+      } catch (err) {
+        UI.toast(err.message, 'error');
+      }
+    });
+  }
+
   function topluFiyatModali(onUygulandi) {
     const kategoriler = [...new Set(mevcutListe.map((i) => i.kategori).filter(Boolean))].sort();
     const modal = UI.openModal(`
@@ -303,7 +365,7 @@
             ${Object.entries(UI.URUN_TIPLERI).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}
           </select>
           <div class="spacer"></div>
-          ${yazmaYetkisiVar(ctx) ? '<button class="secondary" id="toplu-fiyat-btn">Toplu Fiyat</button><button id="yeni-ilac-btn">+ Yeni İlaç</button>' : ''}
+          ${yazmaYetkisiVar(ctx) ? '<button class="secondary" id="ice-aktar-btn">CSV İçe Aktar</button><button class="secondary" id="toplu-fiyat-btn">Toplu Fiyat</button><button id="yeni-ilac-btn">+ Yeni İlaç</button>' : ''}
         </div>
         <div class="card">
           <table>
@@ -341,6 +403,9 @@
       });
 
       if (yazmaYetkisiVar(ctx)) {
+        document.getElementById('ice-aktar-btn').addEventListener('click', () =>
+          iceAktarModali(() => yenile(document.getElementById('ilac-ara').value))
+        );
         document.getElementById('toplu-fiyat-btn').addEventListener('click', () =>
           topluFiyatModali(() => yenile(document.getElementById('ilac-ara').value))
         );
