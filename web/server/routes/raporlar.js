@@ -2,6 +2,7 @@ const express = require('express');
 const { db } = require('../db');
 const { sendCsv, sendPdf } = require('../export');
 const { URUN_TIPLERI, RECETE_TURLERI, KONTROLLU_TURLER } = require('../sabitler');
+const { sqlSaatFarki } = require('../zaman');
 
 const router = express.Router();
 
@@ -563,6 +564,34 @@ router.get('/tedarikci-fiyat', (req, res) => {
     { alan: 'alim_sayisi', baslik: 'Alim Sayisi' },
     { alan: 'son_alim', baslik: 'Son Alim' }
   ]);
+});
+
+// Saatlik yogunluk: haftanin gunu x saat (yerel saat) satis adedi ve cirosu
+router.get('/yogunluk', (req, res) => {
+  const subeId = resolveSubeId(req, req.query.sube_id);
+  const gun = Math.min(365, Math.max(7, Number(req.query.gun) || 30));
+  const fark = sqlSaatFarki();
+  let sql = `
+    SELECT CAST(strftime('%w', sa.tarih, ?) AS INTEGER) AS haftagunu,
+           CAST(strftime('%H', sa.tarih, ?) AS INTEGER) AS saat,
+           COUNT(*) AS adet, SUM(sa.toplam_tutar) AS ciro
+    FROM satislar sa
+    WHERE sa.tarih >= datetime('now', ?)`;
+  const params = [fark, fark, `-${gun} days`];
+  if (subeId) {
+    sql += ' AND sa.sube_id = ?';
+    params.push(subeId);
+  }
+  sql += ' GROUP BY haftagunu, saat';
+  // Pazartesi ilk satir: SQLite %w pazar=0 verir
+  const matris = Array.from({ length: 7 }, () => Array.from({ length: 24 }, () => ({ adet: 0, ciro: 0 })));
+  let enYogun = null;
+  for (const r of db.prepare(sql).all(...params)) {
+    const satir = (r.haftagunu + 6) % 7;
+    matris[satir][r.saat] = { adet: r.adet, ciro: Math.round(r.ciro * 100) / 100 };
+    if (!enYogun || r.adet > enYogun.adet) enYogun = { gun: satir, saat: r.saat, adet: r.adet };
+  }
+  res.json({ gun, saat_farki: fark, matris, en_yogun: enYogun });
 });
 
 // Iade raporu

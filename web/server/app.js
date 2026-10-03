@@ -34,6 +34,7 @@ const transferlerRoutes = require('./routes/transferler');
 const malKabulRoutes = require('./routes/malKabul');
 const isteklerRoutes = require('./routes/istekler');
 const emanetlerRoutes = require('./routes/emanetler');
+const hedeflerRoutes = require('./routes/hedefler');
 
 // Parti kayitlari ile toplam stoklari baslangicta esitle (eski veritabanlari icin)
 partileriEsitle();
@@ -93,6 +94,7 @@ app.use('/api/transferler', requireLogin, requireRole('admin', 'eczaci'), transf
 app.use('/api/mal-kabul', requireLogin, requireRole('admin', 'eczaci'), malKabulRoutes);
 app.use('/api/istekler', requireLogin, isteklerRoutes);
 app.use('/api/emanetler', requireLogin, requireRole('admin', 'eczaci'), emanetlerRoutes);
+app.use('/api/hedefler', requireLogin, hedeflerRoutes);
 app.use('/api/siparisler', requireLogin, requireRole('admin', 'eczaci'), siparislerRoutes);
 app.use('/api/gorevler', requireLogin, gorevlerRoutes);
 app.use('/api/nobetler', requireLogin, nobetlerRoutes);

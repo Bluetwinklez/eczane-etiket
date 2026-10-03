@@ -487,6 +487,14 @@ db.exec(`
     kapanis_tarihi TEXT
   );
 
+  -- Aylik satis hedefleri (sube bazinda)
+  CREATE TABLE IF NOT EXISTS satis_hedefleri (
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    ay TEXT NOT NULL,
+    hedef_tutar REAL NOT NULL CHECK (hedef_tutar > 0),
+    PRIMARY KEY (sube_id, ay)
+  );
+
   -- POS'ta bekletilen (park edilen) sepetler
   CREATE TABLE IF NOT EXISTS bekleyen_sepetler (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
