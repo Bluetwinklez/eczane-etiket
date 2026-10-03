@@ -342,6 +342,10 @@ sutunEkleGerekirse('satislar', 'doktor_adi', 'TEXT');
 sutunEkleGerekirse('satislar', 'hasta_tc', 'TEXT');
 // null: normal; 'kirmizi' / 'yesil': kontrollu (defter tutulur); 'mor' / 'turuncu': ozel receteli
 sutunEkleGerekirse('ilaclar', 'recete_turu', 'TEXT');
+// Satista girilen kullanim talimati (orn. 'Gunde 2x1 tok') - hasta kullanim karti icin
+sutunEkleGerekirse('satis_kalemleri', 'kullanim', 'TEXT');
+// Ticari elektronik ileti onayi (IYS): toplu kampanya mesajlari yalnizca onayli musterilere
+sutunEkleGerekirse('musteriler', 'ileti_izni', 'INTEGER NOT NULL DEFAULT 0');
 
 // Ayni ilac bitis donemi icin musteriye tekrar tekrar hatirlatma gitmesin
 db.exec(`
