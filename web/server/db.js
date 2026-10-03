@@ -389,6 +389,33 @@ db.exec(`
     parti_no TEXT,
     skt TEXT
   );
+
+  -- Mal kabul (irsaliye/fatura girisi). mf: mal fazlasi (bedelsiz gelen adet);
+  -- gercek birim maliyet = alis_fiyati * adet / (adet + mf)
+  CREATE TABLE IF NOT EXISTS mal_kabulleri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    tedarikci_id INTEGER REFERENCES tedarikciler(id) ON DELETE SET NULL,
+    siparis_id INTEGER REFERENCES siparisler(id) ON DELETE SET NULL,
+    fatura_no TEXT,
+    fatura_tarihi TEXT,
+    toplam_tutar REAL NOT NULL DEFAULT 0,
+    kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    tarih TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS mal_kabul_kalemleri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    mal_kabul_id INTEGER NOT NULL REFERENCES mal_kabulleri(id) ON DELETE CASCADE,
+    ilac_id INTEGER NOT NULL REFERENCES ilaclar(id),
+    adet INTEGER NOT NULL,
+    mf INTEGER NOT NULL DEFAULT 0,
+    alis_fiyati REAL NOT NULL,
+    birim_maliyet REAL NOT NULL,
+    parti_no TEXT,
+    skt TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_mal_kabul_kalemleri_ilac ON mal_kabul_kalemleri (ilac_id);
 `);
 
 // Etken madde ciftleri arasindaki bilinen etkilesimler (madde_a < madde_b sirali saklanir)
