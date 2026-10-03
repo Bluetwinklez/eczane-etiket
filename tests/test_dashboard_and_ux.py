@@ -1,3 +1,4 @@
+import datetime as _dt
 import os
 import tempfile
 import tkinter as tk
@@ -19,23 +20,27 @@ def app():
 
 
 def test_stats_turnover_and_recent_transactions(tmp_path, monkeypatch):
+    # turnover_by_day bugünden geriye son N günü kapsar; sabit tarih kullanılırsa
+    # test birkaç gün sonra kendiliğinden kırılır. Bu yüzden tarihler bugüne göre.
+    bugun = _dt.date.today()
+    dun = bugun - _dt.timedelta(days=1)
     test_records = [
-        {"timestamp": "2026-09-18T10:00:00", "drug_name": "PAROL", "patient_name": "Ahmet Kaya", "staff_name": "Ecz. Ali", "price": 120.0},
-        {"timestamp": "2026-09-18T11:30:00", "drug_name": "AUGMENTIN", "patient_name": "Fatma Yılmaz", "staff_name": "Ecz. Ayşe", "price": 180.50},
-        {"timestamp": "2026-09-17T15:00:00", "drug_name": "APRANAX", "patient_name": "Mehmet Demir", "staff_name": "Ecz. Ali", "price": 95.0},
+        {"timestamp": f"{bugun.isoformat()}T10:00:00", "drug_name": "PAROL", "patient_name": "Ahmet Kaya", "staff_name": "Ecz. Ali", "price": 120.0},
+        {"timestamp": f"{bugun.isoformat()}T11:30:00", "drug_name": "AUGMENTIN", "patient_name": "Fatma Yılmaz", "staff_name": "Ecz. Ayşe", "price": 180.50},
+        {"timestamp": f"{dun.isoformat()}T15:00:00", "drug_name": "APRANAX", "patient_name": "Mehmet Demir", "staff_name": "Ecz. Ali", "price": 95.0},
     ]
     monkeypatch.setattr(stats, "load_history", lambda: test_records)
 
     # Günlük ciro testi
-    ciro = stats.daily_turnover(day="2026-09-18", records=test_records)
+    ciro = stats.daily_turnover(day=bugun.isoformat(), records=test_records)
     assert ciro == 300.50
 
     # Haftalık ciro trendi
     trends = stats.turnover_by_day(days=7, records=test_records)
     assert len(trends) == 7
     day_map = dict(trends)
-    assert day_map.get("2026-09-18") == 300.50
-    assert day_map.get("2026-09-17") == 95.0
+    assert day_map.get(bugun.isoformat()) == 300.50
+    assert day_map.get(dun.isoformat()) == 95.0
 
     # Son işlemler listesi
     recents = stats.recent_transactions(limit=5, records=test_records)
