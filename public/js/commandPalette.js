@@ -15,7 +15,8 @@
     { key: 'bildirimler', etiket: 'Bildirimler', ikon: '🔔' },
     { key: 'kullanicilar', etiket: 'Kullanıcılar', ikon: '🧑‍💼', roller: ['admin'] },
     { key: 'subeler', etiket: 'Şubeler', ikon: '🏢', roller: ['admin'] },
-    { key: 'yedekleme', etiket: 'Yedekleme', ikon: '💾', roller: ['admin'] }
+    { key: 'yedekleme', etiket: 'Yedekleme', ikon: '💾', roller: ['admin'] },
+    { key: 'islem-kaydi', etiket: 'İşlem Kaydı', ikon: '📜', roller: ['admin'] }
   ];
 
   let overlay = null;
