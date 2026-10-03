@@ -417,6 +417,15 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_mal_kabul_kalemleri_ilac ON mal_kabul_kalemleri (ilac_id);
 
+  -- Bolunmus (karma) odemeli satislarin odeme kirilimi
+  CREATE TABLE IF NOT EXISTS satis_odemeleri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    satis_id INTEGER NOT NULL REFERENCES satislar(id) ON DELETE CASCADE,
+    odeme_tipi TEXT NOT NULL CHECK (odeme_tipi IN ('nakit', 'kredi_karti')),
+    tutar REAL NOT NULL CHECK (tutar > 0)
+  );
+  CREATE INDEX IF NOT EXISTS idx_satis_odemeleri_satis ON satis_odemeleri (satis_id);
+
   -- POS'ta bekletilen (park edilen) sepetler
   CREATE TABLE IF NOT EXISTS bekleyen_sepetler (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

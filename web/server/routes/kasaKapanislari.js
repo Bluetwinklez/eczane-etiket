@@ -27,6 +27,18 @@ function gununOzeti(subeId, tarih) {
     else if (r.odeme_tipi === 'sgk') ozet.sgk = r.toplam;
     else if (r.odeme_tipi === 'veresiye') ozet.veresiye = r.toplam;
   }
+  // Bolunmus odemeler kirilimina gore nakit ve karta dagitilir
+  const karma = db
+    .prepare(
+      `SELECT so.odeme_tipi, SUM(so.tutar) AS toplam FROM satis_odemeleri so
+       JOIN satislar sa ON sa.id = so.satis_id
+       WHERE sa.sube_id = ? AND date(sa.tarih) = ? GROUP BY so.odeme_tipi`
+    )
+    .all(subeId, tarih);
+  for (const k of karma) {
+    if (k.odeme_tipi === 'nakit') ozet.nakit += k.toplam;
+    else ozet.kart += k.toplam;
+  }
   // toplam: gunun satis cirosu (veresiye dahil)
   ozet.toplam = ozet.nakit + ozet.kart + ozet.sgk + ozet.veresiye;
 
@@ -52,10 +64,25 @@ function gununOzeti(subeId, tarih) {
   const iadeler = db
     .prepare(
       `SELECT odeme_tipi, SUM(toplam_tutar) AS toplam FROM iadeler
-       WHERE sube_id = ? AND date(tarih) = ? GROUP BY odeme_tipi`
+       WHERE sube_id = ? AND date(tarih) = ? AND odeme_tipi != 'karma' GROUP BY odeme_tipi`
     )
     .all(subeId, tarih);
   ozet.iade = 0;
+  // Bolunmus odemeli satisin iadesi, satistaki nakit/kart oraniyla dagitilir
+  const karmaIadeler = db
+    .prepare(
+      `SELECT i.toplam_tutar,
+              (SELECT COALESCE(SUM(tutar), 0) FROM satis_odemeleri WHERE satis_id = i.satis_id AND odeme_tipi = 'nakit') AS nakit,
+              (SELECT COALESCE(SUM(tutar), 0) FROM satis_odemeleri WHERE satis_id = i.satis_id) AS toplam
+       FROM iadeler i WHERE i.sube_id = ? AND date(i.tarih) = ? AND i.odeme_tipi = 'karma'`
+    )
+    .all(subeId, tarih);
+  for (const k of karmaIadeler) {
+    const nakitPay = k.toplam ? Math.round(k.toplam_tutar * (k.nakit / k.toplam) * 100) / 100 : 0;
+    ozet.iade += k.toplam_tutar;
+    ozet.nakit -= nakitPay;
+    ozet.kart -= k.toplam_tutar - nakitPay;
+  }
   for (const i of iadeler) {
     ozet.iade += i.toplam;
     if (i.odeme_tipi === 'nakit') ozet.nakit -= i.toplam;
