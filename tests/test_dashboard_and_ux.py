@@ -9,8 +9,8 @@ from eczane_etiket.main import App
 
 
 @pytest.fixture(scope="module")
-def app():
-    instance = App()
+def app(app_olusturucu):
+    instance = app_olusturucu(App)
     instance.update()
     yield instance
     try:
