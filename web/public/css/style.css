@@ -386,3 +386,10 @@ td.num, th.num { text-align: right; }
 .kullanim-karti h2 { margin: 0 0 4px; font-size: 18px; }
 .kullanim-karti table td, .kullanim-karti table th { font-size: 13px; }
 .kullanim-karti .kart-uyari { border-left: 4px solid var(--danger); padding: 6px 10px; margin: 6px 0; background: var(--danger-soft); font-size: 13px; }
+.hedef-cubuk { height: 14px; background: var(--bg); border-radius: 999px; overflow: hidden; border: 1px solid var(--border-soft); }
+.hedef-cubuk > div { height: 100%; border-radius: 999px; transition: width .4s; }
+.isi-harita { display: grid; gap: 3px; overflow-x: auto; }
+.isi-baslik { font-size: 10px; color: var(--text-muted); text-align: center; }
+.isi-gun { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; }
+.isi-hucre { height: 30px; min-width: 18px; border-radius: 4px; font-size: 10px; display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--primary) calc(var(--oran) * 100%), var(--bg)); color: var(--text); border: 1px solid var(--border-soft); }
