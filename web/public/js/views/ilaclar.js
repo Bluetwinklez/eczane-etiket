@@ -55,6 +55,7 @@
             </select>
           </div>
           <div><label>Kategori</label><input name="kategori" value="${UI.esc(i.kategori || '')}" /></div>
+          <div><label>Bir Kutu Kaç Gün Yeter?</label><input name="kutu_gun" type="number" min="1" max="365" value="${i.kutu_gun ?? ''}" placeholder="Kronik ilaçlar için (boş = takip yok)" title="Bitiş hatırlatması için" /></div>
           <div><label>Etken Madde</label><input name="etken_madde" value="${UI.esc(i.etken_madde || '')}" placeholder="örn. amoksisilin, klavulanik asit" title="Etkileşim kontrolü için; birden fazlaysa virgülle ayırın" /></div>
           <div><label>Üretici</label><input name="uretici" value="${UI.esc(i.uretici || '')}" /></div>
           <div><label>Alış Fiyatı</label><input name="alis_fiyati" type="number" step="0.01" min="0" value="${i.alis_fiyati ?? ''}" /></div>
@@ -87,7 +88,8 @@
       parti_no: fd.has('parti_no') ? fd.get('parti_no') || null : undefined,
       receteli: form.querySelector('[name="receteli"]').checked,
       urun_tipi: fd.get('urun_tipi'),
-      etken_madde: fd.get('etken_madde') || null
+      etken_madde: fd.get('etken_madde') || null,
+      kutu_gun: fd.get('kutu_gun') === '' ? null : Number(fd.get('kutu_gun'))
     };
   }
 

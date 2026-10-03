@@ -6,6 +6,7 @@
     { key: 'satis', etiket: 'Satış (POS)', ikon: '🧾' },
     { key: 'iadeler', etiket: 'Satış İadeleri', ikon: '↩️', roller: ['admin', 'eczaci'] },
     { key: 'musteriler', etiket: 'Müşteriler', ikon: '👤' },
+    { key: 'hatirlatmalar', etiket: 'İlaç Hatırlatmaları', ikon: '⏰' },
     { key: 'tedarikciler', etiket: 'Tedarikçiler', ikon: '🚚' },
     { key: 'siparisler', etiket: 'Siparişler', ikon: '📋', roller: ['admin', 'eczaci'] },
     { key: 'raporlar', etiket: 'Raporlar', ikon: '📊', roller: ['admin', 'eczaci'] },
