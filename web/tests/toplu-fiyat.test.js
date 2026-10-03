@@ -49,3 +49,11 @@ test('dogrulama ve yetki', async () => {
   assert.equal((await admin.post('/api/ilaclar/toplu-fiyat', { hedef: { tip: 'uzay' }, yuzde: 5 })).status, 400);
   assert.equal((await kasiyer.post('/api/ilaclar/toplu-fiyat', { hedef: { tip: 'tumu' }, yuzde: 5 })).status, 403);
 });
+
+test('fiyat-degisenler son N gunde fiyati degisen urunleri doner', async () => {
+  const rows = (await admin.get('/api/ilaclar/fiyat-degisenler?gun=7')).data;
+  // Ilk testte dermokozmetik urunlerin fiyati degisti
+  const dermo = (await admin.get('/api/ilaclar?urun_tipi=dermokozmetik')).data.map((u) => u.id);
+  assert.ok(dermo.every((id) => rows.some((r) => r.ilac_id === id)));
+  assert.ok(!rows.some((r) => r.ilac_id === 1), 'Parol fiyati degismedi');
+});
