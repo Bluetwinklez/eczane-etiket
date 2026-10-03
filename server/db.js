@@ -119,6 +119,73 @@ db.exec(`
     hata_mesaji TEXT,
     tarih TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS kasa_kapanislari (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    tarih TEXT NOT NULL,
+    nakit_sistem REAL NOT NULL DEFAULT 0,
+    kart_sistem REAL NOT NULL DEFAULT 0,
+    sgk_sistem REAL NOT NULL DEFAULT 0,
+    toplam_sistem REAL NOT NULL DEFAULT 0,
+    nakit_sayilan REAL NOT NULL DEFAULT 0,
+    fark REAL NOT NULL DEFAULT 0,
+    not_metni TEXT,
+    olusturma_tarihi TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (sube_id, tarih)
+  );
+
+  CREATE TABLE IF NOT EXISTS giderler (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    kategori TEXT NOT NULL CHECK (kategori IN ('kira', 'fatura', 'maas', 'vergi', 'tedarik', 'diger')),
+    aciklama TEXT,
+    tutar REAL NOT NULL,
+    tarih TEXT NOT NULL DEFAULT (date('now')),
+    olusturma_tarihi TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS siparisler (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tedarikci_id INTEGER NOT NULL REFERENCES tedarikciler(id),
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    durum TEXT NOT NULL DEFAULT 'beklemede' CHECK (durum IN ('beklemede', 'gonderildi', 'teslim_alindi', 'iptal')),
+    notlar TEXT,
+    olusturma_tarihi TEXT NOT NULL DEFAULT (datetime('now')),
+    teslim_tarihi TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS siparis_kalemleri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    siparis_id INTEGER NOT NULL REFERENCES siparisler(id) ON DELETE CASCADE,
+    ilac_id INTEGER NOT NULL REFERENCES ilaclar(id),
+    ilac_adi TEXT NOT NULL,
+    istenen_adet INTEGER NOT NULL,
+    tahmini_birim_fiyat REAL NOT NULL DEFAULT 0
+  );
+
+  CREATE TABLE IF NOT EXISTS gorevler (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    baslik TEXT NOT NULL,
+    aciklama TEXT,
+    atanan_kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    olusturan_kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    oncelik TEXT NOT NULL DEFAULT 'orta' CHECK (oncelik IN ('dusuk', 'orta', 'yuksek')),
+    durum TEXT NOT NULL DEFAULT 'bekliyor' CHECK (durum IN ('bekliyor', 'tamamlandi')),
+    olusturma_tarihi TEXT NOT NULL DEFAULT (datetime('now')),
+    tamamlanma_tarihi TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS nobetler (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    tarih TEXT NOT NULL,
+    notlar TEXT,
+    UNIQUE (sube_id, tarih)
+  );
 `);
 
 function sutunEkleGerekirse(tablo, sutun, tanim) {
@@ -130,6 +197,7 @@ function sutunEkleGerekirse(tablo, sutun, tanim) {
 
 sutunEkleGerekirse('satislar', 'ara_toplam', 'REAL NOT NULL DEFAULT 0');
 sutunEkleGerekirse('satislar', 'indirim_tutari', 'REAL NOT NULL DEFAULT 0');
+sutunEkleGerekirse('musteriler', 'saglik_notu', 'TEXT');
 
 function hashPassword(plain, salt = crypto.randomBytes(16).toString('hex')) {
   const hash = crypto.scryptSync(plain, salt, 64).toString('hex');
