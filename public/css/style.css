@@ -343,3 +343,6 @@ td.num, th.num { text-align: right; }
 [hidden] { display: none !important; }
 .pos-kampanyalar { font-size: 12.5px; background: var(--accent-mint-bg); color: var(--accent-mint-fg); padding: 8px 10px; border-radius: var(--radius-sm); margin-bottom: 10px; }
 .kampanya-etiketi .badge { margin-top: 4px; }
+.pos-cari-bilgi { background: var(--accent-amber-bg); color: var(--accent-amber-fg); padding: 8px 10px; border-radius: var(--radius-sm); font-size: 12px; margin-top: 6px; }
+.tutar-borc { color: var(--danger); }
+.tutar-alacak { color: var(--success); }

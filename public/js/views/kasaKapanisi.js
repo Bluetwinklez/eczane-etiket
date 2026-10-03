@@ -35,8 +35,14 @@
             <div class="stat-tile c-mint"><div class="label">Nakit (Sistem)</div><div class="value">${UI.tl(ozet.nakit)}</div></div>
             <div class="stat-tile c-lilac"><div class="label">Kredi Kartı</div><div class="value">${UI.tl(ozet.kart)}</div></div>
             <div class="stat-tile c-amber"><div class="label">SGK</div><div class="value">${UI.tl(ozet.sgk)}</div></div>
-            <div class="stat-tile"><div class="label">Toplam (${ozet.satis_adedi} satış)</div><div class="value">${UI.tl(ozet.toplam)}</div></div>
+            <div class="stat-tile c-rose"><div class="label">Veresiye Satış</div><div class="value">${UI.tl(ozet.veresiye)}</div></div>
+            <div class="stat-tile"><div class="label">Toplam Ciro (${ozet.satis_adedi} satış)</div><div class="value">${UI.tl(ozet.toplam)}</div></div>
           </div>
+          ${
+            ozet.tahsilat > 0
+              ? `<p class="form-ipucu">Nakit ve kart tutarlarına veresiye tahsilatları dahildir (nakit ${UI.tl(ozet.tahsilat_nakit)}, kart ${UI.tl(ozet.tahsilat_kart)}).</p>`
+              : ''
+          }
           <form id="zr-form">
             <div class="form-grid">
               <div><label>Sayılan Nakit Tutarı (TL)</label><input name="nakit_sayilan" type="number" step="0.01" min="0" required /></div>

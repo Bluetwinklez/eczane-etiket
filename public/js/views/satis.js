@@ -146,6 +146,7 @@
                     <option value="nakit">Nakit</option>
                     <option value="kredi_karti">Kredi Kartı</option>
                     <option value="sgk">SGK</option>
+                    <option value="veresiye">Veresiye (Cari Hesap)</option>
                   </select>
                 </div>
                 <div>
@@ -214,13 +215,25 @@
 
       document.getElementById('pos-indirim').addEventListener('input', () => sepetiCiz(container));
 
-      document.getElementById('pos-musteri').addEventListener('change', (e) => {
+      document.getElementById('pos-musteri').addEventListener('change', async (e) => {
         const uyariDiv = document.getElementById('pos-saglik-uyarisi');
         const musteri = musteriler.find((m) => String(m.id) === e.target.value);
         uyariDiv.innerHTML =
           musteri && musteri.saglik_notu
             ? `<p style="background:var(--danger-soft);color:var(--danger);padding:8px 10px;border-radius:var(--radius-sm);font-size:12px;margin-top:6px">⚕ ${UI.esc(musteri.saglik_notu)}</p>`
             : '';
+        if (musteri) {
+          // Veresiye bakiyesini ve limitini goster
+          const detay = await Api.get(`/api/musteriler/${musteri.id}`).catch(() => null);
+          if (detay && document.getElementById('pos-musteri').value === String(musteri.id) && (detay.veresiye_bakiyesi > 0 || detay.veresiye_limiti != null)) {
+            uyariDiv.insertAdjacentHTML(
+              'beforeend',
+              `<p class="pos-cari-bilgi">Veresiye borcu: <b>${UI.tl(detay.veresiye_bakiyesi)}</b>${
+                detay.veresiye_limiti != null ? ` · Limit: ${UI.tl(detay.veresiye_limiti)}` : ''
+              }</p>`
+            );
+          }
+        }
       });
 
       document.getElementById('pos-tamamla').addEventListener('click', async () => {
@@ -230,6 +243,11 @@
         }
         const musteriId = document.getElementById('pos-musteri').value;
         const odemeTipi = document.getElementById('pos-odeme').value;
+        if (odemeTipi === 'veresiye' && !musteriId) {
+          UI.toast('Veresiye satış için müşteri seçin', 'error');
+          document.getElementById('pos-musteri').focus();
+          return;
+        }
         const sgkRecete = document.getElementById('pos-recete').checked;
 
         try {

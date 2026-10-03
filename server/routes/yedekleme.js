@@ -23,7 +23,9 @@ const TABLO_SIRASI = [
   'gorevler',
   'nobetler',
   'ilac_partileri',
-  'satis_kalemi_partileri'
+  'satis_kalemi_partileri',
+  'kampanyalar',
+  'cari_hareketler'
 ];
 
 router.get('/export', (req, res) => {

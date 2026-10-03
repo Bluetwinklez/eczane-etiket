@@ -11,6 +11,7 @@
     { key: 'kasa-kapanisi', etiket: 'Kasa Kapanışı', ikon: '💰' },
     { key: 'giderler', etiket: 'Giderler', ikon: '💸', roller: ['admin', 'eczaci'] },
     { key: 'kampanyalar', etiket: 'Kampanyalar', ikon: '🏷️' },
+    { key: 'veresiye', etiket: 'Veresiye Defteri', ikon: '📒' },
     { key: 'gorevler', etiket: 'Görevler', ikon: '✅' },
     { key: 'nobetler', etiket: 'Nöbetçi Takvimi', ikon: '⚕' },
     { key: 'bildirimler', etiket: 'Bildirimler', ikon: '🔔' },

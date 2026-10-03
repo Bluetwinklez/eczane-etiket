@@ -20,13 +20,33 @@ function gununOzeti(subeId, tarih) {
     )
     .all(subeId, tarih);
 
-  const ozet = { nakit: 0, kart: 0, sgk: 0 };
+  const ozet = { nakit: 0, kart: 0, sgk: 0, veresiye: 0 };
   for (const r of rows) {
     if (r.odeme_tipi === 'nakit') ozet.nakit = r.toplam;
     else if (r.odeme_tipi === 'kredi_karti') ozet.kart = r.toplam;
     else if (r.odeme_tipi === 'sgk') ozet.sgk = r.toplam;
+    else if (r.odeme_tipi === 'veresiye') ozet.veresiye = r.toplam;
   }
-  ozet.toplam = ozet.nakit + ozet.kart + ozet.sgk;
+  // toplam: gunun satis cirosu (veresiye dahil)
+  ozet.toplam = ozet.nakit + ozet.kart + ozet.sgk + ozet.veresiye;
+
+  // Veresiye tahsilatlari kasaya/POS'a girer: beklenen nakit ve karta eklenir
+  const tahsilatlar = db
+    .prepare(
+      `SELECT odeme_tipi, SUM(tutar) AS toplam FROM cari_hareketler
+       WHERE tip = 'tahsilat' AND sube_id = ? AND date(tarih) = ?
+       GROUP BY odeme_tipi`
+    )
+    .all(subeId, tarih);
+  ozet.tahsilat_nakit = 0;
+  ozet.tahsilat_kart = 0;
+  for (const t of tahsilatlar) {
+    if (t.odeme_tipi === 'kredi_karti') ozet.tahsilat_kart = t.toplam;
+    else ozet.tahsilat_nakit = t.toplam;
+  }
+  ozet.tahsilat = ozet.tahsilat_nakit + ozet.tahsilat_kart;
+  ozet.nakit += ozet.tahsilat_nakit;
+  ozet.kart += ozet.tahsilat_kart;
   const satisAdedi = db
     .prepare('SELECT COUNT(*) AS c FROM satislar WHERE sube_id = ? AND date(tarih) = ?')
     .get(subeId, tarih).c;
@@ -80,8 +100,8 @@ router.post('/', (req, res) => {
   const info = db
     .prepare(
       `INSERT INTO kasa_kapanislari
-       (sube_id, kullanici_id, tarih, nakit_sistem, kart_sistem, sgk_sistem, toplam_sistem, nakit_sayilan, fark, not_metni)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       (sube_id, kullanici_id, tarih, nakit_sistem, kart_sistem, sgk_sistem, veresiye_sistem, tahsilat_sistem, toplam_sistem, nakit_sayilan, fark, not_metni)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       subeId,
@@ -90,6 +110,8 @@ router.post('/', (req, res) => {
       ozet.nakit,
       ozet.kart,
       ozet.sgk,
+      ozet.veresiye,
+      ozet.tahsilat,
       ozet.toplam,
       nakitSayilan,
       fark,

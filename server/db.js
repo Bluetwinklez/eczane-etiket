@@ -277,6 +277,27 @@ sutunEkleGerekirse('satis_kalemleri', 'kalem_indirimi', 'REAL NOT NULL DEFAULT 0
 sutunEkleGerekirse('satis_kalemleri', 'kampanya_id', 'INTEGER');
 sutunEkleGerekirse('satis_kalemleri', 'kampanya_adi', 'TEXT');
 sutunEkleGerekirse('satislar', 'kampanya_indirimi', 'REAL NOT NULL DEFAULT 0');
+sutunEkleGerekirse('musteriler', 'veresiye_limiti', 'REAL');
+sutunEkleGerekirse('kasa_kapanislari', 'veresiye_sistem', 'REAL NOT NULL DEFAULT 0');
+sutunEkleGerekirse('kasa_kapanislari', 'tahsilat_sistem', 'REAL NOT NULL DEFAULT 0');
+
+// Veresiye (cari hesap) defteri: borc = veresiye satis, tahsilat = musteriden
+// alinan odeme, iade = veresiye satisin iadesi. Bakiye = borc - tahsilat - iade.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS cari_hareketler (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    musteri_id INTEGER NOT NULL REFERENCES musteriler(id) ON DELETE CASCADE,
+    sube_id INTEGER REFERENCES subeler(id),
+    tip TEXT NOT NULL CHECK (tip IN ('borc', 'tahsilat', 'iade')),
+    tutar REAL NOT NULL CHECK (tutar > 0),
+    satis_id INTEGER REFERENCES satislar(id) ON DELETE SET NULL,
+    odeme_tipi TEXT,
+    aciklama TEXT,
+    kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    tarih TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_cari_hareketler_musteri ON cari_hareketler (musteri_id);
+`);
 
 function ayarOku(anahtar) {
   const row = db.prepare('SELECT deger FROM ayarlar WHERE anahtar = ?').get(anahtar);
