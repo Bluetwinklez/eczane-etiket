@@ -4,6 +4,13 @@ const { requireRole } = require('../auth');
 const { URUN_TIPLERI } = require('../sabitler');
 const { partiGiris, partiCikis, partiMiktariniKontrolEt, FEFO_SIRASI } = require('../partiler');
 const { karekodCoz } = require('../karekod');
+const { maddeleriAyir } = require('../etkilesim');
+
+// "Amoksisilin + Klavulanik asit" -> "amoksisilin, klavulanik asit"
+function etkenMaddeNormallestir(deger) {
+  const maddeler = maddeleriAyir(deger);
+  return maddeler.length ? maddeler.join(', ') : null;
+}
 
 function urunTipiGecerliMi(tip) {
   return tip === undefined || tip === null || tip === '' || Object.prototype.hasOwnProperty.call(URUN_TIPLERI, tip);
@@ -59,7 +66,8 @@ router.get('/', (req, res) => {
       (r) =>
         r.ad.toLowerCase().includes(needle) ||
         (r.barkod || '').includes(q) ||
-        (r.kategori || '').toLowerCase().includes(needle)
+        (r.kategori || '').toLowerCase().includes(needle) ||
+        (r.etken_madde || '').includes(q.toLocaleLowerCase('tr-TR'))
     );
   }
   res.json(rows);
@@ -152,7 +160,7 @@ router.get('/:id/fiyat-gecmisi', (req, res) => {
 });
 
 router.post('/', requireRole('admin', 'eczaci'), (req, res) => {
-  const { ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt, stok, urun_tipi } = req.body;
+  const { ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt, stok, urun_tipi, etken_madde } = req.body;
   if (!ad || !ad.trim()) return res.status(400).json({ error: 'Ilac adi zorunludur' });
   if (!urunTipiGecerliMi(urun_tipi)) return res.status(400).json({ error: 'Gecersiz urun tipi' });
   if (satis_fiyati == null || Number(satis_fiyati) < 0) {
@@ -163,8 +171,8 @@ router.post('/', requireRole('admin', 'eczaci'), (req, res) => {
   try {
     const info = db
       .prepare(
-        `INSERT INTO ilaclar (ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt, urun_tipi)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO ilaclar (ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt, urun_tipi, etken_madde)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         ad.trim(),
@@ -176,7 +184,8 @@ router.post('/', requireRole('admin', 'eczaci'), (req, res) => {
         Number(alis_fiyati) || 0,
         Number(satis_fiyati),
         skt || null,
-        urun_tipi || 'ilac'
+        urun_tipi || 'ilac',
+        etkenMaddeNormallestir(etken_madde)
       );
 
     const subeler = db.prepare('SELECT id FROM subeler').all();
@@ -209,7 +218,7 @@ router.put('/:id', requireRole('admin', 'eczaci'), (req, res) => {
   const existing = db.prepare('SELECT * FROM ilaclar WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Ilac bulunamadi' });
 
-  const { ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt, urun_tipi } = req.body;
+  const { ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt, urun_tipi, etken_madde } = req.body;
   if (!ad || !ad.trim()) return res.status(400).json({ error: 'Ilac adi zorunludur' });
   if (!urunTipiGecerliMi(urun_tipi)) return res.status(400).json({ error: 'Gecersiz urun tipi' });
 
@@ -217,8 +226,8 @@ router.put('/:id', requireRole('admin', 'eczaci'), (req, res) => {
   try {
     const yeniSatisFiyati = Number(satis_fiyati) || 0;
     db.prepare(
-      `UPDATE ilaclar SET ad=?, barkod=?, kategori=?, uretici=?, receteli=?, kritik_stok=?, alis_fiyati=?, satis_fiyati=?, skt=?, urun_tipi=?
-       WHERE id=?`
+      `UPDATE ilaclar SET ad=?, barkod=?, kategori=?, uretici=?, receteli=?, kritik_stok=?, alis_fiyati=?, satis_fiyati=?, skt=?, urun_tipi=?,
+       etken_madde=? WHERE id=?`
     ).run(
       ad.trim(),
       barkod || null,
@@ -230,6 +239,7 @@ router.put('/:id', requireRole('admin', 'eczaci'), (req, res) => {
       yeniSatisFiyati,
       skt || null,
       urun_tipi || existing.urun_tipi,
+      etken_madde === undefined ? existing.etken_madde : etkenMaddeNormallestir(etken_madde),
       req.params.id
     );
 

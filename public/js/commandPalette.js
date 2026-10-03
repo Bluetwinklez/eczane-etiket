@@ -13,6 +13,7 @@
     { key: 'giderler', etiket: 'Giderler', ikon: '💸', roller: ['admin', 'eczaci'] },
     { key: 'kampanyalar', etiket: 'Kampanyalar', ikon: '🏷️' },
     { key: 'veresiye', etiket: 'Veresiye Defteri', ikon: '📒' },
+    { key: 'etkilesimler', etiket: 'İlaç Etkileşimleri', ikon: '⚠️' },
     { key: 'gorevler', etiket: 'Görevler', ikon: '✅' },
     { key: 'nobetler', etiket: 'Nöbetçi Takvimi', ikon: '⚕' },
     { key: 'bildirimler', etiket: 'Bildirimler', ikon: '🔔' },

@@ -346,3 +346,11 @@ td.num, th.num { text-align: right; }
 .pos-cari-bilgi { background: var(--accent-amber-bg); color: var(--accent-amber-fg); padding: 8px 10px; border-radius: var(--radius-sm); font-size: 12px; margin-top: 6px; }
 .tutar-borc { color: var(--danger); }
 .tutar-alacak { color: var(--success); }
+.etken-madde { color: var(--text-muted); font-size: 11.5px; }
+.etkilesim { font-size: 12.5px; padding: 8px 10px; border-radius: var(--radius-sm); margin: 8px 0 0; border-left: 4px solid; }
+.etkilesim.ciddi { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); }
+.etkilesim.orta { background: var(--warning-soft); color: var(--warning); border-color: var(--warning); }
+.etkilesim.hafif { background: var(--bg); color: var(--text-muted); border-color: var(--border); }
+.etkilesim small { opacity: 0.9; }
+.etk-cip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 4px 4px 10px; font-size: 12.5px; }
+.etk-cip button { padding: 0 6px; font-size: 11px; line-height: 18px; }
