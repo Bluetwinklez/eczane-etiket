@@ -2,6 +2,7 @@ const express = require('express');
 const { db } = require('../db');
 const { requireRole } = require('../auth');
 const { URUN_TIPLERI } = require('../sabitler');
+const { partiGiris, partiCikis, partiMiktariniKontrolEt, FEFO_SIRASI } = require('../partiler');
 
 function urunTipiGecerliMi(tip) {
   return tip === undefined || tip === null || tip === '' || Object.prototype.hasOwnProperty.call(URUN_TIPLERI, tip);
@@ -16,20 +17,27 @@ function resolveSubeId(req, queryValue) {
   return req.user.sube_id;
 }
 
+// en_yakin_skt: elde stogu kalan partiler arasindaki en yakin son kullanma tarihi
 function ilacWithStok(subeId) {
   if (subeId) {
     return db
       .prepare(
-        `SELECT i.*, COALESCE(s.stok, 0) AS stok
+        `SELECT i.*, COALESCE(s.stok, 0) AS stok,
+                (SELECT MIN(p.skt) FROM ilac_partileri p
+                  WHERE p.ilac_id = i.id AND p.sube_id = ? AND p.miktar > 0) AS en_yakin_skt,
+                (SELECT COUNT(*) FROM ilac_partileri p
+                  WHERE p.ilac_id = i.id AND p.sube_id = ? AND p.miktar > 0) AS aktif_parti_sayisi
          FROM ilaclar i
          LEFT JOIN ilac_stok s ON s.ilac_id = i.id AND s.sube_id = ?
          ORDER BY i.ad`
       )
-      .all(subeId);
+      .all(subeId, subeId, subeId);
   }
   return db
     .prepare(
-      `SELECT i.*, COALESCE(SUM(s.stok), 0) AS stok
+      `SELECT i.*, COALESCE(SUM(s.stok), 0) AS stok,
+              (SELECT MIN(p.skt) FROM ilac_partileri p WHERE p.ilac_id = i.id AND p.miktar > 0) AS en_yakin_skt,
+              (SELECT COUNT(*) FROM ilac_partileri p WHERE p.ilac_id = i.id AND p.miktar > 0) AS aktif_parti_sayisi
        FROM ilaclar i
        LEFT JOIN ilac_stok s ON s.ilac_id = i.id
        GROUP BY i.id
@@ -64,8 +72,24 @@ router.get('/uyarilar', (req, res) => {
   const otuzGunSonra = new Date(bugun.getTime() + 30 * 24 * 60 * 60 * 1000);
 
   const kritikStok = rows.filter((r) => r.stok <= r.kritik_stok);
-  const sktYaklasan = rows
-    .filter((r) => r.skt && new Date(r.skt) <= otuzGunSonra)
+
+  // SKT uyarilari parti bazindadir: elde stogu kalan her lot ayri degerlendirilir
+  const sinir = otuzGunSonra.toISOString().slice(0, 10);
+  let sql = `
+    SELECT p.id AS parti_id, p.parti_no, p.skt, p.miktar AS stok, p.sube_id,
+           i.id, i.ad, i.kritik_stok
+    FROM ilac_partileri p
+    JOIN ilaclar i ON i.id = p.ilac_id
+    WHERE p.miktar > 0 AND p.skt IS NOT NULL AND p.skt <= ?`;
+  const params = [sinir];
+  if (subeId) {
+    sql += ' AND p.sube_id = ?';
+    params.push(subeId);
+  }
+  sql += ' ORDER BY p.skt, i.ad';
+  const sktYaklasan = db
+    .prepare(sql)
+    .all(...params)
     .map((r) => ({ ...r, durum: new Date(r.skt) < bugun ? 'sona_ermis' : 'yaklasiyor' }));
 
   res.json({ kritik_stok: kritikStok, skt_yaklasan: sktYaklasan });
@@ -77,6 +101,22 @@ router.get('/:id', (req, res) => {
   const row = rows.find((r) => r.id === Number(req.params.id));
   if (!row) return res.status(404).json({ error: 'Ilac bulunamadi' });
   res.json(row);
+});
+
+router.get('/:id/partiler', (req, res) => {
+  const subeId = resolveSubeId(req, req.query.sube_id);
+  const tumu = req.query.tumu === '1';
+  let sql = `SELECT p.*, s.ad AS sube_adi FROM ilac_partileri p
+             JOIN subeler s ON s.id = p.sube_id
+             WHERE p.ilac_id = ?`;
+  const params = [Number(req.params.id)];
+  if (subeId) {
+    sql += ' AND p.sube_id = ?';
+    params.push(subeId);
+  }
+  if (!tumu) sql += ' AND p.miktar > 0';
+  sql += ` ${FEFO_SIRASI.replace(/\b(skt|id)\b/g, 'p.$1')}`;
+  res.json(db.prepare(sql).all(...params));
 });
 
 router.get('/:id/fiyat-gecmisi', (req, res) => {
@@ -94,6 +134,7 @@ router.post('/', requireRole('admin', 'eczaci'), (req, res) => {
     return res.status(400).json({ error: 'Gecerli bir satis fiyati girin' });
   }
 
+  db.exec('BEGIN');
   try {
     const info = db
       .prepare(
@@ -119,10 +160,19 @@ router.post('/', requireRole('admin', 'eczaci'), (req, res) => {
     for (const sube of subeler) {
       insertStok.run(info.lastInsertRowid, sube.id, sube.id === req.user.sube_id ? baslangicStok : 0);
     }
+    if (baslangicStok > 0) {
+      partiGiris(Number(info.lastInsertRowid), req.user.sube_id, baslangicStok, {
+        parti_no: req.body.parti_no,
+        skt: skt || null,
+        kaynak: 'acilis'
+      });
+    }
+    db.exec('COMMIT');
 
     const created = ilacWithStok(req.user.sube_id).find((r) => r.id === Number(info.lastInsertRowid));
     res.status(201).json(created);
   } catch (err) {
+    db.exec('ROLLBACK');
     if (String(err.message).includes('UNIQUE')) {
       return res.status(409).json({ error: 'Bu barkod zaten kayitli' });
     }
@@ -190,10 +240,13 @@ router.post('/:id/stok', requireRole('admin', 'eczaci'), (req, res) => {
   if (!ilac) return res.status(404).json({ error: 'Ilac bulunamadi' });
 
   const subeId = req.user.rol === 'admin' && req.body.sube_id ? Number(req.body.sube_id) : req.user.sube_id;
-  const { tip, adet, aciklama } = req.body;
+  const { tip, adet, aciklama, parti_no, skt, parti_id } = req.body;
   const miktar = Number(adet);
-  if (!['giris', 'cikis'].includes(tip) || !Number.isFinite(miktar) || miktar <= 0) {
+  if (!['giris', 'cikis'].includes(tip) || !Number.isInteger(miktar) || miktar <= 0) {
     return res.status(400).json({ error: 'Gecersiz stok hareketi' });
+  }
+  if (skt && !/^\d{4}-\d{2}-\d{2}$/.test(skt)) {
+    return res.status(400).json({ error: 'SKT YYYY-AA-GG formatinda olmali' });
   }
 
   const mevcut = db
@@ -205,14 +258,34 @@ router.post('/:id/stok', requireRole('admin', 'eczaci'), (req, res) => {
     return res.status(400).json({ error: 'Stok yetersiz' });
   }
 
-  db.prepare(
-    `INSERT INTO ilac_stok (ilac_id, sube_id, stok) VALUES (?, ?, ?)
-     ON CONFLICT(ilac_id, sube_id) DO UPDATE SET stok = excluded.stok`
-  ).run(req.params.id, subeId, yeniStok);
+  // Belirli bir partiden cikis (orn. SKT'si gecen lotun imhasi)
+  if (tip === 'cikis' && parti_id) {
+    const parti = partiMiktariniKontrolEt(Number(parti_id), ilac.id, subeId);
+    if (!parti) return res.status(404).json({ error: 'Parti bulunamadi' });
+    if (parti.miktar < miktar) return res.status(400).json({ error: `Partide yeterli miktar yok (kalan: ${parti.miktar})` });
+  }
 
-  db.prepare(
-    'INSERT INTO stok_hareketleri (ilac_id, sube_id, tip, adet, aciklama) VALUES (?, ?, ?, ?, ?)'
-  ).run(req.params.id, subeId, tip, miktar, aciklama || null);
+  db.exec('BEGIN');
+  try {
+    db.prepare(
+      `INSERT INTO ilac_stok (ilac_id, sube_id, stok) VALUES (?, ?, ?)
+       ON CONFLICT(ilac_id, sube_id) DO UPDATE SET stok = excluded.stok`
+    ).run(req.params.id, subeId, yeniStok);
+
+    if (tip === 'giris') {
+      partiGiris(ilac.id, subeId, miktar, { parti_no, skt, kaynak: 'stok_girisi' });
+    } else {
+      partiCikis(ilac.id, subeId, miktar, parti_id ? Number(parti_id) : null);
+    }
+
+    db.prepare(
+      'INSERT INTO stok_hareketleri (ilac_id, sube_id, tip, adet, aciklama) VALUES (?, ?, ?, ?, ?)'
+    ).run(req.params.id, subeId, tip, miktar, aciklama || null);
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    return res.status(500).json({ error: 'Stok hareketi kaydedilemedi' });
+  }
 
   const updated = ilacWithStok(subeId).find((r) => r.id === Number(req.params.id));
   res.json(updated);

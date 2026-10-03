@@ -1,5 +1,6 @@
 const express = require('express');
 const { db } = require('../db');
+const { partiCikis } = require('../partiler');
 
 const router = express.Router();
 
@@ -72,9 +73,17 @@ router.post('/', (req, res) => {
       `INSERT INTO stok_hareketleri (ilac_id, sube_id, tip, adet, aciklama) VALUES (?, ?, 'cikis', ?, ?)`
     );
 
+    const insertKalemParti = db.prepare(
+      'INSERT INTO satis_kalemi_partileri (satis_kalem_id, parti_id, adet) VALUES (?, ?, ?)'
+    );
+
     for (const { ilac, adet, mevcutStok } of hazirlanmis) {
-      insertKalem.run(satisId, ilac.id, ilac.ad, adet, ilac.satis_fiyati, ilac.alis_fiyati, adet * ilac.satis_fiyati);
+      const kalemInfo = insertKalem.run(satisId, ilac.id, ilac.ad, adet, ilac.satis_fiyati, ilac.alis_fiyati, adet * ilac.satis_fiyati);
       updateStok.run(mevcutStok - adet, ilac.id, subeId);
+      // FEFO: SKT'si en yakin partiden dus, iade icin dagilimi sakla
+      for (const d of partiCikis(ilac.id, subeId, adet)) {
+        insertKalemParti.run(kalemInfo.lastInsertRowid, d.parti_id, d.adet);
+      }
       insertHareket.run(ilac.id, subeId, adet, `Satis #${satisId}`);
     }
 

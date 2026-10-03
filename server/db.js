@@ -231,6 +231,29 @@ db.exec(`
     ip TEXT
   );
   CREATE INDEX IF NOT EXISTS idx_islem_kayitlari_tarih ON islem_kayitlari (tarih);
+
+  -- Parti/lot bazli stok: ilac_stok.stok toplam miktari tutar, partiler bu
+  -- miktarin hangi SKT'li lotlardan olustugunu gosterir (toplamlar esit tutulur).
+  CREATE TABLE IF NOT EXISTS ilac_partileri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ilac_id INTEGER NOT NULL REFERENCES ilaclar(id) ON DELETE CASCADE,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id) ON DELETE CASCADE,
+    parti_no TEXT,
+    skt TEXT,
+    giris_miktari INTEGER NOT NULL,
+    miktar INTEGER NOT NULL,
+    kaynak TEXT,
+    giris_tarihi TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_ilac_partileri_ilac_sube ON ilac_partileri (ilac_id, sube_id);
+
+  CREATE TABLE IF NOT EXISTS satis_kalemi_partileri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    satis_kalem_id INTEGER NOT NULL REFERENCES satis_kalemleri(id) ON DELETE CASCADE,
+    parti_id INTEGER REFERENCES ilac_partileri(id) ON DELETE SET NULL,
+    adet INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_satis_kalemi_partileri_kalem ON satis_kalemi_partileri (satis_kalem_id);
 `);
 
 function ayarOku(anahtar) {
