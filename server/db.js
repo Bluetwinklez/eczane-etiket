@@ -2,7 +2,10 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { DatabaseSync } = require('node:sqlite');
 
-const dbPath = path.join(__dirname, '..', 'data', 'eczane.db');
+const fs = require('node:fs');
+
+const dbPath = process.env.ECZANEM_DB_PATH || path.join(__dirname, '..', 'data', 'eczane.db');
+if (dbPath !== ':memory:') fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 const db = new DatabaseSync(dbPath);
 
 db.exec(`
