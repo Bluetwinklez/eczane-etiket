@@ -1,5 +1,6 @@
 const express = require('express');
 const { db } = require('../db');
+const { partiGiris } = require('../partiler');
 
 const router = express.Router();
 
@@ -112,6 +113,13 @@ router.put('/:id/durum', (req, res) => {
 
   if (durum === 'teslim_alindi') {
     const kalemler = db.prepare('SELECT * FROM siparis_kalemleri WHERE siparis_id = ?').all(req.params.id);
+    // Teslimde her kalem icin parti no / SKT girilebilir: partiler: { [kalem_id]: { parti_no, skt } }
+    const partiBilgisi = req.body.partiler && typeof req.body.partiler === 'object' ? req.body.partiler : {};
+    for (const bilgi of Object.values(partiBilgisi)) {
+      if (bilgi && bilgi.skt && !/^\d{4}-\d{2}-\d{2}$/.test(bilgi.skt)) {
+        return res.status(400).json({ error: 'SKT YYYY-AA-GG formatinda olmali' });
+      }
+    }
     db.exec('BEGIN');
     try {
       for (const kalem of kalemler) {
@@ -123,6 +131,12 @@ router.put('/:id/durum', (req, res) => {
           `INSERT INTO ilac_stok (ilac_id, sube_id, stok) VALUES (?, ?, ?)
            ON CONFLICT(ilac_id, sube_id) DO UPDATE SET stok = excluded.stok`
         ).run(kalem.ilac_id, siparis.sube_id, mevcutStok + kalem.istenen_adet);
+        const bilgi = partiBilgisi[kalem.id] || {};
+        partiGiris(kalem.ilac_id, siparis.sube_id, kalem.istenen_adet, {
+          parti_no: bilgi.parti_no,
+          skt: bilgi.skt,
+          kaynak: `siparis #${siparis.id}`
+        });
         db.prepare(
           `INSERT INTO stok_hareketleri (ilac_id, sube_id, tip, adet, aciklama) VALUES (?, ?, 'giris', ?, ?)`
         ).run(kalem.ilac_id, siparis.sube_id, kalem.istenen_adet, `Siparis #${siparis.id} teslim alindi`);

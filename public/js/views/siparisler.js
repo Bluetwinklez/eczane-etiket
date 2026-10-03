@@ -74,9 +74,15 @@
 
   async function detayGoster(siparis) {
     const detay = await Api.get(`/api/siparisler/${siparis.id}`);
+    // Teslim alinabilir sipariste her kalem icin parti no / SKT girilebilir
+    const teslimAlinabilir = detay.durum === 'beklemede' || detay.durum === 'gonderildi';
     const satirlar = detay.kalemler
       .map(
-        (k) => `<tr><td>${UI.esc(k.ilac_adi)}</td><td class="num">${k.istenen_adet}</td><td class="num">${UI.tl(k.tahmini_birim_fiyat)}</td><td class="num">${UI.tl(k.istenen_adet * k.tahmini_birim_fiyat)}</td></tr>`
+        (k) => `<tr><td>${UI.esc(k.ilac_adi)}</td><td class="num">${k.istenen_adet}</td><td class="num">${UI.tl(k.tahmini_birim_fiyat)}</td><td class="num">${UI.tl(k.istenen_adet * k.tahmini_birim_fiyat)}</td>${
+          teslimAlinabilir
+            ? `<td><input class="sp-parti" data-kalem="${k.id}" placeholder="Parti/Lot" style="min-width:90px" /></td><td><input class="sp-skt" data-kalem="${k.id}" type="date" /></td>`
+            : ''
+        }</tr>`
       )
       .join('');
     const toplam = detay.kalemler.reduce((s, k) => s + k.istenen_adet * k.tahmini_birim_fiyat, 0);
@@ -88,12 +94,15 @@
     if (detay.durum === 'beklemede') aksiyonlar.push('<button class="danger" data-action="iptal">İptal Et</button>');
 
     const modal = UI.openModal(`
-      <h3>Sipariş #${detay.id} — ${DURUM_ROZETI[detay.durum]}</h3>
+      <h3 class="modal-genis">Sipariş #${detay.id} — ${DURUM_ROZETI[detay.durum]}</h3>
       <p style="color:var(--text-muted);font-size:13px">${UI.esc(detay.notlar || '')}</p>
       <table>
-        <thead><tr><th>İlaç</th><th class="num">Adet</th><th class="num">Birim Fiyat</th><th class="num">Tutar</th></tr></thead>
+        <thead><tr><th>İlaç</th><th class="num">Adet</th><th class="num">Birim Fiyat</th><th class="num">Tutar</th>${
+          teslimAlinabilir ? '<th>Parti No</th><th>SKT</th>' : ''
+        }</tr></thead>
         <tbody>${satirlar}</tbody>
       </table>
+      ${teslimAlinabilir ? '<p class="form-ipucu">Parti No ve SKT boş bırakılırsa ilacın varsayılan SKT\'si kullanılır.</p>' : ''}
       <div class="cart-total"><span>Tahmini Toplam</span><span>${UI.tl(toplam)}</span></div>
       <div class="modal-actions">${aksiyonlar.join('')}<button class="secondary" data-action="kapat">Kapat</button></div>
     `);
@@ -104,7 +113,16 @@
       if (!btn) return;
       btn.addEventListener('click', async () => {
         try {
-          await Api.put(`/api/siparisler/${detay.id}/durum`, { durum });
+          const govde = { durum };
+          if (durum === 'teslim_alindi') {
+            govde.partiler = {};
+            detay.kalemler.forEach((k) => {
+              const partiNo = modal.querySelector(`.sp-parti[data-kalem="${k.id}"]`).value.trim();
+              const skt = modal.querySelector(`.sp-skt[data-kalem="${k.id}"]`).value;
+              if (partiNo || skt) govde.partiler[k.id] = { parti_no: partiNo || null, skt: skt || null };
+            });
+          }
+          await Api.put(`/api/siparisler/${detay.id}/durum`, govde);
           UI.toast('Sipariş durumu güncellendi', 'success');
           UI.closeModal(modal);
           view.render(document.getElementById('content'));

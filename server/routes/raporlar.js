@@ -89,12 +89,17 @@ router.get('/en-cok-satan', (req, res) => {
 // 13. Kritik stok + SKT raporu
 router.get('/kritik-stok-skt', (req, res) => {
   const subeId = resolveSubeId(req, req.query.sube_id);
+  // skt: elde stogu kalan partiler arasindaki en yakin son kullanma tarihi
   const sql = subeId
-    ? `SELECT i.*, COALESCE(s.stok, 0) AS stok FROM ilaclar i
+    ? `SELECT i.id, i.ad, i.kritik_stok, COALESCE(s.stok, 0) AS stok,
+              (SELECT MIN(p.skt) FROM ilac_partileri p WHERE p.ilac_id = i.id AND p.sube_id = ? AND p.miktar > 0) AS skt
+       FROM ilaclar i
        LEFT JOIN ilac_stok s ON s.ilac_id = i.id AND s.sube_id = ? ORDER BY i.ad`
-    : `SELECT i.*, COALESCE(SUM(s.stok), 0) AS stok FROM ilaclar i
+    : `SELECT i.id, i.ad, i.kritik_stok, COALESCE(SUM(s.stok), 0) AS stok,
+              (SELECT MIN(p.skt) FROM ilac_partileri p WHERE p.ilac_id = i.id AND p.miktar > 0) AS skt
+       FROM ilaclar i
        LEFT JOIN ilac_stok s ON s.ilac_id = i.id GROUP BY i.id ORDER BY i.ad`;
-  const rows = subeId ? db.prepare(sql).all(subeId) : db.prepare(sql).all();
+  const rows = subeId ? db.prepare(sql).all(subeId, subeId) : db.prepare(sql).all();
 
   const bugun = new Date();
   const otuzGunSonra = new Date(bugun.getTime() + 30 * 24 * 60 * 60 * 1000);
@@ -307,6 +312,40 @@ router.get('/urun-tipi', (req, res) => {
     { alan: 'toplam_ciro', baslik: 'Ciro (TL)' },
     { alan: 'ciro_payi', baslik: 'Ciro Payı (%)' },
     { alan: 'brut_kar', baslik: 'Brüt Kâr (TL)' }
+  ]);
+});
+
+// Parti bazli SKT raporu: onumuzdeki N gun icinde (varsayilan 180) SKT'si dolacak
+// veya dolmus, elde stogu kalan lotlar ve bunlarin alis maliyeti
+router.get('/parti-skt', (req, res) => {
+  const subeId = resolveSubeId(req, req.query.sube_id);
+  const gun = Math.min(3650, Math.max(1, Number(req.query.gun) || 180));
+  const sinir = new Date(Date.now() + gun * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  let sql = `
+    SELECT p.id AS parti_id, i.ad AS ilac_adi, p.parti_no, p.skt, p.miktar,
+           sb.ad AS sube_adi, ROUND(p.miktar * i.alis_fiyati, 2) AS alis_degeri,
+           CAST(julianday(p.skt) - julianday(date('now')) AS INTEGER) AS kalan_gun
+    FROM ilac_partileri p
+    JOIN ilaclar i ON i.id = p.ilac_id
+    JOIN subeler sb ON sb.id = p.sube_id
+    WHERE p.miktar > 0 AND p.skt IS NOT NULL AND p.skt <= ?`;
+  const params = [sinir];
+  if (subeId) {
+    sql += ' AND p.sube_id = ?';
+    params.push(subeId);
+  }
+  sql += ' ORDER BY p.skt, i.ad';
+  const rows = db.prepare(sql).all(...params).map((r) => ({ ...r, parti_no: r.parti_no || '-' }));
+
+  cikisYap(req, res, 'parti-skt-raporu', 'Parti Bazli SKT Raporu', rows, [
+    { alan: 'ilac_adi', baslik: 'Urun' },
+    { alan: 'parti_no', baslik: 'Parti No' },
+    { alan: 'sube_adi', baslik: 'Sube' },
+    { alan: 'skt', baslik: 'SKT' },
+    { alan: 'kalan_gun', baslik: 'Kalan Gun' },
+    { alan: 'miktar', baslik: 'Miktar' },
+    { alan: 'alis_degeri', baslik: 'Alis Degeri (TL)' }
   ]);
 });
 

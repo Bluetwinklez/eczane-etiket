@@ -6,6 +6,7 @@ const session = require('express-session');
 const { requireLogin, requireRole } = require('./auth');
 const { db, ayarOku, ayarYaz } = require('./db');
 const SqliteOturumDeposu = require('./oturumDeposu');
+const { partileriEsitle } = require('./partiler');
 const { islemKaydiMiddleware } = require('./islemKaydi');
 const authRoutes = require('./routes/auth');
 const ilaclarRoutes = require('./routes/ilaclar');
@@ -23,6 +24,9 @@ const siparislerRoutes = require('./routes/siparisler');
 const gorevlerRoutes = require('./routes/gorevler');
 const nobetlerRoutes = require('./routes/nobetler');
 const islemKayitlariRoutes = require('./routes/islemKayitlari');
+
+// Parti kayitlari ile toplam stoklari baslangicta esitle (eski veritabanlari icin)
+partileriEsitle();
 
 const app = express();
 

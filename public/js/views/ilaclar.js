@@ -18,21 +18,23 @@
     const aksiyonlar = yazmaYetkisiVar(ctx)
       ? `
         <button class="secondary" data-action="duzenle" data-id="${ilac.id}">Düzenle</button>
+        <button class="secondary" data-action="partiler" data-id="${ilac.id}">Partiler</button>
         <button class="secondary" data-action="fiyat-gecmisi" data-id="${ilac.id}">Fiyat Geçmişi</button>
         <button class="secondary" data-action="stok-hareketleri" data-id="${ilac.id}">Stok Geçmişi</button>
         ${ctx.user.rol === 'admin' ? `<button class="danger" data-action="sil" data-id="${ilac.id}">Sil</button>` : ''}
       `
-      : `<button class="secondary" data-action="fiyat-gecmisi" data-id="${ilac.id}">Fiyat Geçmişi</button>
+      : `<button class="secondary" data-action="partiler" data-id="${ilac.id}">Partiler</button>
+         <button class="secondary" data-action="fiyat-gecmisi" data-id="${ilac.id}">Fiyat Geçmişi</button>
          <button class="secondary" data-action="stok-hareketleri" data-id="${ilac.id}">Stok Geçmişi</button>`;
 
     return `
       <tr>
-        <td>${UI.esc(ilac.ad)} ${ilac.urun_tipi && ilac.urun_tipi !== 'ilac' ? `<span class="badge tip-${ilac.urun_tipi}">${UI.URUN_TIPLERI[ilac.urun_tipi] || ilac.urun_tipi}</span>` : ''} ${ilac.receteli ? '<span class="badge muted">Reçeteli</span>' : ''} ${sktRozeti(ilac.skt)}</td>
+        <td>${UI.esc(ilac.ad)} ${ilac.urun_tipi && ilac.urun_tipi !== 'ilac' ? `<span class="badge tip-${ilac.urun_tipi}">${UI.URUN_TIPLERI[ilac.urun_tipi] || ilac.urun_tipi}</span>` : ''} ${ilac.receteli ? '<span class="badge muted">Reçeteli</span>' : ''} ${sktRozeti(ilac.en_yakin_skt)}</td>
         <td>${UI.esc(ilac.barkod || '-')}</td>
         <td>${UI.esc(ilac.kategori || '-')}</td>
         <td class="num">${ilac.stok} ${stokRozeti}</td>
         <td class="num">${UI.tl(ilac.satis_fiyati)}</td>
-        <td>${ilac.skt || '-'}</td>
+        <td>${ilac.en_yakin_skt || '-'}${ilac.aktif_parti_sayisi > 1 ? ` <span class="badge muted" title="Elde stoğu olan parti sayısı">${ilac.aktif_parti_sayisi} parti</span>` : ''}</td>
         <td class="actions-col">${aksiyonlar}</td>
       </tr>
     `;
@@ -57,8 +59,8 @@
           <div><label>Alış Fiyatı</label><input name="alis_fiyati" type="number" step="0.01" min="0" value="${i.alis_fiyati ?? ''}" /></div>
           <div><label>Satış Fiyatı</label><input name="satis_fiyati" type="number" step="0.01" min="0" required value="${i.satis_fiyati ?? ''}" /></div>
           <div><label>Kritik Stok Sınırı</label><input name="kritik_stok" type="number" min="0" value="${i.kritik_stok ?? 10}" /></div>
-          <div><label>Son Kullanma Tarihi</label><input name="skt" type="date" value="${i.skt || ''}" /></div>
-          ${!ilac ? '<div><label>Başlangıç Stoku</label><input name="stok" type="number" min="0" value="0" /></div>' : ''}
+          <div><label>Varsayılan SKT</label><input name="skt" type="date" value="${i.skt || ''}" title="SKT girilmeyen stok girişlerinde kullanılır" /></div>
+          ${!ilac ? '<div><label>Başlangıç Stoku</label><input name="stok" type="number" min="0" value="0" /></div><div><label>Parti / Lot No</label><input name="parti_no" placeholder="opsiyonel" /></div>' : ''}
         </div>
         <div><label><input type="checkbox" name="receteli" style="width:auto" ${i.receteli ? 'checked' : ''} /> Reçeteli ilaç</label></div>
         <div class="modal-actions">
@@ -81,6 +83,7 @@
       kritik_stok: Number(fd.get('kritik_stok')) || 10,
       skt: fd.get('skt') || null,
       stok: fd.has('stok') ? Number(fd.get('stok')) || 0 : undefined,
+      parti_no: fd.has('parti_no') ? fd.get('parti_no') || null : undefined,
       receteli: form.querySelector('[name="receteli"]').checked,
       urun_tipi: fd.get('urun_tipi')
     };
@@ -120,6 +123,71 @@
       <div class="modal-actions"><button class="secondary" data-action="kapat">Kapat</button></div>
     `);
     modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));
+  }
+
+  function partiSktRozeti(skt) {
+    if (!skt) return '<span class="badge muted">SKT yok</span>';
+    const gun = Math.ceil((new Date(skt) - new Date()) / (1000 * 60 * 60 * 24));
+    if (gun < 0) return '<span class="badge danger">SKT geçti</span>';
+    if (gun <= 30) return `<span class="badge warn">${gun} gün</span>`;
+    if (gun <= 180) return `<span class="badge muted">${gun} gün</span>`;
+    return '<span class="badge ok">Uzun</span>';
+  }
+
+  async function partileriGoster(ilac, ctx, onDegisti) {
+    const partiler = await Api.get(`/api/ilaclar/${ilac.id}/partiler`);
+    const yazabilir = yazmaYetkisiVar(ctx);
+    const satirlar = partiler.length
+      ? partiler
+          .map(
+            (p, idx) => `<tr>
+              <td>${UI.esc(p.parti_no || '-')} ${idx === 0 ? '<span class="badge ok" title="Satışta ilk bu partiden düşülür">Sıradaki</span>' : ''}</td>
+              <td>${p.skt || '-'} ${partiSktRozeti(p.skt)}</td>
+              <td class="num">${p.miktar} / ${p.giris_miktari}</td>
+              <td>${UI.esc(p.kaynak || '-')}</td>
+              <td>${UI.tarih(p.giris_tarihi)}</td>
+              ${yazabilir ? `<td><button class="secondary" data-parti-cikis="${p.id}" data-miktar="${p.miktar}">Çıkış/İmha</button></td>` : ''}
+            </tr>`
+          )
+          .join('')
+      : `<tr><td colspan="${yazabilir ? 6 : 5}" class="empty-state">Elde stoğu olan parti yok</td></tr>`;
+
+    const modal = UI.openModal(`
+      <h3 class="modal-genis">Partiler — ${UI.esc(ilac.ad)}</h3>
+      <p class="form-ipucu">Satışlarda stok, SKT'si en yakın partiden başlayarak düşülür (FEFO).</p>
+      <table>
+        <thead><tr><th>Parti No</th><th>SKT</th><th class="num">Kalan / Giriş</th><th>Kaynak</th><th>Giriş Tarihi</th>${yazabilir ? '<th></th>' : ''}</tr></thead>
+        <tbody>${satirlar}</tbody>
+      </table>
+      <div class="modal-actions"><button class="secondary" data-action="kapat">Kapat</button></div>
+    `);
+    modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));
+    modal.querySelectorAll('[data-parti-cikis]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const azami = Number(btn.dataset.miktar);
+        const girdi = window.prompt(`Bu partiden kaç adet çıkış yapılsın? (en fazla ${azami})`, String(azami));
+        if (girdi === null) return;
+        const adet = Number(girdi);
+        if (!Number.isInteger(adet) || adet <= 0 || adet > azami) {
+          UI.toast('Geçersiz adet', 'error');
+          return;
+        }
+        try {
+          await Api.post(`/api/ilaclar/${ilac.id}/stok`, {
+            tip: 'cikis',
+            adet,
+            parti_id: Number(btn.dataset.partiCikis),
+            aciklama: 'Parti çıkışı / imha'
+          });
+          UI.toast('Parti çıkışı kaydedildi', 'success');
+          UI.closeModal(modal);
+          onDegisti();
+          partileriGoster(ilac, ctx, onDegisti);
+        } catch (err) {
+          UI.toast(err.message, 'error');
+        }
+      });
+    });
   }
 
   const HAREKET_ROZETI = {
@@ -202,6 +270,8 @@
         if (btn.dataset.action === 'duzenle') {
           const modal = UI.openModal(formHtml(ilac));
           formuBagla(modal, ilac, () => yenile(document.getElementById('ilac-ara').value));
+        } else if (btn.dataset.action === 'partiler') {
+          partileriGoster(ilac, ctx, () => yenile(document.getElementById('ilac-ara').value));
         } else if (btn.dataset.action === 'fiyat-gecmisi') {
           fiyatGecmisiGoster(id);
         } else if (btn.dataset.action === 'stok-hareketleri') {

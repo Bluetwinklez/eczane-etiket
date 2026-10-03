@@ -1,5 +1,6 @@
 const express = require('express');
 const { db } = require('../db');
+const { partileriEsitle } = require('../partiler');
 
 const router = express.Router();
 
@@ -14,7 +15,15 @@ const TABLO_SIRASI = [
   'stok_hareketleri',
   'satislar',
   'satis_kalemleri',
-  'bildirimler'
+  'bildirimler',
+  'kasa_kapanislari',
+  'giderler',
+  'siparisler',
+  'siparis_kalemleri',
+  'gorevler',
+  'nobetler',
+  'ilac_partileri',
+  'satis_kalemi_partileri'
 ];
 
 router.get('/export', (req, res) => {
@@ -56,6 +65,8 @@ router.post('/import', (req, res) => {
       }
     }
 
+    // Parti icermeyen eski yedeklerde stoklar acilis partisine donusturulur
+    partileriEsitle();
     db.exec('COMMIT');
     db.exec('PRAGMA foreign_keys = ON');
     res.json({ ok: true, mesaj: 'Yedek basariyla geri yuklendi' });
