@@ -111,6 +111,18 @@ router.get('/uyarilar', (req, res) => {
   res.json({ kritik_stok: kritikStok, skt_yaklasan: sktYaklasan });
 });
 
+// Son `gun` gun icinde satis fiyati degisen urunler (yeni raf etiketi basmak icin)
+router.get('/fiyat-degisenler', (req, res) => {
+  const gun = Math.min(365, Math.max(1, Number(req.query.gun) || 7));
+  const rows = db
+    .prepare(
+      `SELECT ilac_id, MAX(tarih) AS son_degisim FROM fiyat_gecmisi
+       WHERE tarih >= datetime('now', ?) GROUP BY ilac_id`
+    )
+    .all(`-${gun} days`);
+  res.json(rows);
+});
+
 // Toplu fiyat guncelleme (orn. ilac fiyat kararnamesi, dermokozmetik zam donemi)
 const YUVARLAMALAR = {
   kurus: (f) => Math.round(f * 100) / 100,

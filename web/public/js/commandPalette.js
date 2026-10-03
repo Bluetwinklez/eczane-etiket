@@ -5,6 +5,7 @@
     { key: 'stok', etiket: 'Stok Hareketleri', ikon: '📦' },
     { key: 'sayim', etiket: 'Stok Sayımı', ikon: '🔢', roller: ['admin', 'eczaci'] },
     { key: 'transferler', etiket: 'Şube Transferleri', ikon: '🚚', roller: ['admin', 'eczaci'] },
+    { key: 'etiketler', etiket: 'Raf Etiketleri', ikon: '🏷️' },
     { key: 'satis', etiket: 'Satış (POS)', ikon: '🧾' },
     { key: 'iadeler', etiket: 'Satış İadeleri', ikon: '↩️', roller: ['admin', 'eczaci'] },
     { key: 'musteriler', etiket: 'Müşteriler', ikon: '👤' },
