@@ -257,6 +257,8 @@ async function init() {
     temaButonMetniGuncelle();
   });
 
+  document.getElementById('cp-ac-btn').addEventListener('click', () => CommandPalette.ac());
+
   document.getElementById('logout-btn').addEventListener('click', async () => {
     await Api.post('/api/auth/logout');
     window.location.href = 'login.html';

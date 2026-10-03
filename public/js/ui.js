@@ -63,5 +63,15 @@ const UI = (function () {
     return koyu;
   }
 
-  return { toast, esc, tl, tarih, openModal, closeModal, confirmSil, temaAktifMi, temaDegistir };
+  function aramaSeedOku() {
+    try {
+      const deger = sessionStorage.getItem('eczanem-arama-seed');
+      sessionStorage.removeItem('eczanem-arama-seed');
+      return deger || '';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  return { toast, esc, tl, tarih, openModal, closeModal, confirmSil, temaAktifMi, temaDegistir, aramaSeedOku };
 })();
