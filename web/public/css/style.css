@@ -275,6 +275,8 @@ td.num, th.num { text-align: right; }
   #fis-icerik, #fis-icerik * { visibility: visible; }
   #fis-icerik { position: absolute; top: 0; left: 0; width: 100%; }
   #etiket-sayfa, #etiket-sayfa * { visibility: visible; }
+  .yazdirilabilir, .yazdirilabilir * { visibility: visible; }
+  .yazdirilabilir { position: absolute; top: 0; left: 0; width: 100%; }
   #etiket-sayfa { position: absolute; top: 0; left: 0; width: 100%; background: #fff; }
   .raf-etiket { break-inside: avoid; }
   .modal-actions, .app-shell > .sidebar, .toast-wrap { display: none !important; }
@@ -380,3 +382,7 @@ td.num, th.num { text-align: right; }
 .badge.recete-mor { background: #ede9fe; color: #6d28d9; }
 .badge.recete-turuncu { background: #ffedd5; color: #c2410c; }
 .recete-panel { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; margin: 8px 0; background: var(--bg); }
+.sepet-kullanim { width: 100%; margin-top: 4px; font-size: 12px; padding: 4px 6px; }
+.kullanim-karti h2 { margin: 0 0 4px; font-size: 18px; }
+.kullanim-karti table td, .kullanim-karti table th { font-size: 13px; }
+.kullanim-karti .kart-uyari { border-left: 4px solid var(--danger); padding: 6px 10px; margin: 6px 0; background: var(--danger-soft); font-size: 13px; }

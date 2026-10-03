@@ -8,9 +8,20 @@
 
   const view = {
     async render(container) {
-      const musteriler = await Api.get('/api/musteriler');
+      const [musteriler, segmentler] = await Promise.all([Api.get('/api/musteriler'), Api.get('/api/bildirimler/toplu/segmentler')]);
 
       container.innerHTML = `
+        <div class="card">
+          <h3>Toplu Mesaj</h3>
+          <p class="form-ipucu">Yalnızca müşteri kartında <b>ticari ileti onayı (İYS)</b> işaretli olan ve telefonu/e-postası kayıtlı müşterilere gönderilir. Mesajda {ad} ve {adsoyad} kullanılabilir.</p>
+          <form id="toplu-form" class="form-grid">
+            <div><label>Alıcı Grubu</label><select name="segment">${segmentler.map((s) => `<option value="${s.kod}">${UI.esc(s.ad)}</option>`).join('')}</select></div>
+            <div><label>Kanal</label><select name="kanal"><option value="sms">SMS</option><option value="email">E-posta</option></select></div>
+            <div style="grid-column:1/-1"><label>Mesaj <span class="form-ipucu" id="toplu-sayac"></span></label><textarea name="mesaj" rows="3" placeholder="Merhaba {ad}, dermokozmetik ürünlerde %15 indirim başladı!"></textarea></div>
+            <div><button type="button" class="secondary" id="toplu-onizle">Önizle</button> <button type="submit" id="toplu-gonder" disabled>Gönder</button></div>
+          </form>
+          <div id="toplu-sonuc"></div>
+        </div>
         <div class="card">
           <h3>Müşteriye Hatırlatma Gönder</h3>
           <p style="color:#6b7873;font-size:13px">
@@ -81,6 +92,36 @@
       });
 
       await yenile();
+
+      const tf = document.getElementById('toplu-form');
+      const tGonder = document.getElementById('toplu-gonder');
+      const govde = (onizleme) => ({ segment: tf.segment.value, kanal: tf.kanal.value, mesaj: tf.mesaj.value, onizleme });
+      tf.addEventListener('input', () => {
+        tGonder.disabled = true;
+        const n = tf.mesaj.value.length;
+        document.getElementById('toplu-sayac').textContent = tf.kanal.value === 'sms' ? `${n} karakter · ${Math.ceil(n / 153) || 1} SMS` : `${n} karakter`;
+      });
+      document.getElementById('toplu-onizle').addEventListener('click', async () => {
+        try {
+          const r = await Api.post('/api/bildirimler/toplu', govde(true));
+          document.getElementById('toplu-sonuc').innerHTML = `<p><b>${r.alici_sayisi}</b> alıcı${r.ornek_alicilar.length ? ': ' + r.ornek_alicilar.map(UI.esc).join(', ') + (r.alici_sayisi > 5 ? '…' : '') : ''}</p>
+            <p class="form-ipucu">Örnek mesaj: “${UI.esc(r.ornek_mesaj)}”</p>`;
+          tGonder.disabled = r.alici_sayisi === 0;
+        } catch (err) {
+          UI.toast(err.message, 'error');
+        }
+      });
+      tf.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!window.confirm('Mesaj gruptaki tüm onaylı müşterilere gönderilecek. Emin misiniz?')) return;
+        try {
+          const r = await Api.post('/api/bildirimler/toplu', govde(false));
+          UI.toast(`${r.alici_sayisi} müşteriye gönderildi (${Object.entries(r.sonuc).filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join(', ')})`, 'success');
+          view.render(container);
+        } catch (err) {
+          UI.toast(err.message, 'error');
+        }
+      });
     }
   };
 

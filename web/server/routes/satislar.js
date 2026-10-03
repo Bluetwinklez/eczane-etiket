@@ -237,12 +237,21 @@ router.post('/', (req, res) => {
     );
 
     // Kalem ara_toplam'i kampanya indirimi dusulmus net tutardir (raporlardaki ciro buna dayanir)
+    // Kullanim talimati (istege bagli) urun bazinda: ayni urun iki satirdaysa dolu olani alinir
+    const kullanimlar = new Map();
+    for (const k of kalemler) {
+      const metin = k.kullanim ? String(k.kullanim).trim().slice(0, 200) : '';
+      if (metin) kullanimlar.set(Number(k.ilac_id), metin);
+    }
+    const kullanimYaz = db.prepare('UPDATE satis_kalemleri SET kullanim = ? WHERE id = ?');
+
     hesap.kalemler.forEach((k, idx) => {
       const { ilac, adet } = k;
       const { mevcutStok } = hazirlanmis[idx];
       const kalemInfo = insertKalem.run(
         satisId, ilac.id, ilac.ad, adet, ilac.satis_fiyati, ilac.alis_fiyati, k.net, k.kalem_indirimi, k.kampanya_id, k.kampanya_adi
       );
+      if (kullanimlar.has(ilac.id)) kullanimYaz.run(kullanimlar.get(ilac.id), kalemInfo.lastInsertRowid);
       updateStok.run(mevcutStok - adet, ilac.id, subeId);
       // FEFO: SKT'si en yakin partiden dus, iade icin dagilimi sakla
       for (const d of partiCikis(ilac.id, subeId, adet)) {
