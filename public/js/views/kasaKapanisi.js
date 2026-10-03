@@ -36,6 +36,7 @@
             <div class="stat-tile c-lilac"><div class="label">Kredi Kartı</div><div class="value">${UI.tl(ozet.kart)}</div></div>
             <div class="stat-tile c-amber"><div class="label">SGK</div><div class="value">${UI.tl(ozet.sgk)}</div></div>
             <div class="stat-tile c-rose"><div class="label">Veresiye Satış</div><div class="value">${UI.tl(ozet.veresiye)}</div></div>
+            ${ozet.iade > 0 ? `<div class="stat-tile c-amber"><div class="label">İadeler</div><div class="value">-${UI.tl(ozet.iade)}</div></div>` : ''}
             <div class="stat-tile"><div class="label">Toplam Ciro (${ozet.satis_adedi} satış)</div><div class="value">${UI.tl(ozet.toplam)}</div></div>
           </div>
           ${

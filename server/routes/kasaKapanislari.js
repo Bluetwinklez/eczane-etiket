@@ -47,6 +47,26 @@ function gununOzeti(subeId, tarih) {
   ozet.tahsilat = ozet.tahsilat_nakit + ozet.tahsilat_kart;
   ozet.nakit += ozet.tahsilat_nakit;
   ozet.kart += ozet.tahsilat_kart;
+
+  // Gun icindeki iadeler: nakit/kart iadesi kasadan/POS'tan cikar, ciro da azalir
+  const iadeler = db
+    .prepare(
+      `SELECT odeme_tipi, SUM(toplam_tutar) AS toplam FROM iadeler
+       WHERE sube_id = ? AND date(tarih) = ? GROUP BY odeme_tipi`
+    )
+    .all(subeId, tarih);
+  ozet.iade = 0;
+  for (const i of iadeler) {
+    ozet.iade += i.toplam;
+    if (i.odeme_tipi === 'nakit') ozet.nakit -= i.toplam;
+    else if (i.odeme_tipi === 'kredi_karti') ozet.kart -= i.toplam;
+    else if (i.odeme_tipi === 'sgk') ozet.sgk -= i.toplam;
+    else if (i.odeme_tipi === 'veresiye') ozet.veresiye -= i.toplam;
+  }
+  ozet.toplam -= ozet.iade;
+  for (const alan of ['nakit', 'kart', 'sgk', 'veresiye', 'toplam', 'iade']) {
+    ozet[alan] = Math.round(ozet[alan] * 100) / 100;
+  }
   const satisAdedi = db
     .prepare('SELECT COUNT(*) AS c FROM satislar WHERE sube_id = ? AND date(tarih) = ?')
     .get(subeId, tarih).c;
@@ -100,8 +120,8 @@ router.post('/', (req, res) => {
   const info = db
     .prepare(
       `INSERT INTO kasa_kapanislari
-       (sube_id, kullanici_id, tarih, nakit_sistem, kart_sistem, sgk_sistem, veresiye_sistem, tahsilat_sistem, toplam_sistem, nakit_sayilan, fark, not_metni)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       (sube_id, kullanici_id, tarih, nakit_sistem, kart_sistem, sgk_sistem, veresiye_sistem, tahsilat_sistem, iade_sistem, toplam_sistem, nakit_sayilan, fark, not_metni)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       subeId,
@@ -112,6 +132,7 @@ router.post('/', (req, res) => {
       ozet.sgk,
       ozet.veresiye,
       ozet.tahsilat,
+      ozet.iade,
       ozet.toplam,
       nakitSayilan,
       fark,

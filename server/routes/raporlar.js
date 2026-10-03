@@ -154,12 +154,38 @@ router.get('/kar-zarar', (req, res) => {
     .prepare(`SELECT tarih, SUM(tutar) AS toplam_gider FROM giderler${giderWhere} GROUP BY tarih`)
     .all(...giderParams);
 
+  // Iadeler: iade tutari ciroyu azaltir; stoga geri alinan urunun maliyeti geri kazanilir,
+  // stoga alinamayan (hasarli/acilmis) urunun maliyeti zarar olarak kalir.
+  const iadeKosul = kosul.replace(/sa\.tarih/g, 'i.tarih');
+  let iadeSql = `
+    SELECT strftime('%Y-%m-%d', i.tarih) AS tarih,
+           SUM(ik.tutar) AS toplam_iade,
+           SUM(CASE WHEN i.stoga_alindi = 1 THEN ik.alis_fiyati * ik.adet ELSE 0 END) AS geri_alinan_maliyet
+    FROM iade_kalemleri ik
+    JOIN iadeler i ON i.id = ik.iade_id
+    WHERE 1=1 ${iadeKosul}`;
+  const iadeParams = params.slice(0, params.length - (subeId ? 1 : 0));
+  if (subeId) {
+    iadeSql += ' AND i.sube_id = ?';
+    iadeParams.push(subeId);
+  }
+  iadeSql += ' GROUP BY tarih';
+  const iadeSatirlari = db.prepare(iadeSql).all(...iadeParams);
+
+  const bosGun = (tarih) => ({ tarih, toplam_satis: 0, toplam_iade: 0, toplam_maliyet: 0, kar: 0, toplam_gider: 0 });
   const gunMap = new Map();
   for (const r of satisSatirlari) {
-    gunMap.set(r.tarih, { tarih: r.tarih, toplam_satis: r.toplam_satis, toplam_maliyet: r.toplam_maliyet, kar: r.kar, toplam_gider: 0 });
+    gunMap.set(r.tarih, { ...bosGun(r.tarih), toplam_satis: r.toplam_satis, toplam_maliyet: r.toplam_maliyet, kar: r.kar });
+  }
+  for (const i of iadeSatirlari) {
+    const mevcut = gunMap.get(i.tarih) || bosGun(i.tarih);
+    mevcut.toplam_iade = i.toplam_iade;
+    mevcut.toplam_maliyet -= i.geri_alinan_maliyet;
+    mevcut.kar -= i.toplam_iade - i.geri_alinan_maliyet;
+    gunMap.set(i.tarih, mevcut);
   }
   for (const g of giderSatirlari) {
-    const mevcut = gunMap.get(g.tarih) || { tarih: g.tarih, toplam_satis: 0, toplam_maliyet: 0, kar: 0, toplam_gider: 0 };
+    const mevcut = gunMap.get(g.tarih) || bosGun(g.tarih);
     mevcut.toplam_gider = g.toplam_gider;
     gunMap.set(g.tarih, mevcut);
   }
@@ -171,6 +197,7 @@ router.get('/kar-zarar', (req, res) => {
   cikisYap(req, res, 'kar-zarar-raporu', 'Kar-Zarar Raporu', rows, [
     { alan: 'tarih', baslik: 'Tarih' },
     { alan: 'toplam_satis', baslik: 'Toplam Satis (TL)' },
+    { alan: 'toplam_iade', baslik: 'Iade (TL)' },
     { alan: 'toplam_maliyet', baslik: 'Mal Maliyeti (TL)' },
     { alan: 'kar', baslik: 'Brut Kar (TL)' },
     { alan: 'toplam_gider', baslik: 'Isletme Gideri (TL)' },
@@ -341,6 +368,36 @@ router.get('/kampanya-performansi', (req, res) => {
     { alan: 'toplam_indirim', baslik: 'Verilen Indirim (TL)' },
     { alan: 'net_ciro', baslik: 'Net Ciro (TL)' },
     { alan: 'brut_kar', baslik: 'Brut Kar (TL)' }
+  ]);
+});
+
+// Iade raporu
+router.get('/iadeler', (req, res) => {
+  const subeId = resolveSubeId(req, req.query.sube_id);
+  const { kosul, params } = tarihFiltresi(req.query.baslangic, req.query.bitis);
+  let sql = `
+    SELECT i.id, i.tarih, i.satis_id, i.toplam_tutar, i.odeme_tipi, i.neden,
+           CASE WHEN i.stoga_alindi = 1 THEN 'Evet' ELSE 'Hayir' END AS stoga_alindi,
+           u.ad_soyad AS kullanici_adi,
+           (SELECT GROUP_CONCAT(ik.ilac_adi || ' x' || ik.adet, ', ') FROM iade_kalemleri ik WHERE ik.iade_id = i.id) AS urunler
+    FROM iadeler i
+    LEFT JOIN kullanicilar u ON u.id = i.kullanici_id
+    WHERE 1=1 ${kosul.replace(/sa\.tarih/g, 'i.tarih')}`;
+  if (subeId) {
+    sql += ' AND i.sube_id = ?';
+    params.push(subeId);
+  }
+  sql += ' ORDER BY i.tarih DESC';
+  cikisYap(req, res, 'iade-raporu', 'Iade Raporu', db.prepare(sql).all(...params), [
+    { alan: 'id', baslik: 'Iade No' },
+    { alan: 'tarih', baslik: 'Tarih' },
+    { alan: 'satis_id', baslik: 'Satis No' },
+    { alan: 'urunler', baslik: 'Urunler' },
+    { alan: 'toplam_tutar', baslik: 'Tutar (TL)' },
+    { alan: 'odeme_tipi', baslik: 'Odeme' },
+    { alan: 'stoga_alindi', baslik: 'Stoga Alindi' },
+    { alan: 'neden', baslik: 'Neden' },
+    { alan: 'kullanici_adi', baslik: 'Kullanici' }
   ]);
 });
 
