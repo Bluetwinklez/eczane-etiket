@@ -87,19 +87,19 @@ const AnaSayfaView = {
 
     container.innerHTML = `
       <div class="stat-row">
-        <div class="stat-tile">
+        <div class="stat-tile c-mint">
           <div class="label">Bugünkü Satış Adedi</div>
           <div class="value">${satislarBugun.length}</div>
         </div>
-        <div class="stat-tile">
+        <div class="stat-tile c-lilac">
           <div class="label">Bugünkü Ciro</div>
           <div class="value">${UI.tl(bugunkuCiro)}</div>
         </div>
-        <div class="stat-tile">
+        <div class="stat-tile c-rose">
           <div class="label">Kritik Stok</div>
           <div class="value">${uyarilar.kritik_stok.length}</div>
         </div>
-        <div class="stat-tile">
+        <div class="stat-tile c-amber">
           <div class="label">SKT Uyarısı</div>
           <div class="value">${uyarilar.skt_yaklasan.length}</div>
         </div>
