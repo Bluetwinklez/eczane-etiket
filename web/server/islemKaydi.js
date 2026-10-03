@@ -11,10 +11,15 @@ function detayOzetle(yol, body) {
   if (!body || typeof body !== 'object') return null;
   // Yedek geri yukleme govdesi tum veritabanini icerir; sadece ozet tutulur.
   if (yol.startsWith('/api/yedekleme/import')) {
+    // Bos tablolar yazilmaz; tablo sayisi arttikca ozet sismesin.
     const tablolar = body.tablolar && typeof body.tablolar === 'object' ? body.tablolar : {};
-    return JSON.stringify({
-      tablolar: Object.fromEntries(Object.entries(tablolar).map(([k, v]) => [k, Array.isArray(v) ? v.length : 0]))
+    const sayilar = Object.entries(tablolar).map(([k, v]) => [k, Array.isArray(v) ? v.length : 0]);
+    const metin = JSON.stringify({
+      tablo_sayisi: sayilar.length,
+      toplam_kayit: sayilar.reduce((t, [, n]) => t + n, 0),
+      tablolar: Object.fromEntries(sayilar.filter(([, n]) => n > 0))
     });
+    return metin.length > MAKS_DETAY ? metin.slice(0, MAKS_DETAY) + '…' : metin;
   }
   const temiz = {};
   for (const [k, v] of Object.entries(body)) {

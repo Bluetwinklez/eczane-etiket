@@ -366,6 +366,29 @@ db.exec(`
     fark INTEGER,
     UNIQUE (sayim_id, ilac_id)
   );
+
+  -- Subeler arasi transfer: gonderimde kaynaktan duser, teslimde hedefe ayni
+  -- parti/SKT ile girer
+  CREATE TABLE IF NOT EXISTS transferler (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kaynak_sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    hedef_sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    gonderen_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    teslim_alan_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    durum TEXT NOT NULL DEFAULT 'yolda' CHECK (durum IN ('yolda', 'teslim_alindi', 'iptal')),
+    aciklama TEXT,
+    tarih TEXT NOT NULL DEFAULT (datetime('now')),
+    teslim_tarihi TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS transfer_kalemleri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    transfer_id INTEGER NOT NULL REFERENCES transferler(id) ON DELETE CASCADE,
+    ilac_id INTEGER NOT NULL REFERENCES ilaclar(id),
+    adet INTEGER NOT NULL,
+    parti_no TEXT,
+    skt TEXT
+  );
 `);
 
 // Etken madde ciftleri arasindaki bilinen etkilesimler (madde_a < madde_b sirali saklanir)
