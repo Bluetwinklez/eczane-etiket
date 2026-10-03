@@ -111,6 +111,85 @@ router.get('/uyarilar', (req, res) => {
   res.json({ kritik_stok: kritikStok, skt_yaklasan: sktYaklasan });
 });
 
+// Toplu fiyat guncelleme (orn. ilac fiyat kararnamesi, dermokozmetik zam donemi)
+const YUVARLAMALAR = {
+  kurus: (f) => Math.round(f * 100) / 100,
+  yarim: (f) => Math.round(f * 2) / 2,
+  lira: (f) => Math.round(f),
+  // Psikolojik fiyat: 123,40 -> 122,90 / 123,90 (en yakin ,90)
+  doksan: (f) => Math.max(0.9, Math.round(f + 0.1) - 0.1)
+};
+
+function topluFiyatHedefleri(hedef) {
+  let sql = 'SELECT id, ad, kategori, urun_tipi, receteli, alis_fiyati, satis_fiyati FROM ilaclar WHERE 1=1';
+  const params = [];
+  const tip = hedef && hedef.tip;
+  if (tip === 'kategori') {
+    sql += ' AND kategori = ?';
+    params.push(String(hedef.deger || ''));
+  } else if (tip === 'urun_tipi') {
+    sql += ' AND urun_tipi = ?';
+    params.push(String(hedef.deger || ''));
+  } else if (tip === 'receteli') {
+    sql += ' AND receteli = 1';
+  } else if (tip === 'recetesiz') {
+    sql += ' AND receteli = 0';
+  } else if (tip !== 'tumu') {
+    return null;
+  }
+  return db.prepare(sql + ' ORDER BY ad').all(...params);
+}
+
+router.post('/toplu-fiyat', requireRole('admin', 'eczaci'), (req, res) => {
+  const { hedef, onizleme } = req.body;
+  const yuzde = Number(req.body.yuzde);
+  const alan = req.body.alan || 'satis';
+  const yuvarla = YUVARLAMALAR[req.body.yuvarlama || 'kurus'];
+  if (!Number.isFinite(yuzde) || yuzde === 0 || yuzde < -90 || yuzde > 500) {
+    return res.status(400).json({ error: 'Yuzde -90 ile 500 arasinda ve sifirdan farkli olmali' });
+  }
+  if (!['satis', 'alis', 'ikisi'].includes(alan)) return res.status(400).json({ error: 'Gecersiz fiyat alani' });
+  if (!yuvarla) return res.status(400).json({ error: 'Gecersiz yuvarlama' });
+
+  const urunler = topluFiyatHedefleri(hedef);
+  if (!urunler) return res.status(400).json({ error: 'Gecersiz hedef' });
+
+  const carpan = 1 + yuzde / 100;
+  const degisiklikler = urunler.map((u) => {
+    const yeniSatis = alan === 'alis' ? u.satis_fiyati : yuvarla(u.satis_fiyati * carpan);
+    // Alis fiyati faturadan gelir; psikolojik yuvarlama uygulanmaz
+    const yeniAlis = alan === 'satis' ? u.alis_fiyati : Math.round(u.alis_fiyati * carpan * 100) / 100;
+    return {
+      id: u.id,
+      ad: u.ad,
+      eski_satis: u.satis_fiyati,
+      yeni_satis: yeniSatis,
+      eski_alis: u.alis_fiyati,
+      yeni_alis: yeniAlis,
+      // Satis fiyati alisin altina duserse uyar
+      zararina: yeniSatis < yeniAlis
+    };
+  });
+
+  if (onizleme) return res.json({ urun_sayisi: degisiklikler.length, degisiklikler });
+  if (!degisiklikler.length) return res.status(400).json({ error: 'Hedefte urun yok' });
+
+  db.exec('BEGIN');
+  try {
+    const guncelle = db.prepare('UPDATE ilaclar SET satis_fiyati = ?, alis_fiyati = ? WHERE id = ?');
+    const gecmis = db.prepare('INSERT INTO fiyat_gecmisi (ilac_id, eski_fiyat, yeni_fiyat) VALUES (?, ?, ?)');
+    for (const d of degisiklikler) {
+      guncelle.run(d.yeni_satis, d.yeni_alis, d.id);
+      if (d.yeni_satis !== d.eski_satis) gecmis.run(d.id, d.eski_satis, d.yeni_satis);
+    }
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    return res.status(500).json({ error: 'Fiyatlar guncellenemedi' });
+  }
+  res.json({ urun_sayisi: degisiklikler.length, degisiklikler });
+});
+
 // Karekod (GS1 DataMatrix) okutuldugunda urunu, parti ve SKT bilgisini doner
 router.get('/karekod', (req, res) => {
   const karekod = karekodCoz(req.query.kod);
