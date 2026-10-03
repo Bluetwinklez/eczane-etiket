@@ -24,6 +24,7 @@
     { key: 'etkilesimler', etiket: 'İlaç Etkileşimleri', ikon: '⚠️' },
     { key: 'gorevler', etiket: 'Görevler', ikon: '✅' },
     { key: 'nobetler', etiket: 'Nöbetçi Takvimi', ikon: '⚕' },
+    { key: 'vardiya', etiket: 'Vardiya Çizelgesi', ikon: '🗓️' },
     { key: 'bildirimler', etiket: 'Bildirimler', ikon: '🔔' },
     { key: 'kullanicilar', etiket: 'Kullanıcılar', ikon: '🧑‍💼', roller: ['admin'] },
     { key: 'subeler', etiket: 'Şubeler', ikon: '🏢', roller: ['admin'] },
