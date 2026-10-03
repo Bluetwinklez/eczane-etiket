@@ -107,7 +107,7 @@ router.get('/kritik-stok-skt', (req, res) => {
   ]);
 });
 
-// 14. Kar-zarar raporu
+// 14. Kar-zarar raporu (isletme giderleri dahil net kar)
 router.get('/kar-zarar', (req, res) => {
   const subeId = resolveSubeId(req, req.query.sube_id);
   const { kosul, params } = tarihFiltresi(req.query.baslangic, req.query.bitis);
@@ -125,14 +125,50 @@ router.get('/kar-zarar', (req, res) => {
     sql += ' AND sa.sube_id = ?';
     params.push(subeId);
   }
-  sql += ' GROUP BY tarih ORDER BY tarih DESC';
+  sql += ' GROUP BY tarih';
 
-  const rows = db.prepare(sql).all(...params);
+  const satisSatirlari = db.prepare(sql).all(...params);
+
+  const giderKosullar = [];
+  const giderParams = [];
+  if (req.query.baslangic) {
+    giderKosullar.push('tarih >= ?');
+    giderParams.push(req.query.baslangic);
+  }
+  if (req.query.bitis) {
+    giderKosullar.push('tarih <= ?');
+    giderParams.push(req.query.bitis);
+  }
+  if (subeId) {
+    giderKosullar.push('sube_id = ?');
+    giderParams.push(subeId);
+  }
+  const giderWhere = giderKosullar.length ? ' WHERE ' + giderKosullar.join(' AND ') : '';
+  const giderSatirlari = db
+    .prepare(`SELECT tarih, SUM(tutar) AS toplam_gider FROM giderler${giderWhere} GROUP BY tarih`)
+    .all(...giderParams);
+
+  const gunMap = new Map();
+  for (const r of satisSatirlari) {
+    gunMap.set(r.tarih, { tarih: r.tarih, toplam_satis: r.toplam_satis, toplam_maliyet: r.toplam_maliyet, kar: r.kar, toplam_gider: 0 });
+  }
+  for (const g of giderSatirlari) {
+    const mevcut = gunMap.get(g.tarih) || { tarih: g.tarih, toplam_satis: 0, toplam_maliyet: 0, kar: 0, toplam_gider: 0 };
+    mevcut.toplam_gider = g.toplam_gider;
+    gunMap.set(g.tarih, mevcut);
+  }
+
+  const rows = Array.from(gunMap.values())
+    .map((r) => ({ ...r, net_kar: r.kar - r.toplam_gider }))
+    .sort((a, b) => (a.tarih < b.tarih ? 1 : -1));
+
   cikisYap(req, res, 'kar-zarar-raporu', 'Kar-Zarar Raporu', rows, [
     { alan: 'tarih', baslik: 'Tarih' },
     { alan: 'toplam_satis', baslik: 'Toplam Satis (TL)' },
-    { alan: 'toplam_maliyet', baslik: 'Toplam Maliyet (TL)' },
-    { alan: 'kar', baslik: 'Kar (TL)' }
+    { alan: 'toplam_maliyet', baslik: 'Mal Maliyeti (TL)' },
+    { alan: 'kar', baslik: 'Brut Kar (TL)' },
+    { alan: 'toplam_gider', baslik: 'Isletme Gideri (TL)' },
+    { alan: 'net_kar', baslik: 'Net Kar (TL)' }
   ]);
 });
 

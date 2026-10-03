@@ -34,8 +34,10 @@
       kolonlar: [
         { alan: 'tarih', baslik: 'Tarih' },
         { alan: 'toplam_satis', baslik: 'Toplam Satış', tl: true },
-        { alan: 'toplam_maliyet', baslik: 'Toplam Maliyet', tl: true },
-        { alan: 'kar', baslik: 'Kâr', tl: true }
+        { alan: 'toplam_maliyet', baslik: 'Mal Maliyeti', tl: true },
+        { alan: 'kar', baslik: 'Brüt Kâr', tl: true },
+        { alan: 'toplam_gider', baslik: 'İşletme Gideri', tl: true },
+        { alan: 'net_kar', baslik: 'Net Kâr', tl: true }
       ]
     },
     'recete-sgk': {
