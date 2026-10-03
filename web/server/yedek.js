@@ -39,7 +39,9 @@ const TABLO_SIRASI = [
   'puan_hareketleri',
   'istekler',
   'emanetler',
-  'satis_hedefleri'
+  'satis_hedefleri',
+  'vardiyalar',
+  'vardiya_notlari'
 ];
 
 const DOSYA_DESENI = /^eczanem-otomatik-\d{4}-\d{2}-\d{2}-\d{6}\.json$/;
