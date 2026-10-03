@@ -29,7 +29,9 @@ const TABLO_SIRASI = [
   'iadeler',
   'iade_kalemleri',
   'etkilesimler',
-  'ilac_hatirlatmalari'
+  'ilac_hatirlatmalari',
+  'sayimlar',
+  'sayim_kalemleri'
 ];
 
 router.get('/export', (req, res) => {
