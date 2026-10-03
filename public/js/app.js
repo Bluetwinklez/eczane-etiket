@@ -182,6 +182,16 @@ async function init() {
   document.getElementById('user-rol').textContent = CURRENT_USER.rol;
   navOlustur();
 
+  const temaBtn = document.getElementById('tema-btn');
+  const temaButonMetniGuncelle = () => {
+    temaBtn.textContent = UI.temaAktifMi() ? '☀️ Aydınlık Tema' : '🌙 Karanlık Tema';
+  };
+  temaButonMetniGuncelle();
+  temaBtn.addEventListener('click', () => {
+    UI.temaDegistir();
+    temaButonMetniGuncelle();
+  });
+
   document.getElementById('logout-btn').addEventListener('click', async () => {
     await Api.post('/api/auth/logout');
     window.location.href = 'login.html';

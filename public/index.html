@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Eczanem Programı</title>
   <link rel="stylesheet" href="css/style.css" />
+  <script>
+    (function () {
+      try {
+        if (localStorage.getItem('eczanem-tema') === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
   <div class="app-shell">
@@ -14,6 +23,7 @@
       <div class="user-box">
         <div id="user-name">-</div>
         <div class="rol" id="user-rol">-</div>
+        <button id="tema-btn" class="secondary">🌙 Karanlık Tema</button>
         <button id="logout-btn" class="secondary">Çıkış Yap</button>
       </div>
     </aside>
