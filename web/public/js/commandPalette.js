@@ -10,6 +10,8 @@
     { key: 'iadeler', etiket: 'Satış İadeleri', ikon: '↩️', roller: ['admin', 'eczaci'] },
     { key: 'musteriler', etiket: 'Müşteriler', ikon: '👤' },
     { key: 'hatirlatmalar', etiket: 'İlaç Hatırlatmaları', ikon: '⏰' },
+    { key: 'istekler', etiket: 'İstek / Eksik Defteri', ikon: '📝' },
+    { key: 'emanetler', etiket: 'Emanet Defteri', ikon: '🤝', roller: ['admin', 'eczaci'] },
     { key: 'tedarikciler', etiket: 'Tedarikçiler', ikon: '🚚' },
     { key: 'siparisler', etiket: 'Siparişler', ikon: '📋', roller: ['admin', 'eczaci'] },
     { key: 'mal-kabul', etiket: 'Mal Kabul', ikon: '📥', roller: ['admin', 'eczaci'] },

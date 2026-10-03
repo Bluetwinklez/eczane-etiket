@@ -441,6 +441,40 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_puan_hareketleri_musteri ON puan_hareketleri (musteri_id);
 
+  -- Eksik / istek defteri: stokta olmayan ama musterinin istedigi urunler
+  CREATE TABLE IF NOT EXISTS istekler (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    musteri_id INTEGER REFERENCES musteriler(id) ON DELETE SET NULL,
+    musteri_adi TEXT,
+    telefon TEXT,
+    ilac_id INTEGER REFERENCES ilaclar(id) ON DELETE SET NULL,
+    urun_adi TEXT NOT NULL,
+    adet INTEGER NOT NULL DEFAULT 1,
+    durum TEXT NOT NULL DEFAULT 'bekliyor' CHECK (durum IN ('bekliyor', 'haber_verildi', 'teslim_edildi', 'iptal')),
+    notlar TEXT,
+    kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    tarih TEXT NOT NULL DEFAULT (datetime('now')),
+    guncelleme TEXT
+  );
+
+  -- Emanet ilac defteri: baska eczaneden alinan / baska eczaneye verilen ilaclar
+  CREATE TABLE IF NOT EXISTS emanetler (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    yon TEXT NOT NULL CHECK (yon IN ('alinan', 'verilen')),
+    karsi_eczane TEXT NOT NULL,
+    telefon TEXT,
+    ilac_id INTEGER NOT NULL REFERENCES ilaclar(id),
+    adet INTEGER NOT NULL CHECK (adet > 0),
+    durum TEXT NOT NULL DEFAULT 'acik' CHECK (durum IN ('acik', 'kapandi')),
+    kapanis_sekli TEXT,
+    notlar TEXT,
+    kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    tarih TEXT NOT NULL DEFAULT (datetime('now')),
+    kapanis_tarihi TEXT
+  );
+
   -- POS'ta bekletilen (park edilen) sepetler
   CREATE TABLE IF NOT EXISTS bekleyen_sepetler (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

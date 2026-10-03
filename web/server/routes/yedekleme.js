@@ -38,7 +38,9 @@ const TABLO_SIRASI = [
   'mal_kabul_kalemleri',
   'satis_odemeleri',
   'bekleyen_sepetler',
-  'puan_hareketleri'
+  'puan_hareketleri',
+  'istekler',
+  'emanetler'
 ];
 
 router.get('/export', (req, res) => {
