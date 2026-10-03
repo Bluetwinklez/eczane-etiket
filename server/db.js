@@ -297,7 +297,37 @@ db.exec(`
     tarih TEXT NOT NULL DEFAULT (datetime('now'))
   );
   CREATE INDEX IF NOT EXISTS idx_cari_hareketler_musteri ON cari_hareketler (musteri_id);
+
+  -- Satis iadeleri: iade tutari kalemin net tutarindan (kampanya ve satis
+  -- geneli indirim dusulmus) adet oraninda hesaplanir.
+  CREATE TABLE IF NOT EXISTS iadeler (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    satis_id INTEGER NOT NULL REFERENCES satislar(id),
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    toplam_tutar REAL NOT NULL,
+    odeme_tipi TEXT NOT NULL,
+    stoga_alindi INTEGER NOT NULL DEFAULT 1,
+    neden TEXT,
+    tarih TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_iadeler_satis ON iadeler (satis_id);
+
+  CREATE TABLE IF NOT EXISTS iade_kalemleri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    iade_id INTEGER NOT NULL REFERENCES iadeler(id) ON DELETE CASCADE,
+    satis_kalem_id INTEGER NOT NULL REFERENCES satis_kalemleri(id),
+    ilac_id INTEGER NOT NULL,
+    ilac_adi TEXT NOT NULL,
+    adet INTEGER NOT NULL,
+    tutar REAL NOT NULL,
+    alis_fiyati REAL NOT NULL DEFAULT 0
+  );
+  CREATE INDEX IF NOT EXISTS idx_iade_kalemleri_kalem ON iade_kalemleri (satis_kalem_id);
 `);
+
+sutunEkleGerekirse('satis_kalemi_partileri', 'iade_edilen', 'INTEGER NOT NULL DEFAULT 0');
+sutunEkleGerekirse('kasa_kapanislari', 'iade_sistem', 'REAL NOT NULL DEFAULT 0');
 
 function ayarOku(anahtar) {
   const row = db.prepare('SELECT deger FROM ayarlar WHERE anahtar = ?').get(anahtar);

@@ -34,6 +34,7 @@
       kolonlar: [
         { alan: 'tarih', baslik: 'Tarih' },
         { alan: 'toplam_satis', baslik: 'Toplam Satış', tl: true },
+        { alan: 'toplam_iade', baslik: 'İade', tl: true },
         { alan: 'toplam_maliyet', baslik: 'Mal Maliyeti', tl: true },
         { alan: 'kar', baslik: 'Brüt Kâr', tl: true },
         { alan: 'toplam_gider', baslik: 'İşletme Gideri', tl: true },
@@ -48,6 +49,19 @@
         { alan: 'tarih', baslik: 'Tarih' },
         { alan: 'musteri_adi', baslik: 'Müşteri' },
         { alan: 'toplam_tutar', baslik: 'Tutar', tl: true }
+      ]
+    },
+    iadeler: {
+      baslik: 'İade Raporu',
+      tarih: true,
+      kolonlar: [
+        { alan: 'id', baslik: 'İade No' },
+        { alan: 'tarih', baslik: 'Tarih' },
+        { alan: 'satis_id', baslik: 'Satış No' },
+        { alan: 'urunler', baslik: 'Ürünler' },
+        { alan: 'toplam_tutar', baslik: 'Tutar', tl: true },
+        { alan: 'stoga_alindi', baslik: 'Stoğa Alındı' },
+        { alan: 'neden', baslik: 'Neden' }
       ]
     },
     'kampanya-performansi': {
