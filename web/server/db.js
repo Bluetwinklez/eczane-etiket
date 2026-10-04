@@ -346,6 +346,13 @@ sutunEkleGerekirse('ilaclar', 'recete_turu', 'TEXT');
 sutunEkleGerekirse('satis_kalemleri', 'kullanim', 'TEXT');
 // Ticari elektronik ileti onayi (IYS): toplu kampanya mesajlari yalnizca onayli musterilere
 sutunEkleGerekirse('musteriler', 'ileti_izni', 'INTEGER NOT NULL DEFAULT 0');
+// Hasta guvenligi: gebelik/emzirme ve yas uyarilari, raf konumu
+sutunEkleGerekirse('musteriler', 'dogum_tarihi', 'TEXT');
+sutunEkleGerekirse('musteriler', 'gebelik_durumu', 'TEXT');
+sutunEkleGerekirse('ilaclar', 'gebelik_uyari', 'TEXT');
+sutunEkleGerekirse('ilaclar', 'min_yas', 'INTEGER');
+sutunEkleGerekirse('ilaclar', 'yasli_uyari', 'INTEGER NOT NULL DEFAULT 0');
+sutunEkleGerekirse('ilaclar', 'raf_konumu', 'TEXT');
 
 // Ayni ilac bitis donemi icin musteriye tekrar tekrar hatirlatma gitmesin
 db.exec(`
@@ -653,6 +660,30 @@ function demoMetinleriniDuzelt() {
   }
 }
 
+// Demo ilaclarina ornek gebelik/yas uyarisi ve raf konumu (yalnizca bos alanlar)
+const ORNEK_GUVENLIK = {
+  'Voltaren Emulgel 50g': ['dikkat', 14, 1, 'B2'],
+  'Nurofen 400mg 24 Tablet': ['dikkat', 12, 1, 'A2'],
+  'Aspirin 100mg 30 Tablet': ['dikkat', 16, 0, 'A1'],
+  'Xanax 0.5mg 30 Tablet': ['kontrendike', 18, 1, 'Kasa (kilitli)'],
+  'Cipralex 10mg 28 Tablet': ['dikkat', 18, 0, 'C1'],
+  'Augmentin BID 1000mg 14 Tablet': [null, 12, 0, 'C3'],
+  'Parol 500mg 20 Tablet': [null, 12, 0, 'A1'],
+  'Coraspin 100mg 30 Tablet': ['dikkat', 16, 0, 'A3'],
+  'Beloc Zok 50mg 28 Tablet': ['dikkat', 18, 0, 'D1'],
+  'Talcid 500mg 20 Tablet': [null, 12, 0, 'B1']
+};
+function ornekGuvenlikBilgileriniDoldur() {
+  const guncelle = db.prepare(
+    `UPDATE ilaclar SET gebelik_uyari = COALESCE(gebelik_uyari, ?), min_yas = COALESCE(min_yas, ?),
+       yasli_uyari = CASE WHEN yasli_uyari = 0 THEN ? ELSE yasli_uyari END, raf_konumu = COALESCE(raf_konumu, ?)
+     WHERE ad = ?`
+  );
+  if (ayarOku('ornek_guvenlik_dolduruldu')) return;
+  for (const [ad, [gebelik, minYas, yasli, raf]] of Object.entries(ORNEK_GUVENLIK)) guncelle.run(gebelik, minYas, yasli, raf, ad);
+  ayarYaz('ornek_guvenlik_dolduruldu', '1');
+}
+
 function seedIfEmpty() {
   const subeCount = db.prepare('SELECT COUNT(*) AS c FROM subeler').get().c;
   if (subeCount === 0) {
@@ -765,5 +796,6 @@ ornekEtkenMaddeleriDoldur();
 ornekKutuGunleriniDoldur();
 ornekReceteTurleriniDoldur();
 demoMetinleriniDuzelt();
+ornekGuvenlikBilgileriniDoldur();
 
 module.exports = { db, hashPassword, verifyPassword, ayarOku, ayarYaz, demoMetinleriniDuzelt };

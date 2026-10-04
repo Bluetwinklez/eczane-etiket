@@ -64,6 +64,9 @@
       if (sayac !== etkilesimSayaci) return;
       sonEtkilesim = sonuc;
       const satirlar = [
+        ...(sonuc.hasta || []).map(
+          (h) => `<div class="etkilesim ${h.seviye}"><b>${{ gebelik: 'Gebelik/emzirme', yas: 'Yaş sınırı', yasli: 'İleri yaş' }[h.tur]}:</b> ${UI.esc(h.urun)} — ${UI.esc(h.mesaj)}</div>`
+        ),
         ...sonuc.alerji.map(
           (a) => `<div class="etkilesim ciddi"><b>Alerji/sağlık notu:</b> ${UI.esc(a.urun)} (${UI.esc(a.madde)}) — müşteri notunda "${UI.esc(a.eslesen)}" geçiyor.</div>`
         ),
@@ -218,6 +221,42 @@
     }
   }
 
+  // Stokta olmayan urun icin ayni etken maddeli muadilleri listeler
+  async function muadilleriGoster(ilacId, container) {
+    const ilac = sonAramaSonuclari.find((i) => i.id === ilacId);
+    try {
+      const liste = await Api.get(`/api/ilaclar/${ilacId}/muadiller`);
+      const modal = UI.openModal(`
+        <h3>Muadil Ürünler</h3>
+        <p class="form-ipucu">${UI.esc(ilac ? ilac.ad : '')} — etken madde: <b>${UI.esc(ilac ? ilac.etken_madde : '')}</b>. Muadil değişimi reçete ve hekim kuralına uygun olmalıdır.</p>
+        ${
+          liste.length
+            ? `<table><thead><tr><th>Ürün</th><th class="num">Stok</th><th class="num">Fiyat</th><th></th></tr></thead><tbody>
+              ${liste
+                .map(
+                  (m) => `<tr><td>${UI.esc(m.ad)}${m.raf_konumu ? ` <span class="badge muted">📍 ${UI.esc(m.raf_konumu)}</span>` : ''}</td>
+                    <td class="num">${m.stok}</td><td class="num">${UI.tl(m.satis_fiyati)}</td>
+                    <td class="actions-col">${m.stok > 0 ? `<button data-ekle="${m.id}">Sepete ekle</button>` : '<span class="badge danger">Stok yok</span>'}</td></tr>`
+                )
+                .join('')}</tbody></table>`
+            : '<div class="empty-state">Aynı etken maddeye sahip başka ürün kayıtlı değil.</div>'
+        }
+        <div class="modal-actions"><button type="button" class="secondary" data-action="kapat">Kapat</button></div>
+      `);
+      modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));
+      modal.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-ekle]');
+        if (!btn) return;
+        const m = liste.find((x) => x.id === Number(btn.dataset.ekle));
+        sepeteEkle(m, container);
+        UI.closeModal(modal);
+        UI.toast(`${m.ad} sepete eklendi`, 'success');
+      });
+    } catch (err) {
+      UI.toast(err.message, 'error');
+    }
+  }
+
   async function aramaSonuclariniCiz(q) {
     const sonuclar = q ? await Api.get('/api/ilaclar?q=' + encodeURIComponent(q)) : [];
     sonAramaSonuclari = sonuclar;
@@ -226,7 +265,9 @@
       ? sonuclar
           .map(
             (i) => `<tr data-id="${i.id}">
-              <td>${UI.esc(i.ad)}</td>
+              <td>${UI.esc(i.ad)}${i.raf_konumu ? ` <span class="badge muted" title="Raf konumu">📍 ${UI.esc(i.raf_konumu)}</span>` : ''}${
+                i.stok <= 0 && i.etken_madde ? ` <button type="button" class="secondary muadil-btn" data-muadil="${i.id}">Muadil bul</button>` : ''
+              }</td>
               <td>${UI.esc(i.barkod || '-')}</td>
               <td class="num">${i.stok}</td>
               <td class="num">${UI.tl(i.satis_fiyati)}</td>
@@ -364,6 +405,11 @@
       });
 
       document.getElementById('arama-tbody').addEventListener('click', (e) => {
+        const muadilBtn = e.target.closest('[data-muadil]');
+        if (muadilBtn) {
+          muadilleriGoster(Number(muadilBtn.dataset.muadil), container);
+          return;
+        }
         const tr = e.target.closest('tr[data-id]');
         if (!tr) return;
         const ilac = sonAramaSonuclari.find((i) => i.id === Number(tr.dataset.id));
@@ -442,9 +488,14 @@
         }
         const musteriId = document.getElementById('pos-musteri').value;
         const odemeTipi = document.getElementById('pos-odeme').value;
-        if (sonEtkilesim && (sonEtkilesim.alerji.length || sonEtkilesim.etkilesimler.some((x) => x.seviye === 'ciddi'))) {
+        if (
+          sonEtkilesim &&
+          (sonEtkilesim.alerji.length ||
+            sonEtkilesim.etkilesimler.some((x) => x.seviye === 'ciddi') ||
+            (sonEtkilesim.hasta || []).some((x) => x.seviye === 'ciddi'))
+        ) {
           const onay = window.confirm(
-            'Sepette CİDDİ etkileşim veya alerji uyarısı var. Eczacı değerlendirmesini yaptıysanız satışa devam etmek istiyor musunuz?'
+            'Sepette CİDDİ etkileşim, alerji, gebelik veya yaş uyarısı var. Eczacı değerlendirmesini yaptıysanız satışa devam etmek istiyor musunuz?'
           );
           if (!onay) return;
         }

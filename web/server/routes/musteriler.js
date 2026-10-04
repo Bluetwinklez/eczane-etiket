@@ -94,15 +94,37 @@ router.get('/:id/satislar', (req, res) => {
   res.json(satislar);
 });
 
+const GEBELIK_DURUMLARI = ['gebe', 'emziren'];
+function hastaAlanlariHatasi(govde) {
+  const t = govde.dogum_tarihi;
+  if (t && (!/^\d{4}-\d{2}-\d{2}$/.test(t) || t > new Date().toISOString().slice(0, 10))) return 'Doğum tarihi geçersiz';
+  if (govde.gebelik_durumu && !GEBELIK_DURUMLARI.includes(govde.gebelik_durumu)) return 'Geçersiz gebelik durumu';
+  return null;
+}
+// Yalnizca istekte gelen alanlar guncellenir
+function hastaAlanlariKaydet(id, govde) {
+  const alanlar = [];
+  const degerler = [];
+  for (const alan of ['dogum_tarihi', 'gebelik_durumu']) {
+    if (!(alan in govde)) continue;
+    alanlar.push(`${alan} = ?`);
+    degerler.push(govde[alan] || null);
+  }
+  if (alanlar.length) db.prepare(`UPDATE musteriler SET ${alanlar.join(', ')} WHERE id = ?`).run(...degerler, id);
+}
+
 router.post('/', (req, res) => {
   const { ad_soyad, telefon, email, tc_no, adres, saglik_notu } = req.body;
   if (!ad_soyad || !ad_soyad.trim()) return res.status(400).json({ error: 'Ad soyad zorunludur' });
+  const hastaHatasi = hastaAlanlariHatasi(req.body);
+  if (hastaHatasi) return res.status(400).json({ error: hastaHatasi });
   const limit = limitOku(req.body.veresiye_limiti);
   if (Number.isNaN(limit)) return res.status(400).json({ error: 'Geçersiz veresiye limiti' });
 
   const info = db
     .prepare('INSERT INTO musteriler (ad_soyad, telefon, email, tc_no, adres, saglik_notu, veresiye_limiti, ileti_izni) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
     .run(ad_soyad.trim(), telefon || null, email || null, tc_no || null, adres || null, saglik_notu || null, limit, req.body.ileti_izni ? 1 : 0);
+  hastaAlanlariKaydet(info.lastInsertRowid, req.body);
   res.status(201).json(db.prepare('SELECT * FROM musteriler WHERE id = ?').get(info.lastInsertRowid));
 });
 
@@ -112,6 +134,8 @@ router.put('/:id', (req, res) => {
 
   const { ad_soyad, telefon, email, tc_no, adres, saglik_notu } = req.body;
   if (!ad_soyad || !ad_soyad.trim()) return res.status(400).json({ error: 'Ad soyad zorunludur' });
+  const hastaHatasi = hastaAlanlariHatasi(req.body);
+  if (hastaHatasi) return res.status(400).json({ error: hastaHatasi });
   // veresiye_limiti gonderilmezse mevcut deger korunur
   const limit = 'veresiye_limiti' in req.body ? limitOku(req.body.veresiye_limiti) : existing.veresiye_limiti;
   if (Number.isNaN(limit)) return res.status(400).json({ error: 'Geçersiz veresiye limiti' });
@@ -128,6 +152,7 @@ router.put('/:id', (req, res) => {
     iletiIzni,
     req.params.id
   );
+  hastaAlanlariKaydet(req.params.id, req.body);
   res.json(db.prepare('SELECT * FROM musteriler WHERE id = ?').get(req.params.id));
 });
 
