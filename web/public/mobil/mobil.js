@@ -335,6 +335,11 @@
         <a class="kart kart-dokun bg-yesil" href="#/kasa"><h2>Günün kasası</h2><div class="fark" style="max-width:none">Nakit, kart, veresiye</div></a>
         ${
           ['admin', 'eczaci'].includes(oturum.kullanici.rol)
+            ? '<a class="kart kart-dokun bg-mercan" href="#/iade"><h2>İade</h2><div class="fark" style="max-width:none">Satıştan iade al</div></a>'
+            : ''
+        }
+        ${
+          ['admin', 'eczaci'].includes(oturum.kullanici.rol)
             ? `<a class="kart kart-dokun bg-turuncu" href="#/mal-kabul"><h2>Mal kabul</h2><div class="fark" style="max-width:none">Gelen malı okut</div></a>
                <a class="kart kart-dokun bg-krem" href="#/siparisler"><h2>Siparişler</h2><div class="fark" style="max-width:none">Durumları gör</div></a>`
             : ''

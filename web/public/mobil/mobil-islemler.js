@@ -650,6 +650,96 @@ window.EczamEklenti = (M) => {
     );
   }
 
+  // ---------- Iade ----------
+  const ODEME_ADI = { nakit: 'Nakit', kredi_karti: 'Kart', sgk: 'SGK', veresiye: 'Veresiye', karma: 'Karma' };
+  async function iadeEkrani() {
+    if (!yonetici()) return cerceve('İade', 'satis', hataKutusu({ message: 'Bu ekran eczacı ve yöneticiler içindir.' }), { geri: true });
+    cerceve('İade', 'satis', '<div class="yukleniyor">Yükleniyor…</div>', { geri: true });
+    let liste;
+    try {
+      const bas = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+      liste = (await get('/api/satislar?baslangic=' + bas, { onbellek: true })).slice(0, 20);
+    } catch (e) {
+      return cerceve('İade', 'satis', hataKutusu(e), { geri: true });
+    }
+    cerceve(
+      'İade',
+      'satis',
+      `${cevrimdisiNot(liste)}<p class="alt-yazi">Son 7 günün satışları. İade edilecek satışı seçin.</p>
+       <div class="kart bg-krem" style="padding:8px 16px">${
+         liste.length
+           ? liste
+               .map((x) => `<button class="satir" data-id="${x.id}" style="width:100%;background:none;border:none;text-align:left;font-size:inherit;cursor:pointer"><div class="ad">Satış #${x.id}<small>${esc(String(x.tarih).slice(0, 16).replace('T', ' '))} · ${esc(x.musteri_adi || 'Perakende')} · ${esc(ODEME_ADI[x.odeme_tipi] || x.odeme_tipi)}</small></div><span class="rozet">${tl(x.toplam_tutar)}</span></button>`)
+               .join('')
+           : bos('Son 7 günde satış yok')
+       }</div>`,
+      { geri: true }
+    );
+    uyg.querySelectorAll('[data-id]').forEach((b) => (b.onclick = () => iadeKarti(Number(b.dataset.id))));
+  }
+
+  async function iadeKarti(satisId) {
+    const perde = sayfaAc('<div class="yukleniyor">Yükleniyor…</div>');
+    const kapat = () => perde.remove();
+    try {
+      const sat = await get('/api/iadeler/satis/' + satisId);
+      const secim = new Map(); // kalem id -> iade adedi
+      const ciz = () => {
+        const toplam = sat.kalemler.reduce((t, k) => t + (secim.get(k.id) || 0) * k.birim_iade_tutari, 0);
+        $('.sayfa', perde).innerHTML = `<div class="tutamak"></div>
+          <h2 style="font-family:var(--font-baslik);font-size:24px;margin:0 0 4px">Satış #${sat.id} iadesi</h2>
+          <p class="alt-yazi" style="margin-bottom:8px">${tl(sat.toplam_tutar)} · ${esc(ODEME_ADI[sat.odeme_tipi] || sat.odeme_tipi)}${sat.musteri_adi ? ' · ' + esc(sat.musteri_adi) : ''}</p>
+          ${sat.kalemler
+            .map((k) =>
+              k.iade_edilebilir_adet > 0
+                ? `<div class="satir"><div class="ad">${esc(k.ilac_adi)}<small>${tl(k.birim_iade_tutari)} × ${k.iade_edilebilir_adet} iade edilebilir</small></div>
+                    <button class="yuvarlak" data-eksi="${k.id}" style="width:40px;height:40px;background:var(--beyaz)" aria-label="Azalt">−</button><b>${secim.get(k.id) || 0}</b>
+                    <button class="yuvarlak" data-arti="${k.id}" style="width:40px;height:40px;background:var(--yesil)" aria-label="Artır">+</button></div>`
+                : `<div class="satir"><div class="ad" style="opacity:.6">${esc(k.ilac_adi)}<small>Tamamı iade edilmiş</small></div></div>`
+            )
+            .join('')}
+          <label class="satir" style="cursor:pointer"><input type="checkbox" id="ia-stok" checked style="width:22px;height:22px" /><div class="ad">Ürünleri stoğa geri al</div></label>
+          <input class="alan" id="ia-neden" placeholder="İade nedeni (isteğe bağlı)" aria-label="İade nedeni" autocomplete="off" style="margin-top:6px" />
+          <div class="kart bg-mercan" style="margin-top:12px"><h2>İade tutarı</h2><div class="tutar">${tl(toplam)}</div></div>
+          <div style="display:grid;gap:10px;margin-top:12px"><button class="hap siyah" id="ia-onayla" ${toplam > 0 ? '' : 'disabled'}>İadeyi tamamla</button><button class="hap" id="ia-kapat">Vazgeç</button></div>`;
+        $('#ia-kapat', perde).onclick = kapat;
+        perde.querySelectorAll('[data-arti]').forEach((b) => (b.onclick = () => {
+          const k = sat.kalemler.find((x) => x.id === Number(b.dataset.arti));
+          if ((secim.get(k.id) || 0) < k.iade_edilebilir_adet) secim.set(k.id, (secim.get(k.id) || 0) + 1);
+          ciz();
+        }));
+        perde.querySelectorAll('[data-eksi]').forEach((b) => (b.onclick = () => {
+          const id = Number(b.dataset.eksi);
+          if ((secim.get(id) || 0) > 0) secim.set(id, secim.get(id) - 1);
+          ciz();
+        }));
+        $('#ia-onayla', perde).onclick = async (e) => {
+          const stoga = $('#ia-stok', perde).checked;
+          const neden = $('#ia-neden', perde).value.trim();
+          e.target.disabled = true;
+          try {
+            const r = await post('/api/iadeler', {
+              satis_id: sat.id,
+              stoga_geri_al: stoga,
+              neden: neden || undefined,
+              kalemler: [...secim].filter(([, adet]) => adet > 0).map(([satis_kalem_id, adet]) => ({ satis_kalem_id, adet }))
+            });
+            kapat();
+            toast(`İade tamamlandı: ${tl(r.toplam_tutar)}`);
+            iadeEkrani();
+          } catch (err) {
+            e.target.disabled = false;
+            toast(hataMesaji(err));
+          }
+        };
+      };
+      ciz();
+    } catch (e) {
+      $('.sayfa', perde).innerHTML = `${hataKutusu(e)}<button class="hap" id="ia-kapat" style="width:100%;margin-top:12px">Kapat</button>`;
+      $('#ia-kapat', perde).onclick = kapat;
+    }
+  }
+
   return {
     oneri: oneriEkrani,
     'hizli-satis': () => hizliSatisEkrani(),
@@ -657,6 +747,7 @@ window.EczamEklenti = (M) => {
     siparisler: siparislerEkrani,
     'mal-kabul': malKabulEkrani,
     gorevler: gorevlerEkrani,
-    kasa: kasaEkrani
+    kasa: kasaEkrani,
+    iade: iadeEkrani
   };
 };
