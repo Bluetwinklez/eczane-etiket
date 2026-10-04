@@ -17,6 +17,7 @@ const raporlarRoutes = require('./routes/raporlar');
 const kaliteRoutes = require('./routes/kalite');
 const ayarlarRoutes = require('./routes/ayarlar');
 const sistemRoutes = require('./routes/sistem');
+const mobilRoutes = require('./routes/mobil');
 const kullanicilarRoutes = require('./routes/kullanicilar');
 const subelerRoutes = require('./routes/subeler');
 const bildirimlerRoutes = require('./routes/bildirimler');
@@ -110,8 +111,20 @@ app.use('/api/islem-kayitlari', requireLogin, requireRole('admin'), islemKayitla
 app.use('/api/kalite', requireLogin, kaliteRoutes);
 app.use('/api/ayarlar', requireLogin, ayarlarRoutes);
 app.use('/api/sistem', requireLogin, sistemRoutes);
+app.use('/api/mobil', requireLogin, mobilRoutes);
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
+
+// Gizlilik politikasi (App Store zorunlu): iletisim e-postasi ECZANEM_GIZLILIK_EPOSTA ile verilir
+app.get('/gizlilik.html', (req, res) => {
+  const fs = require('fs');
+  const sablon = fs.readFileSync(path.join(__dirname, 'sablonlar', 'gizlilik.html'), 'utf8');
+  const eposta = String(process.env.ECZANEM_GIZLILIK_EPOSTA || '').trim();
+  const iletisim = /^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(eposta)
+    ? `Gizlilikle ilgili sorularınız için: <a href="mailto:${eposta}">${eposta}</a>. Eczane içi konular (hesap, müşteri verisi) için eczane yöneticinize başvurabilirsiniz.`
+    : 'Gizlilikle ilgili sorularınız ve veri taleplerinizle ilgili olarak eczane yöneticinize başvurun.';
+  res.type('html').send(sablon.replace('{{GUNCELLEME}}', '4 Ekim 2026').replace('{{ILETISIM}}', iletisim));
+});
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 

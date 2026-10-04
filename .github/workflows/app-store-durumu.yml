@@ -1,0 +1,36 @@
+name: App Store durumu
+
+# Salt okunur: TestFlight derlemesi işlendi mi, sürüm hangi aşamada?
+# Actions → App Store durumu → Run workflow; sonuç iş özetinde görünür.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  durum:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Durumu sorgula
+        env:
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+          ASC_API_PRIVATE_KEY_BASE64: ${{ secrets.ASC_API_PRIVATE_KEY_BASE64 }}
+          IOS_BUNDLE_ID: ${{ secrets.IOS_BUNDLE_ID }}
+        run: |
+          set -euo pipefail
+          for name in ASC_API_KEY_ID ASC_API_ISSUER_ID ASC_API_PRIVATE_KEY_BASE64; do
+            [[ -n "${!name}" ]] || { echo "::error::Eksik repo secret'ı: $name"; exit 1; }
+          done
+          python -m pip install --quiet pyjwt cryptography
+          key="$RUNNER_TEMP/asc_key.p8"
+          printf '%s' "$ASC_API_PRIVATE_KEY_BASE64" | base64 -d > "$key"
+          export ASC_API_PRIVATE_KEY_PATH="$key"
+          python tool/asc_status.py
+          rm -f "$key"

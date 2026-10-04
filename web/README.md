@@ -1,4 +1,4 @@
-# Eczanem Programı (Web)
+# Eczam Programı (Web)
 
 > Bu klasör, depodaki masaüstü **Eczane Etiket** uygulamasının yanında duran web tabanlı eczane yönetim sistemidir. Depo genel bakışı için [ana README](../README.md) dosyasına bakın.
 
@@ -88,6 +88,8 @@ Eczane yönetim ve otomasyon sistemi. Node.js + Express + yerleşik `node:sqlite
 - Şifre kuralı: en az 8 karakter, en az bir harf ve bir rakam. Demo hesaplar ve yöneticinin oluşturduğu/sıfırladığı şifreler ilk girişte değiştirilmek zorundadır. Şifre değişince kullanıcının diğer oturumları kapatılır.
 - İşlem kaydı (audit log): tüm veri değiştiren istekler kullanıcı, yöntem, kaynak ve sonuç koduyla kaydedilir; şifreler maskelenir. Admin, filtreleyip CSV olarak indirebilir.
 
+**Eczam Mobil** (`/mobil`): telefona kurulabilen (PWA) ikinci arayüz. Bugün/hafta/ay özeti ve şube karşılaştırması, ürün arama ve ürün kartı (parti, muadil, istek defteri), kamerayla barkod/karekod okuma (sorgu ve sayım modu), bildirim merkezi, soğuk zincir sıcaklık girişi, çevrimdışı açılış ve bekleyen işlem kuyruğu. App Store paketi ve yayın adımları: [`docs/APP_STORE_RELEASE.md`](../docs/APP_STORE_RELEASE.md). Gizlilik politikası sunucudan `/gizlilik.html` adresiyle yayınlanır.
+
 ## Kurulum
 
 Node.js 22.5 veya üstü gerekir (yerleşik `node:sqlite` modülü için).
@@ -122,6 +124,7 @@ Sunucu varsayılan olarak `http://localhost:3000` adresinde çalışır. Veritab
 | `ECZANEM_YEDEK_DIZINI` | Otomatik yedek klasörü (varsayılan `web/data/yedekler`) |
 | `ECZANEM_YEDEK_SAKLA` | Saklanacak otomatik yedek sayısı (varsayılan `14`) |
 | `ECZANEM_OTOMATIK_YEDEK` | `0` ise otomatik günlük yedek kapalı |
+| `ECZANEM_GIZLILIK_EPOSTA` | Gizlilik politikasında (`/gizlilik.html`) gösterilen iletişim e-postası (App Store için gerekli) |
 | `TRUST_PROXY`    | `1` ise ters vekil (reverse proxy) arkasında istemci IP'si `X-Forwarded-For`'dan alınır |
 | `SMTP_HOST`      | E-posta bildirimleri için SMTP sunucusu           |
 | `SMTP_PORT`      | SMTP portu (varsayılan 587)                       |
