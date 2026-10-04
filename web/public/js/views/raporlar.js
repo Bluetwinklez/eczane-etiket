@@ -95,6 +95,18 @@
         { alan: 'brut_kar', baslik: 'Brüt Kâr', tl: true }
       ]
     },
+    'tedarikci-alim': {
+      baslik: 'Tedarikçi Bazında Alım',
+      tarih: true,
+      kolonlar: [
+        { alan: 'tedarikci', baslik: 'Tedarikçi' },
+        { alan: 'fatura_sayisi', baslik: 'Fatura' },
+        { alan: 'kutu', baslik: 'Kutu' },
+        { alan: 'mf', baslik: 'MF (bedelsiz)' },
+        { alan: 'mf_orani', baslik: 'MF Oranı (%)' },
+        { alan: 'tutar', baslik: 'Alım Tutarı', tl: true }
+      ]
+    },
     'tedarikci-fiyat': {
       baslik: 'Tedarikçi Fiyat Karşılaştırma',
       kolonlar: [

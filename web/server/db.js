@@ -346,6 +346,38 @@ sutunEkleGerekirse('ilaclar', 'recete_turu', 'TEXT');
 sutunEkleGerekirse('satis_kalemleri', 'kullanim', 'TEXT');
 // Ticari elektronik ileti onayi (IYS): toplu kampanya mesajlari yalnizca onayli musterilere
 sutunEkleGerekirse('musteriler', 'ileti_izni', 'INTEGER NOT NULL DEFAULT 0');
+// Kasa ve finans: gun ici kasa giris/cikislari, tedarikci cari hesabi
+db.exec(`
+  CREATE TABLE IF NOT EXISTS kasa_hareketleri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    tip TEXT NOT NULL CHECK (tip IN ('giris', 'cikis')),
+    tutar REAL NOT NULL,
+    aciklama TEXT NOT NULL,
+    kullanici_id INTEGER REFERENCES kullanicilar(id),
+    tarih TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE TABLE IF NOT EXISTS tedarikci_hareketleri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tedarikci_id INTEGER NOT NULL REFERENCES tedarikciler(id) ON DELETE CASCADE,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    tip TEXT NOT NULL CHECK (tip IN ('fatura', 'odeme')),
+    tutar REAL NOT NULL,
+    belge_no TEXT,
+    belge_tarihi TEXT,
+    vade_tarihi TEXT,
+    odeme_sekli TEXT,
+    aciklama TEXT,
+    mal_kabul_id INTEGER REFERENCES mal_kabulleri(id) ON DELETE SET NULL,
+    kullanici_id INTEGER REFERENCES kullanicilar(id),
+    tarih TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_tedarikci_hareketleri ON tedarikci_hareketleri (tedarikci_id, sube_id);
+`);
+sutunEkleGerekirse('tedarikciler', 'vade_gun', 'INTEGER NOT NULL DEFAULT 30');
+sutunEkleGerekirse('kasa_kapanislari', 'kasa_giris_sistem', 'REAL NOT NULL DEFAULT 0');
+sutunEkleGerekirse('kasa_kapanislari', 'kasa_cikis_sistem', 'REAL NOT NULL DEFAULT 0');
+
 // Kalite: geri cagirma, imha tutanagi, soguk zincir sicaklik defteri
 db.exec(`
   CREATE TABLE IF NOT EXISTS geri_cagirmalar (
