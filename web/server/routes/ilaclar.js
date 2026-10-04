@@ -74,6 +74,7 @@ router.get('/', (req, res) => {
 
   const { q, urun_tipi } = req.query;
   if (urun_tipi) rows = rows.filter((r) => r.urun_tipi === urun_tipi);
+  if (req.query.hizli === '1') rows = rows.filter((r) => r.hizli_tus);
   if (q) {
     // Turkce buyuk/kucuk harf kurallariyla karsilastir (I/ı, İ/i)
     const kucuk = (m) => String(m || '').toLocaleLowerCase('tr-TR');
@@ -109,6 +110,10 @@ function ekAlanlariKaydet(id, govde) {
   if ('yasli_uyari' in govde) {
     alanlar.push('yasli_uyari = ?');
     degerler.push(govde.yasli_uyari ? 1 : 0);
+  }
+  if ('hizli_tus' in govde) {
+    alanlar.push('hizli_tus = ?');
+    degerler.push(govde.hizli_tus ? 1 : 0);
   }
   if ('raf_konumu' in govde) {
     alanlar.push('raf_konumu = ?');
