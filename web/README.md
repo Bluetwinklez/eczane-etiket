@@ -62,6 +62,26 @@ Eczane yönetim ve otomasyon sistemi. Node.js + Express + yerleşik `node:sqlite
 - **Bildirim merkezi (🔔)**: Kritik stok, geçmiş/yaklaşan SKT, ilacı biten müşteri, gelen istek ürünü, geciken veresiye, kapatılmamış kasa, gelen transfer gibi işler tek panelde toplanır.
 - **Otomatik günlük yedek**: Sunucu açıkken günde bir kez yedek alınır ve son 14 yedek saklanır. Admin bu yedekleri indirebilir.
 
+**Hasta güvenliği ve kalite (v4)**:
+- **Gebelik/emzirme ve yaş uyarıları**: Müşteri kartında doğum tarihi ve gebelik durumu, ilaç kartında gebelik uyarısı, en küçük kullanım yaşı ve "65+ dikkat" işareti. Kasada ciddi uyarıda satış öncesi onay istenir.
+- **Muadil ilaç önerisi**: Stokta olmayan ürün için aynı etken maddeli, stoktaki ürünler listelenir ve tek tıkla sepete eklenir. Ürünlerin **raf konumu** kasada ve aramada görünür.
+- **Kalite & Soğuk Zincir** sayfası: dolap sıcaklık defteri (2–8 °C dışı işaretlenir, 14 günlük grafik), **geri çağırma** (parti numarasıyla kime satıldığı + kalan stoğu çekme) ve **imha tutanağı** (stok düşümü + PDF).
+
+**Kasa ve finans (v4)**:
+- Gün içi **kasa giriş/çıkışları** (bozuk para, avans, ödeme) beklenen nakde yansır; **X raporu** kasayı kapatmadan saatlik ve personel kırılımlı ara rapor verir.
+- **Tedarikçi cari hesabı**: faturalı mal kabul otomatik borç olur (vade = fatura tarihi + tedarikçi vade günü), ödemeler en eski vadeden kapatır; yaklaşan/geciken ödemeler listesi ve bildirim merkezi uyarısı. **Tedarikçi bazında alım raporu** (MF oranı dahil).
+- **Kasiyer indirim limiti**: yöneticinin belirlediği yüzdenin üstünde sepet indirimi yapılamaz.
+
+**Satış, müşteri ve stok (v4)**:
+- Kasada **hızlı tuşlar** (sık satılan ürünler) ve **"+" ile hızlı müşteri kaydı**.
+- **Müşteri segmentleri** (sadık, yeni, ara sıra, kaybedilmek üzere, kayıp) ve **doğum günü listesi** (ileti izni olanlara kutlama SMS'i).
+- **Stok yaşlandırma raporu**, miadı yaklaşan reçetesiz ürünler için **tek tıkla indirim kampanyası önerisi**, tedarikçiye **PDF sipariş formu**.
+
+**Kullanım (v4)**:
+- **Ekran kilidi** (boşta kalınca veya Ctrl+Shift+L), **görünüm ayarları** (aydınlık/karanlık/sistem teması, yazı boyutu), sunucu bağlantısı koptuğunda uyarı bandı, `?` ile **klavye kısayolları** penceresi.
+- Ana sayfada **ekip duyuru panosu**; yönetici için **Sistem Durumu** sayfası (sürüm, veritabanı boyutu, tablo kayıtları, son yedek); müşteri ve ürün listesi **CSV dışa aktarma**.
+- Telefonda alttan **sekme çubuğu** ve kenardan açılan menü; PDF'ler Türkçe karakter destekli (DejaVu Sans).
+
 **Güvenlik ve denetim**:
 - Giriş denemesi sınırı: aynı IP + kullanıcı için 15 dakikada 5 hatalı deneme, ardından geçici kilit.
 - Oturumlar SQLite'ta saklanır, sunucu yeniden başlasa da korunur. Girişte oturum kimliği yenilenir.
