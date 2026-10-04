@@ -1,0 +1,24 @@
+@font-face { font-family: 'Bricolage Grotesque'; font-weight: 600 800; font-display: swap; src: url(fonts/bricolage-grotesque-latin.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC; }
+@font-face { font-family: 'Bricolage Grotesque'; font-weight: 600 800; font-display: swap; src: url(fonts/bricolage-grotesque-latin-ext.woff2) format('woff2'); unicode-range: U+0100-02BA, U+1E00-1E9F; }
+@font-face { font-family: 'Manrope'; font-weight: 400 800; font-display: swap; src: url(fonts/manrope-latin.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC; }
+@font-face { font-family: 'Manrope'; font-weight: 400 800; font-display: swap; src: url(fonts/manrope-latin-ext.woff2) format('woff2'); unicode-range: U+0100-02BA, U+1E00-1E9F; }
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; min-height: 100%; }
+body { background: #f9b572; color: #111; font-family: 'Manrope', system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+.kutu { max-width: 460px; margin: 0 auto; min-height: 100vh; padding: calc(28px + env(safe-area-inset-top)) 22px calc(28px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; justify-content: center; gap: 12px; }
+.logo { width: 96px; height: 96px; border-radius: 28px; border: 2.5px solid #111; box-shadow: 4px 4px 0 #111; background: #fff; display: flex; align-items: center; justify-content: center; }
+.logo img { width: 72px; }
+h1 { font-family: 'Bricolage Grotesque', 'Manrope', sans-serif; font-size: 40px; line-height: 1; letter-spacing: -0.03em; margin: 10px 0 0; font-weight: 800; }
+.alt { margin: 0 0 8px; font-weight: 600; line-height: 1.45; }
+label { display: block; font-weight: 700; margin: 0 0 6px 6px; }
+input { width: 100%; border: 2.5px solid #111; border-radius: 999px; padding: 15px 20px; font-size: 16px; font-family: inherit; background: #fff; box-shadow: 2px 2px 0 #111; outline: none; color: #111; }
+input:focus { box-shadow: 4px 4px 0 #111; }
+button { width: 100%; margin-top: 16px; border: 2.5px solid #111; border-radius: 999px; background: #111; color: #fff; padding: 16px; font-size: 17px; font-weight: 800; font-family: inherit; cursor: pointer; }
+button:active { transform: translateY(2px); }
+button:disabled { opacity: .6; }
+button.ikincil { background: #fff; color: #111; box-shadow: 2px 2px 0 #111; }
+.hata { background: #f07560; border: 2.5px solid #111; border-radius: 18px; padding: 10px 14px; font-weight: 700; }
+.ipucu { font-size: 13px; font-weight: 600; opacity: .8; line-height: 1.45; margin: 6px 4px 0; }
+.baglanti { text-align: center; font-weight: 700; margin-top: 8px; color: #111; }
+[hidden] { display: none !important; }

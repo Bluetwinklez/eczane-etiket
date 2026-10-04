@@ -1,0 +1,3 @@
+"CFBundleDisplayName" = "Eczam";
+"NSCameraUsageDescription" = "The camera is used to scan product barcodes and QR codes. Images are never saved or sent anywhere.";
+"NSLocalNetworkUsageDescription" = "Local network access is needed to connect to your pharmacy's Eczam server on the local network.";

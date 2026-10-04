@@ -1,17 +1,17 @@
-# Eczanem Mobil — Uygulama Planı
+# Eczam Mobil — Uygulama Planı
 
 > Ekstra özellikler için ayrı bir telefon uygulaması. Görsel dil: kullanıcının paylaştığı **neobrutalism** eczane tasarımı (kalın siyah çizgiler, pastel renk blokları, büyük yuvarlak kartlar, alttan hap şeklinde sekme çubuğu, karakter illüstrasyonları).
 
 ## 1. Amaç
 
-Eczanem masaüstü/web uygulaması kasada ve tezgâhta kullanılıyor. **Eczanem Mobil** ise eczacının ve eczane sahibinin **cebinde** olacak:
+Eczam masaüstü/web uygulaması kasada ve tezgâhta kullanılıyor. **Eczam Mobil** ise eczacının ve eczane sahibinin **cebinde** olacak:
 
 - Eczaneden uzaktayken satışları, stoku ve uyarıları görmek
 - Telefon kamerasıyla barkod/karekod okutup anında stok, fiyat ve muadil sorgulamak
 - Önemli olaylarda (kritik stok, soğuk zincir alarmı, geciken fatura) **anlık bildirim** almak
 - Masaüstünde olmayan, telefona özgü ekstra özellikleri kullanmak (aşağıda)
 
-Mobil uygulama **yeni bir veritabanı açmaz**: mevcut Eczanem sunucusunun API'sine bağlanır. Veriler tek yerde kalır.
+Mobil uygulama **yeni bir veritabanı açmaz**: mevcut Eczam sunucusunun API'sine bağlanır. Veriler tek yerde kalır.
 
 ## 2. Teknoloji Kararı
 
@@ -43,7 +43,7 @@ Mobil uygulama **yeni bir veritabanı açmaz**: mevcut Eczanem sunucusunun API's
 | İllüstrasyon | "Eczacı" maskotu (gözlüklü, önlüklü), ilaç kutuları, blister, şişe; boş ekranlarda ve başarı ekranlarında |
 | Hareket | Basınca 3px kayma + gölge küçülmesi; sayfa geçişinde kart yukarı kayarak gelir (hareket azaltma tercihine uyulur) |
 
-Logo: Eczanem logosu (E + havan + artı) mobil uygulama ikonunda pastel zemin üzerinde, kalın siyah dış çizgiyle kullanılır.
+Logo: Eczam logosu (E + havan + artı) mobil uygulama ikonunda pastel zemin üzerinde, kalın siyah dış çizgiyle kullanılır.
 
 ## 4. Ekranlar
 
@@ -121,4 +121,4 @@ Her fazın sonunda: otomatik testler (API için node:test, ekranlar için Playwr
 1. Uygulama yalnızca **personel** için mi, yoksa ileride **müşteri** tarafı da olacak mı? (Müşteri tarafı: reçete hatırlatma, sipariş/ayırtma, nöbetçi eczane: ayrı kimlik doğrulama ve KVKK onayı gerektirir.)
 2. Mağazada yayın gerekli mi (Faz 4), yoksa PWA yeterli mi?
 3. Push bildirimleri için sunucunun internete açık bir adresi (HTTPS) olacak mı? Yoksa yalnızca eczane içi ağda mı çalışacak?
-4. Uygulama adı ve ikon: "Eczanem Mobil" + mevcut logo uygun mu?
+4. Uygulama adı ve ikon: "Eczam Mobil" + mevcut logo uygun mu?
