@@ -697,4 +697,34 @@ router.get('/tedarikci-alim', (req, res) => {
   ]);
 });
 
+// Stok yaslandirma: elde kalan partilerin depoda bekleme suresi ve bagli sermaye
+router.get('/stok-yaslandirma', (req, res) => {
+  const subeId = resolveSubeId(req, req.query.sube_id);
+  const rows = db
+    .prepare(
+      `SELECT i.ad, p.parti_no, p.skt, p.miktar, p.giris_tarihi,
+              CAST(julianday('now') - julianday(p.giris_tarihi) AS INTEGER) AS bekleme_gun,
+              ROUND(p.miktar * i.alis_fiyati, 2) AS maliyet
+       FROM ilac_partileri p JOIN ilaclar i ON i.id = p.ilac_id
+       WHERE p.miktar > 0 ${subeId ? 'AND p.sube_id = ?' : ''}
+       ORDER BY bekleme_gun DESC, i.ad`
+    )
+    .all(...(subeId ? [subeId] : []))
+    .map((r) => ({
+      ...r,
+      giris_tarihi: r.giris_tarihi.slice(0, 10),
+      dilim: r.bekleme_gun <= 30 ? '0-30 gün' : r.bekleme_gun <= 90 ? '31-90 gün' : r.bekleme_gun <= 180 ? '91-180 gün' : '180+ gün'
+    }));
+  cikisYap(req, res, 'stok-yaslandirma', 'Stok Yaşlandırma', rows, [
+    { alan: 'dilim', baslik: 'Dilim' },
+    { alan: 'ad', baslik: 'Ürün' },
+    { alan: 'parti_no', baslik: 'Parti' },
+    { alan: 'giris_tarihi', baslik: 'Giriş' },
+    { alan: 'bekleme_gun', baslik: 'Bekleme (gün)' },
+    { alan: 'miktar', baslik: 'Adet' },
+    { alan: 'maliyet', baslik: 'Maliyet (TL)' },
+    { alan: 'skt', baslik: 'SKT' }
+  ]);
+});
+
 module.exports = router;

@@ -95,6 +95,19 @@
         { alan: 'brut_kar', baslik: 'Brüt Kâr', tl: true }
       ]
     },
+    'stok-yaslandirma': {
+      baslik: 'Stok Yaşlandırma (raf bekleme süresi)',
+      kolonlar: [
+        { alan: 'dilim', baslik: 'Dilim' },
+        { alan: 'ad', baslik: 'Ürün' },
+        { alan: 'parti_no', baslik: 'Parti' },
+        { alan: 'giris_tarihi', baslik: 'Giriş' },
+        { alan: 'bekleme_gun', baslik: 'Bekleme (gün)' },
+        { alan: 'miktar', baslik: 'Adet' },
+        { alan: 'maliyet', baslik: 'Maliyet', tl: true },
+        { alan: 'skt', baslik: 'SKT' }
+      ]
+    },
     'tedarikci-alim': {
       baslik: 'Tedarikçi Bazında Alım',
       tarih: true,
