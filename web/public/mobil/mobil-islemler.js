@@ -111,7 +111,7 @@ window.EczamEklenti = (M) => {
               .join('')
           : bos('Stoklar rahat görünüyor 👍')
       }
-      ${yonetici() && o.bitmek_uzere.length ? '<a class="hap siyah" style="display:block;text-align:center;text-decoration:none;margin-top:12px" href="#/siparisler">Siparişlere git</a>' : ''}
+      ${yonetici() && o.bitmek_uzere.length ? `<button class="hap siyah" id="o-siparis" style="margin-top:12px">Siparişe çevir (${o.bitmek_uzere.length} ürün)</button><a class="hap" style="display:block;text-align:center;text-decoration:none;margin-top:10px" href="#/siparisler">Siparişlere git</a>` : ''}
       ${baslik('SKT için öneri')}
       ${
         o.skt_indirim.length
@@ -133,6 +133,39 @@ window.EczamEklenti = (M) => {
       ${o.olu_stok.adet ? `${baslik('Ölü stok')}<p class="alt-yazi">${o.olu_stok.adet} ürün ${o.olu_stok.gun} gündür satılmadı. Bağlı sermaye: <b>${tl(o.olu_stok.bagli_sermaye)}</b></p>${o.olu_stok.ilk.map((u) => `<div class="satir"><div class="ad">${esc(u.ad)}<small>Stok ${u.stok}</small></div><span class="rozet">${tl(u.bagli_sermaye)}</span></div>`).join('')}` : ''}`,
       { geri: true }
     );
+    const siparisDugme = $('#o-siparis');
+    if (siparisDugme)
+      siparisDugme.onclick = async () => {
+        let tedarikciler;
+        try {
+          tedarikciler = await get('/api/tedarikciler');
+        } catch (e) {
+          return toast(hataMesaji(e));
+        }
+        if (!tedarikciler.length) return toast('Önce bir tedarikçi tanımlayın (bilgisayardan)');
+        const perde = sayfaAc(`<h2 style="font-family:var(--font-baslik);margin:0 0 6px">Sipariş taslağı</h2>
+          <p class="alt-yazi">${o.bitmek_uzere.length} ürün önerilen adetlerle siparişe eklenecek. Tedarikçiyi seçin:</p>
+          ${tedarikciler.map((t) => `<button class="satir" data-ted="${t.id}" style="width:100%;background:none;border:none;text-align:left;font-size:inherit;cursor:pointer"><div class="ad">${esc(t.firma_adi)}<small>${esc(t.yetkili || t.telefon || '')}</small></div><span class="rozet">Seç</span></button>`).join('')}
+          <button class="hap" id="o-vazgec" style="width:100%;margin-top:12px">Vazgeç</button>`);
+        $('#o-vazgec', perde).onclick = () => perde.remove();
+        perde.querySelectorAll('[data-ted]').forEach(
+          (b) =>
+            (b.onclick = async () => {
+              try {
+                const r = await post('/api/siparisler', {
+                  tedarikci_id: Number(b.dataset.ted),
+                  notlar: 'Akıllı öneriden oluşturuldu',
+                  kalemler: o.bitmek_uzere.map((x) => ({ ilac_id: x.ilac_id, istenen_adet: x.onerilen_adet }))
+                });
+                perde.remove();
+                toast(`Sipariş #${r.id} oluşturuldu`);
+                location.hash = '#/siparisler';
+              } catch (e) {
+                toast(hataMesaji(e));
+              }
+            })
+        );
+      };
     uyg.querySelectorAll('[data-kampanya]').forEach((b) =>
       b.addEventListener('click', async () => {
         if (!window.confirm(`${b.dataset.ad}: %${b.dataset.yuzde} indirim kampanyası ${tarihKisa(b.dataset.skt)} tarihine kadar başlatılsın mı?`)) return;
