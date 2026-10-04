@@ -1,6 +1,7 @@
 const express = require('express');
 const { db } = require('../db');
 const { bitisTahminleri } = require('./hatirlatmalar');
+const { acikFaturalar } = require('./tedarikciler');
 
 const router = express.Router();
 
@@ -133,6 +134,20 @@ router.get('/', (req, res) => {
   });
 
   if (yonetici) {
+    // Vadesi gecmis veya 7 gun icinde dolacak tedarikci faturalari
+    const bugun = new Date().toISOString().slice(0, 10);
+    const sinir = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+    let gecikmis = 0;
+    let yaklasan = 0;
+    for (const t of db.prepare('SELECT DISTINCT tedarikci_id AS id FROM tedarikci_hareketleri WHERE sube_id = ?').all(sube)) {
+      for (const f of acikFaturalar(t.id, sube)) {
+        const vade = f.vade_tarihi || f.belge_tarihi;
+        if (vade < bugun) gecikmis += 1;
+        else if (vade <= sinir) yaklasan += 1;
+      }
+    }
+    ekle({ kod: 'vade_gecmis', baslik: 'Vadesi geçmiş fatura', aciklama: 'Tedarikçi faturası ödeme günü geçti', sayi: gecikmis, seviye: 'danger', link: '#tedarikciler' });
+    ekle({ kod: 'vade_yakin', baslik: '7 gün içinde vadesi dolan fatura', aciklama: 'Yaklaşan tedarikçi ödemeleri', sayi: yaklasan, seviye: 'warn', link: '#tedarikciler' });
     ekle({
       kod: 'transfer_gelen',
       baslik: 'Teslim bekleyen transfer',

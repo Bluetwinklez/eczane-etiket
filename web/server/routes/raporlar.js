@@ -658,4 +658,43 @@ router.get('/parti-skt', (req, res) => {
   ]);
 });
 
+// Tedarikci bazinda alim: mal kabul tutari, kutu ve MF orani
+router.get('/tedarikci-alim', (req, res) => {
+  const subeId = resolveSubeId(req, req.query.sube_id);
+  const params = [];
+  let kosul = '';
+  if (req.query.baslangic) {
+    kosul += ' AND mk.tarih >= ?';
+    params.push(req.query.baslangic);
+  }
+  if (req.query.bitis) {
+    kosul += ' AND mk.tarih <= ?';
+    params.push(req.query.bitis + ' 23:59:59');
+  }
+  if (subeId) {
+    kosul += ' AND mk.sube_id = ?';
+    params.push(subeId);
+  }
+  const rows = db
+    .prepare(
+      `SELECT COALESCE(t.firma_adi, 'Tedarikçisiz') AS tedarikci, COUNT(DISTINCT mk.id) AS fatura_sayisi,
+              SUM(k.adet) AS kutu, SUM(k.mf) AS mf, ROUND(SUM(k.adet * k.alis_fiyati), 2) AS tutar
+       FROM mal_kabulleri mk
+       JOIN mal_kabul_kalemleri k ON k.mal_kabul_id = mk.id
+       LEFT JOIN tedarikciler t ON t.id = mk.tedarikci_id
+       WHERE 1=1 ${kosul}
+       GROUP BY mk.tedarikci_id ORDER BY tutar DESC`
+    )
+    .all(...params)
+    .map((r) => ({ ...r, mf_orani: r.kutu ? Math.round((r.mf / r.kutu) * 1000) / 10 : 0 }));
+  cikisYap(req, res, 'tedarikci-alim-raporu', 'Tedarikçi Bazında Alım', rows, [
+    { alan: 'tedarikci', baslik: 'Tedarikçi' },
+    { alan: 'fatura_sayisi', baslik: 'Fatura' },
+    { alan: 'kutu', baslik: 'Kutu' },
+    { alan: 'mf', baslik: 'MF (bedelsiz)' },
+    { alan: 'mf_orani', baslik: 'MF Oranı (%)' },
+    { alan: 'tutar', baslik: 'Alım Tutarı (TL)' }
+  ]);
+});
+
 module.exports = router;

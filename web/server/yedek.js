@@ -45,7 +45,9 @@ const TABLO_SIRASI = [
   'geri_cagirmalar',
   'imhalar',
   'imha_kalemleri',
-  'sicaklik_kayitlari'
+  'sicaklik_kayitlari',
+  'kasa_hareketleri',
+  'tedarikci_hareketleri'
 ];
 
 const DOSYA_DESENI = /^eczanem-otomatik-\d{4}-\d{2}-\d{2}-\d{6}\.json$/;

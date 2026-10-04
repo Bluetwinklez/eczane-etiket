@@ -206,7 +206,12 @@ async function rotayiRenderEt() {
   aktifLinkiGuncelle(key);
   document.getElementById('page-title').textContent = TITLES[key] || '';
 
-  const content = document.getElementById('content');
+  // Icerik alani her sayfa gecisinde yenisiyle degistirilir: gorunumlerin
+  // container'a ekledigi olay dinleyicileri sayfalar arasi birikmesin
+  // (aksi halde bir sayfadaki 'Sil' dugmesi onceki sayfanin kodunu da tetikler)
+  const eskiContent = document.getElementById('content');
+  const content = eskiContent.cloneNode(false);
+  eskiContent.replaceWith(content);
   const view = typeof VIEW_MAP[key] === 'function' ? VIEW_MAP[key]() : VIEW_MAP[key];
   if (!view) {
     content.innerHTML = '<div class="empty-state">Bu sayfa henüz hazır değil.</div>';

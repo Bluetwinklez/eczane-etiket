@@ -6,6 +6,7 @@ const { musteriBakiyesi, cariHareketEkle } = require('../cari');
 const { puanUygula, puanHareketi } = require('../sadakat');
 const { RECETE_TURLERI, KONTROLLU_TURLER } = require('../sabitler');
 const { sqlSaatFarki, yerelSimdi } = require('../zaman');
+const { isletmeAyarlari } = require('./ayarlar');
 
 const ODEME_TIPLERI = ['nakit', 'kredi_karti', 'sgk', 'veresiye', 'karma'];
 
@@ -124,6 +125,14 @@ router.post('/', (req, res) => {
 
   const { hazirlanmis, hata, kod } = sepetiHazirla(kalemler, subeId);
   if (hata) return res.status(kod).json({ error: hata });
+
+  // Kasiyer, yoneticinin belirledigi limitin ustunde sepet indirimi yapamaz
+  if (req.user.rol === 'kasiyer') {
+    const limit = isletmeAyarlari().kasiyer_indirim_limiti;
+    if (indirimYuzdesiOku(indirim_yuzdesi) > limit) {
+      return res.status(403).json({ error: `Kasiyer en fazla %${limit} indirim uygulayabilir; daha fazlası için eczacıya danışın` });
+    }
+  }
 
   const hesap = sepetHesapla(hazirlanmis, indirimYuzdesiOku(indirim_yuzdesi));
 
