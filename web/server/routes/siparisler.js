@@ -4,23 +4,55 @@ const { partiGiris } = require('../partiler');
 
 const router = express.Router();
 
-router.get('/oneriler', (req, res) => {
-  const subeId = req.user.sube_id;
-  const rows = db
+// Akilli siparis onerisi: son 30 gunun net satis hizina (iadeler dusulur) gore
+// stogun kac gun yetecegi hesaplanir. Kritik stok altinda olan ya da temin
+// suresinden (varsayilan 7 gun) once bitecek urunler onerilir; onerilen adet
+// stogu hedef gun sayisina (varsayilan 30) tamamlar.
+const ANALIZ_GUN = 30;
+
+function stokYeterlilik(subeId) {
+  return db
     .prepare(
-      `SELECT i.id AS ilac_id, i.ad, i.barkod, i.kritik_stok, i.alis_fiyati, COALESCE(s.stok, 0) AS stok
+      `SELECT i.id AS ilac_id, i.ad, i.barkod, i.kritik_stok, i.alis_fiyati, COALESCE(s.stok, 0) AS stok,
+              COALESCE((SELECT SUM(sk.adet) FROM satis_kalemleri sk JOIN satislar sa ON sa.id = sk.satis_id
+                         WHERE sk.ilac_id = i.id AND sa.sube_id = ? AND sa.tarih >= datetime('now', '-${ANALIZ_GUN} days')), 0)
+            - COALESCE((SELECT SUM(ik.adet) FROM iade_kalemleri ik JOIN iadeler ia ON ia.id = ik.iade_id
+                         WHERE ik.ilac_id = i.id AND ia.sube_id = ? AND ia.stoga_alindi = 1
+                           AND ia.tarih >= datetime('now', '-${ANALIZ_GUN} days')), 0) AS son_satis
        FROM ilaclar i
        LEFT JOIN ilac_stok s ON s.ilac_id = i.id AND s.sube_id = ?
-       WHERE COALESCE(s.stok, 0) <= i.kritik_stok
        ORDER BY i.ad`
     )
-    .all(subeId);
+    .all(subeId, subeId, subeId)
+    .map((r) => {
+      const gunluk = Math.max(0, r.son_satis) / ANALIZ_GUN;
+      return {
+        ...r,
+        son_satis: Math.max(0, r.son_satis),
+        gunluk_ortalama: Math.round(gunluk * 100) / 100,
+        yetecek_gun: gunluk > 0 ? Math.floor(r.stok / gunluk) : null
+      };
+    });
+}
 
-  const oneriler = rows.map((r) => ({
-    ...r,
-    onerilen_adet: Math.max(r.kritik_stok * 2 - r.stok, r.kritik_stok)
-  }));
+router.get('/oneriler', (req, res) => {
+  const hedefGun = Math.min(120, Math.max(7, Number(req.query.hedef_gun) || 30));
+  const teminGun = Math.min(60, Math.max(1, Number(req.query.temin_gun) || 7));
+  const oneriler = stokYeterlilik(req.user.sube_id)
+    .filter((r) => r.stok <= r.kritik_stok || (r.yetecek_gun !== null && r.yetecek_gun < teminGun))
+    .map((r) => {
+      const hizaGore = Math.ceil(r.gunluk_ortalama * hedefGun) - r.stok;
+      const kritikeGore = r.kritik_stok * 2 - r.stok;
+      const neden = r.stok <= r.kritik_stok ? 'kritik_stok' : 'hizli_tukeniyor';
+      return { ...r, neden, onerilen_adet: Math.max(1, hizaGore, kritikeGore) };
+    })
+    .sort((a, b) => (a.yetecek_gun ?? 9999) - (b.yetecek_gun ?? 9999));
   res.json(oneriler);
+});
+
+// Tum urunler icin stok yeterlilik tablosu (rapor/inceleme icin)
+router.get('/stok-yeterlilik', (req, res) => {
+  res.json(stokYeterlilik(req.user.sube_id));
 });
 
 router.get('/', (req, res) => {
