@@ -6,7 +6,8 @@
   "scripts": {
     "hazirla": "node scripts/hazirla.js",
     "senkron": "node scripts/hazirla.js && cap sync ios",
-    "ios:ac": "cap open ios"
+    "ios:ac": "cap open ios",
+    "test": "node --test tests/kabuk.test.js"
   },
   "dependencies": {
     "@capacitor/core": "^7.0.0",

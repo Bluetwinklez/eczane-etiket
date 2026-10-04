@@ -10,14 +10,26 @@ capacitor.config.json
 ```
 
 ```bash
-npm install
+npm ci
+npm test         # kabuk testleri
 npm run senkron   # www'yi hazırlar ve iOS projesine kopyalar
 npm run ios:ac    # Xcode'u açar (Mac gerekir)
 ```
 
-Yayın adımlarının tamamı: **[docs/app-store-yayin-rehberi.md](../docs/app-store-yayin-rehberi.md)**
+Yayın adımlarının tamamı: **[docs/APP_STORE_RELEASE.md](../docs/APP_STORE_RELEASE.md)**
 
 Notlar:
 - Kullanıcı agent'ı `EczanemApp/1.0` içerir; mobil arayüz bunu görünce Profil'de "Sunucuyu değiştir" düğmesini gösterir.
 - Internet adresleri HTTPS gerektirir; yalnızca yerel ağ adresleri (localhost, 10.x, 192.168.x, 172.16–31.x, *.local) HTTP ile açılabilir.
-- Bu proje Linux'ta üretildi; Xcode'da henüz derlenmedi (rehberdeki "ilk derleme kontrol listesi"ne bakın).
+- Bu proje Linux'ta üretildi; Xcode'da henüz derlenmedi; GitHub Actions "iOS derleme kontrolü" ilk gerçek sınav olacak.
+
+## GitHub Actions
+
+| İş akışı | Ne yapar |
+|---|---|
+| `mobil-ci.yml` | Linux: kabuk testleri, Capacitor eşitleme, Python araç testleri |
+| `ios-compile.yml` | macOS: imzasız iOS derleme kontrolü |
+| `testflight.yml` | macOS: imzala + TestFlight'a yükle (modlar: yükle / yalnızca imzala / yalnızca kimlik kurulumu) |
+| `app-store-durumu.yml` | App Store Connect durumunu özetler (salt okunur) |
+
+Secret listesi ve adımlar: [APP_STORE_RELEASE.md](../docs/APP_STORE_RELEASE.md).

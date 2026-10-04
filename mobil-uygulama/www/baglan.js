@@ -59,6 +59,9 @@
     return { adres: url.origin };
   }
 
+  // Testler için dışa açılır (tarayıcıda zararsız)
+  window.EczamBaglan = { adresiHazirla, yerelAdresMi };
+
   async function dogrula(adres) {
     const kontrol = new AbortController();
     const zaman = setTimeout(() => kontrol.abort(), 8000);

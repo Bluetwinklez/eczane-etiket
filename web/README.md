@@ -88,7 +88,7 @@ Eczane yönetim ve otomasyon sistemi. Node.js + Express + yerleşik `node:sqlite
 - Şifre kuralı: en az 8 karakter, en az bir harf ve bir rakam. Demo hesaplar ve yöneticinin oluşturduğu/sıfırladığı şifreler ilk girişte değiştirilmek zorundadır. Şifre değişince kullanıcının diğer oturumları kapatılır.
 - İşlem kaydı (audit log): tüm veri değiştiren istekler kullanıcı, yöntem, kaynak ve sonuç koduyla kaydedilir; şifreler maskelenir. Admin, filtreleyip CSV olarak indirebilir.
 
-**Eczam Mobil** (`/mobil`): telefona kurulabilen (PWA) ikinci arayüz. Bugün/hafta/ay özeti ve şube karşılaştırması, ürün arama ve ürün kartı (parti, muadil, istek defteri), kamerayla barkod/karekod okuma (sorgu ve sayım modu), bildirim merkezi, soğuk zincir sıcaklık girişi, çevrimdışı açılış ve bekleyen işlem kuyruğu. App Store paketi ve yayın adımları: [`docs/app-store-yayin-rehberi.md`](../docs/app-store-yayin-rehberi.md). Gizlilik politikası sunucudan `/gizlilik.html` adresiyle yayınlanır.
+**Eczam Mobil** (`/mobil`): telefona kurulabilen (PWA) ikinci arayüz. Bugün/hafta/ay özeti ve şube karşılaştırması, ürün arama ve ürün kartı (parti, muadil, istek defteri), kamerayla barkod/karekod okuma (sorgu ve sayım modu), bildirim merkezi, soğuk zincir sıcaklık girişi, çevrimdışı açılış ve bekleyen işlem kuyruğu. App Store paketi ve yayın adımları: [`docs/APP_STORE_RELEASE.md`](../docs/APP_STORE_RELEASE.md). Gizlilik politikası sunucudan `/gizlilik.html` adresiyle yayınlanır.
 
 ## Kurulum
 
