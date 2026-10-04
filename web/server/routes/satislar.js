@@ -334,7 +334,7 @@ router.get('/', (req, res) => {
   res.json(rows);
 });
 
-// Ana sayfa paneli: son 14 gunun gunluk cirosu, bu ay / gecen ay kategori dagilimi
+// Ana sayfa paneli: son 14 gunun gunluk cirosu, son 30 / onceki 30 gun kategori dagilimi
 // ve son satislar. Gunler yerel saate gore gruplanir.
 router.get('/panel-ozet', (req, res) => {
   const fark = sqlSaatFarki();
@@ -359,37 +359,33 @@ router.get('/panel-ozet', (req, res) => {
     gunluk.push({ gun, toplam: r ? Math.round(r.toplam * 100) / 100 : 0, adet: r ? r.adet : 0 });
   }
 
-  const buAy = yerelGun(0).slice(0, 7);
-  const d = yerelSimdi();
-  d.setUTCDate(1);
-  d.setUTCMonth(d.getUTCMonth() - 1);
-  const gecenAy = d.toISOString().slice(0, 7);
+  // Kategori karsilastirmasi: son 30 gun / onceki 30 gun (yarim ay ile tam ayi kiyaslamamak icin)
   const kategoriSatirlari = db
     .prepare(
       `SELECT COALESCE(NULLIF(TRIM(i.kategori), ''), 'Diğer') AS kategori,
-              SUM(CASE WHEN strftime('%Y-%m', sa.tarih, ?) = ? THEN sk.ara_toplam ELSE 0 END) AS bu_ay,
-              SUM(CASE WHEN strftime('%Y-%m', sa.tarih, ?) = ? THEN sk.ara_toplam ELSE 0 END) AS gecen_ay
+              SUM(CASE WHEN date(sa.tarih, ?) >= ? THEN sk.ara_toplam ELSE 0 END) AS son_30,
+              SUM(CASE WHEN date(sa.tarih, ?) < ? THEN sk.ara_toplam ELSE 0 END) AS onceki_30
        FROM satis_kalemleri sk
        JOIN satislar sa ON sa.id = sk.satis_id
        JOIN ilaclar i ON i.id = sk.ilac_id
-       WHERE sa.sube_id = ? AND strftime('%Y-%m', sa.tarih, ?) IN (?, ?)
-       GROUP BY 1 ORDER BY bu_ay DESC, gecen_ay DESC`
+       WHERE sa.sube_id = ? AND date(sa.tarih, ?) >= ?
+       GROUP BY 1 ORDER BY son_30 DESC, onceki_30 DESC`
     )
-    .all(fark, buAy, fark, gecenAy, subeId, fark, buAy, gecenAy);
+    .all(fark, yerelGun(29), fark, yerelGun(29), subeId, fark, yerelGun(59));
   // Radar okunakli kalsin diye en fazla 6 eksen: ilk 5 kategori + "Diğer"
-  let kategoriler = kategoriSatirlari.slice(0, 6);
+  let kategoriler = kategoriSatirlari;
   if (kategoriSatirlari.length > 6) {
     const kalan = kategoriSatirlari.slice(5);
     kategoriler = kategoriSatirlari.slice(0, 5).concat({
       kategori: 'Diğer',
-      bu_ay: kalan.reduce((t, r) => t + r.bu_ay, 0),
-      gecen_ay: kalan.reduce((t, r) => t + r.gecen_ay, 0)
+      son_30: kalan.reduce((t, r) => t + r.son_30, 0),
+      onceki_30: kalan.reduce((t, r) => t + r.onceki_30, 0)
     });
   }
   kategoriler = kategoriler.map((k) => ({
     kategori: k.kategori,
-    bu_ay: Math.round(k.bu_ay * 100) / 100,
-    gecen_ay: Math.round(k.gecen_ay * 100) / 100
+    son_30: Math.round(k.son_30 * 100) / 100,
+    onceki_30: Math.round(k.onceki_30 * 100) / 100
   }));
 
   const sonSatislar = db
@@ -402,7 +398,7 @@ router.get('/panel-ozet', (req, res) => {
     )
     .all(subeId);
 
-  res.json({ gunluk, ay: buAy, gecen_ay: gecenAy, kategoriler, son_satislar: sonSatislar });
+  res.json({ gunluk, kategoriler, son_satislar: sonSatislar });
 });
 
 router.get('/:id', (req, res) => {

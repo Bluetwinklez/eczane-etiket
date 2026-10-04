@@ -24,7 +24,7 @@
         </div>
         <div class="card">
           <h3>Müşteriye Hatırlatma Gönder</h3>
-          <p style="color:#6b7873;font-size:13px">
+          <p style="color:var(--text-muted);font-size:13px">
             E-posta gönderimi sunucuda SMTP ayarı (SMTP_HOST/SMTP_USER/SMTP_PASS) tanımlıysa gerçekleşir;
             aksi halde ve SMS kanalında mesaj "simüle" olarak kayda geçer.
           </p>
