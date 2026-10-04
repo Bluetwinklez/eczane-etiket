@@ -53,11 +53,11 @@ router.get('/', (req, res) => {
 router.post('/', (req, res) => {
   const { yon, karsi_eczane, telefon, ilac_id, notlar } = req.body;
   const adet = Number(req.body.adet);
-  if (!['alinan', 'verilen'].includes(yon)) return res.status(400).json({ error: 'Yon alinan veya verilen olmali' });
-  if (!String(karsi_eczane || '').trim()) return res.status(400).json({ error: 'Karsi eczane adi zorunlu' });
-  if (!Number.isInteger(adet) || adet < 1) return res.status(400).json({ error: 'Adet gecersiz' });
+  if (!['alinan', 'verilen'].includes(yon)) return res.status(400).json({ error: 'Yön alınan veya verilen olmalı' });
+  if (!String(karsi_eczane || '').trim()) return res.status(400).json({ error: 'Karşı eczane adı zorunlu' });
+  if (!Number.isInteger(adet) || adet < 1) return res.status(400).json({ error: 'Adet geçersiz' });
   const ilac = db.prepare('SELECT id, ad FROM ilaclar WHERE id = ?').get(ilac_id);
-  if (!ilac) return res.status(404).json({ error: 'Urun bulunamadi' });
+  if (!ilac) return res.status(404).json({ error: 'Ürün bulunamadı' });
   if (yon === 'verilen' && !stokYeterliMi(ilac.id, req.user.sube_id, adet)) {
     return res.status(400).json({ error: `Yetersiz stok: ${ilac.ad}` });
   }
@@ -86,24 +86,24 @@ router.post('/', (req, res) => {
 // 'mahsup' ile para/baska urunle kapatilir (stoga dokunulmaz)
 router.post('/:id/kapat', (req, res) => {
   const e = db.prepare('SELECT * FROM emanetler WHERE id = ? AND sube_id = ?').get(req.params.id, req.user.sube_id);
-  if (!e) return res.status(404).json({ error: 'Emanet bulunamadi' });
-  if (e.durum !== 'acik') return res.status(400).json({ error: 'Emanet zaten kapanmis' });
+  if (!e) return res.status(404).json({ error: 'Emanet bulunamadı' });
+  if (e.durum !== 'acik') return res.status(400).json({ error: 'Emanet zaten kapanmış' });
   const sekil = req.body.sekil || 'urun_iade';
-  if (!['urun_iade', 'mahsup'].includes(sekil)) return res.status(400).json({ error: 'Gecersiz kapanis sekli' });
+  if (!['urun_iade', 'mahsup'].includes(sekil)) return res.status(400).json({ error: 'Geçersiz kapanış şekli' });
   if (sekil === 'urun_iade' && e.yon === 'alinan' && !stokYeterliMi(e.ilac_id, e.sube_id, e.adet)) {
-    return res.status(400).json({ error: 'Geri vermek icin stok yetersiz' });
+    return res.status(400).json({ error: 'Geri vermek için stok yetersiz' });
   }
 
   db.exec('BEGIN');
   try {
     if (sekil === 'urun_iade') {
-      stokDegistir(e.ilac_id, e.sube_id, e.yon === 'alinan' ? -e.adet : e.adet, `Emanet #${e.id} kapanis (${e.karsi_eczane})`);
+      stokDegistir(e.ilac_id, e.sube_id, e.yon === 'alinan' ? -e.adet : e.adet, `Emanet #${e.id} kapanış (${e.karsi_eczane})`);
     }
     db.prepare("UPDATE emanetler SET durum = 'kapandi', kapanis_sekli = ?, kapanis_tarihi = datetime('now') WHERE id = ?").run(sekil, e.id);
     db.exec('COMMIT');
   } catch (err) {
     db.exec('ROLLBACK');
-    return res.status(500).json({ error: 'Emanet kapatilamadi' });
+    return res.status(500).json({ error: 'Emanet kapatılamadı' });
   }
   res.json(db.prepare('SELECT * FROM emanetler WHERE id = ?').get(e.id));
 });

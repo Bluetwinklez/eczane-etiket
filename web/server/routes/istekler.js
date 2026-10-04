@@ -47,20 +47,20 @@ router.get('/', (req, res) => {
 router.post('/', (req, res) => {
   const { musteri_id, musteri_adi, telefon, ilac_id, urun_adi, notlar } = req.body;
   const adet = Number(req.body.adet || 1);
-  if (!Number.isInteger(adet) || adet < 1) return res.status(400).json({ error: 'Adet gecersiz' });
+  if (!Number.isInteger(adet) || adet < 1) return res.status(400).json({ error: 'Adet geçersiz' });
   let ilac = null;
   if (ilac_id) {
     ilac = db.prepare('SELECT id, ad FROM ilaclar WHERE id = ?').get(ilac_id);
-    if (!ilac) return res.status(404).json({ error: 'Urun bulunamadi' });
+    if (!ilac) return res.status(404).json({ error: 'Ürün bulunamadı' });
   }
   const ad = ilac ? ilac.ad : String(urun_adi || '').trim();
-  if (!ad) return res.status(400).json({ error: 'Urun secin veya urun adi yazin' });
+  if (!ad) return res.status(400).json({ error: 'Ürün seçin veya ürün adı yazın' });
   let musteri = null;
   if (musteri_id) {
     musteri = db.prepare('SELECT * FROM musteriler WHERE id = ?').get(musteri_id);
-    if (!musteri) return res.status(404).json({ error: 'Musteri bulunamadi' });
+    if (!musteri) return res.status(404).json({ error: 'Müşteri bulunamadı' });
   }
-  if (!musteri && !String(musteri_adi || '').trim()) return res.status(400).json({ error: 'Musteri secin veya adini yazin' });
+  if (!musteri && !String(musteri_adi || '').trim()) return res.status(400).json({ error: 'Müşteri seçin veya adını yazın' });
 
   const info = db
     .prepare(
@@ -83,8 +83,8 @@ router.post('/', (req, res) => {
 
 router.put('/:id/durum', (req, res) => {
   const ist = istekGetir(req.params.id, req.user.sube_id);
-  if (!ist) return res.status(404).json({ error: 'Istek bulunamadi' });
-  if (!DURUMLAR.includes(req.body.durum)) return res.status(400).json({ error: 'Gecersiz durum' });
+  if (!ist) return res.status(404).json({ error: 'İstek bulunamadı' });
+  if (!DURUMLAR.includes(req.body.durum)) return res.status(400).json({ error: 'Geçersiz durum' });
   db.prepare("UPDATE istekler SET durum = ?, guncelleme = datetime('now') WHERE id = ?").run(req.body.durum, ist.id);
   res.json(istekGetir(ist.id, req.user.sube_id));
 });
@@ -92,12 +92,12 @@ router.put('/:id/durum', (req, res) => {
 // Urun geldi haberi: kayitli musteriye SMS/e-posta (SMS saglayici yoksa simule edilir)
 router.post('/:id/haber-ver', async (req, res) => {
   const ist = istekGetir(req.params.id, req.user.sube_id);
-  if (!ist) return res.status(404).json({ error: 'Istek bulunamadi' });
-  if (!ist.musteri_id) return res.status(400).json({ error: 'Kayitli musteri degil; telefonla arayip durumu elle guncelleyin' });
+  if (!ist) return res.status(404).json({ error: 'İstek bulunamadı' });
+  if (!ist.musteri_id) return res.status(400).json({ error: 'Kayıtlı müşteri değil; telefonla arayıp durumu elle güncelleyin' });
   const kanal = req.body.kanal || 'sms';
-  if (!['sms', 'email'].includes(kanal)) return res.status(400).json({ error: 'Kanal sms veya email olmali' });
-  if (kanal === 'sms' && !ist.musteri_telefon) return res.status(400).json({ error: 'Musterinin telefonu yok' });
-  if (kanal === 'email' && !ist.musteri_email) return res.status(400).json({ error: 'Musterinin e-postasi yok' });
+  if (!['sms', 'email'].includes(kanal)) return res.status(400).json({ error: 'Kanal sms veya email olmalı' });
+  if (kanal === 'sms' && !ist.musteri_telefon) return res.status(400).json({ error: 'Müşterinin telefonu yok' });
+  if (kanal === 'email' && !ist.musteri_email) return res.status(400).json({ error: 'Müşterinin e-postası yok' });
 
   const sube = db.prepare('SELECT ad FROM subeler WHERE id = ?').get(req.user.sube_id);
   const musteri = db.prepare('SELECT * FROM musteriler WHERE id = ?').get(ist.musteri_id);

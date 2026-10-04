@@ -105,13 +105,13 @@ function tarihCoz(metin) {
 // Her satiri { alanlar, hatalar } olarak cozer; yalnizca dolu hucreler alana yazilir
 function satirlariCoz(metin) {
   const tablo = csvAyristir(metin);
-  if (tablo.length < 2) return { hata: 'Dosyada baslik satiri ve en az bir urun satiri olmali' };
+  if (tablo.length < 2) return { hata: 'Dosyada baslik satiri ve en az bir ürün satiri olmalı' };
   const sutunlar = tablo[0].map((b) => {
     const a = anahtar(b);
     return Object.keys(BASLIKLAR).find((alan) => BASLIKLAR[alan].includes(a)) || null;
   });
   if (!sutunlar.includes('ad') && !sutunlar.includes('barkod')) {
-    return { hata: 'Baslikta en az "Ad" veya "Barkod" sutunu olmali' };
+    return { hata: 'Baslikta en az "Ad" veya "Barkod" sutunu olmalı' };
   }
 
   const satirlar = tablo.slice(1).map((hucreler, idx) => {
@@ -135,7 +135,7 @@ function satirlariCoz(metin) {
         else alanlar.receteli = v;
       } else if (alan === 'urun_tipi') {
         const v = urunTipiCoz(ham);
-        if (!v) hatalar.push(`urun tipi taninmadi: "${ham}"`);
+        if (!v) hatalar.push(`ürün tipi tanınmadı: "${ham}"`);
         else alanlar.urun_tipi = v;
       } else if (alan === 'skt') {
         const v = tarihCoz(ham);

@@ -10,13 +10,13 @@ router.get('/', (req, res) => {
 
 router.get('/:id', (req, res) => {
   const row = db.prepare('SELECT * FROM subeler WHERE id = ?').get(req.params.id);
-  if (!row) return res.status(404).json({ error: 'Sube bulunamadi' });
+  if (!row) return res.status(404).json({ error: 'Şube bulunamadı' });
   res.json(row);
 });
 
 router.post('/', requireRole('admin'), (req, res) => {
   const { ad, adres, telefon } = req.body;
-  if (!ad || !ad.trim()) return res.status(400).json({ error: 'Sube adi zorunludur' });
+  if (!ad || !ad.trim()) return res.status(400).json({ error: 'Şube adı zorunludur' });
 
   const info = db.prepare('INSERT INTO subeler (ad, adres, telefon) VALUES (?, ?, ?)').run(
     ad.trim(),
@@ -35,10 +35,10 @@ router.post('/', requireRole('admin'), (req, res) => {
 
 router.put('/:id', requireRole('admin'), (req, res) => {
   const existing = db.prepare('SELECT * FROM subeler WHERE id = ?').get(req.params.id);
-  if (!existing) return res.status(404).json({ error: 'Sube bulunamadi' });
+  if (!existing) return res.status(404).json({ error: 'Şube bulunamadı' });
 
   const { ad, adres, telefon } = req.body;
-  if (!ad || !ad.trim()) return res.status(400).json({ error: 'Sube adi zorunludur' });
+  if (!ad || !ad.trim()) return res.status(400).json({ error: 'Şube adı zorunludur' });
 
   db.prepare('UPDATE subeler SET ad=?, adres=?, telefon=? WHERE id=?').run(
     ad.trim(),
@@ -51,12 +51,12 @@ router.put('/:id', requireRole('admin'), (req, res) => {
 
 router.delete('/:id', requireRole('admin'), (req, res) => {
   const existing = db.prepare('SELECT * FROM subeler WHERE id = ?').get(req.params.id);
-  if (!existing) return res.status(404).json({ error: 'Sube bulunamadi' });
+  if (!existing) return res.status(404).json({ error: 'Şube bulunamadı' });
   try {
     db.prepare('DELETE FROM subeler WHERE id = ?').run(req.params.id);
     res.status(204).end();
   } catch (err) {
-    res.status(409).json({ error: 'Bu subeye ait satis veya kullanici kayitlari oldugu icin silinemedi' });
+    res.status(409).json({ error: 'Bu şubeye ait satış veya kullanıcı kayıtları olduğu için silinemedi' });
   }
 });
 

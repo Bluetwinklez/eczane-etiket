@@ -109,7 +109,7 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.use('/api', requireLogin, (req, res) => {
-  res.status(404).json({ error: 'Bulunamadi' });
+  res.status(404).json({ error: 'Bulunamadı' });
 });
 
 module.exports = app;

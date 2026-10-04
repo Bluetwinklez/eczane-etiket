@@ -18,7 +18,7 @@ test('yesil receteli ilac recete bilgisi olmadan satilamaz', async () => {
   const k = [{ ilac_id: XANAX, adet: 1 }];
   let r = await kasiyer.post('/api/satislar', { kalemler: k });
   assert.equal(r.status, 400);
-  assert.match(r.data.error, /recete turunu/);
+  assert.match(r.data.error, /reçete türünü/);
   r = await kasiyer.post('/api/satislar', { kalemler: k, recete_turu: 'beyaz', recete_no: 'X', doktor_adi: 'Dr', hasta_tc: '12345678901' });
   assert.equal(r.status, 400, 'yanlis renk');
   r = await kasiyer.post('/api/satislar', { kalemler: k, recete_turu: 'yesil', recete_no: 'Y1' });
@@ -48,7 +48,7 @@ test('recete bilgisiyle satis yapilir; TC kayitli musteriden alinir; kontrollu i
   const satis = defter.find((r) => r.recete_no === 'YR-2026-001');
   assert.equal(satis.cikis, 2);
   assert.equal(satis.doktor, 'Dr. Ayse Demir');
-  assert.equal(satis.hasta, 'Ahmet Yilmaz');
+  assert.equal(satis.hasta, 'Ahmet Yılmaz');
   const iade = defter[defter.length - 1];
   assert.equal(iade.giris, 1);
   const stok = (await admin.get(`/api/ilaclar/${XANAX}`)).data.stok;

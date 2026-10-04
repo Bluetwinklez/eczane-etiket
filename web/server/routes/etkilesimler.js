@@ -42,9 +42,9 @@ router.post('/', requireRole('admin', 'eczaci'), (req, res) => {
   const a = normallestir(req.body.madde_a);
   const b = normallestir(req.body.madde_b);
   const { seviye, aciklama } = req.body;
-  if (!a || !b || a === b) return res.status(400).json({ error: 'Iki farkli etken madde girin' });
-  if (!['ciddi', 'orta', 'hafif'].includes(seviye)) return res.status(400).json({ error: 'Gecersiz seviye' });
-  if (!aciklama || !String(aciklama).trim()) return res.status(400).json({ error: 'Aciklama zorunludur' });
+  if (!a || !b || a === b) return res.status(400).json({ error: 'İki farklı etken madde girin' });
+  if (!['ciddi', 'orta', 'hafif'].includes(seviye)) return res.status(400).json({ error: 'Geçersiz seviye' });
+  if (!aciklama || !String(aciklama).trim()) return res.status(400).json({ error: 'Açıklama zorunludur' });
   const [x, y] = ciftAnahtari(a, b);
   try {
     const info = db
@@ -52,14 +52,14 @@ router.post('/', requireRole('admin', 'eczaci'), (req, res) => {
       .run(x, y, seviye, String(aciklama).trim());
     res.status(201).json(db.prepare('SELECT * FROM etkilesimler WHERE id = ?').get(info.lastInsertRowid));
   } catch (err) {
-    if (String(err.message).includes('UNIQUE')) return res.status(409).json({ error: 'Bu etkilesim zaten kayitli' });
-    res.status(500).json({ error: 'Etkilesim eklenemedi' });
+    if (String(err.message).includes('UNIQUE')) return res.status(409).json({ error: 'Bu etkileşim zaten kayıtlı' });
+    res.status(500).json({ error: 'Etkileşim eklenemedi' });
   }
 });
 
 router.delete('/:id', requireRole('admin', 'eczaci'), (req, res) => {
   const info = db.prepare('DELETE FROM etkilesimler WHERE id = ?').run(req.params.id);
-  if (!info.changes) return res.status(404).json({ error: 'Etkilesim bulunamadi' });
+  if (!info.changes) return res.status(404).json({ error: 'Etkileşim bulunamadı' });
   res.status(204).end();
 });
 

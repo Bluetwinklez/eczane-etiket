@@ -8,7 +8,7 @@ const router = express.Router();
 router.post('/login', (req, res) => {
   const { kullanici_adi, sifre } = req.body;
   if (!kullanici_adi || !sifre) {
-    return res.status(400).json({ error: 'Kullanici adi ve sifre gerekli' });
+    return res.status(400).json({ error: 'Kullanıcı adı ve şifre gerekli' });
   }
 
   const ip = req.ip;
@@ -16,20 +16,20 @@ router.post('/login', (req, res) => {
   if (kalanSaniye > 0) {
     res.setHeader('Retry-After', String(kalanSaniye));
     return res.status(429).json({
-      error: `Cok fazla basarisiz deneme. ${Math.ceil(kalanSaniye / 60)} dakika sonra tekrar deneyin.`
+      error: `Çok fazla başarısız deneme. ${Math.ceil(kalanSaniye / 60)} dakika sonra tekrar deneyin.`
     });
   }
 
   const user = login(kullanici_adi, sifre);
   if (!user) {
     sinirlayici.basarisizKaydet(ip, kullanici_adi);
-    return res.status(401).json({ error: 'Kullanici adi veya sifre hatali' });
+    return res.status(401).json({ error: 'Kullanıcı adı veya şifre hatalı' });
   }
 
   sinirlayici.sifirla(ip, kullanici_adi);
   // Oturum sabitleme (session fixation) saldirisina karsi yeni oturum kimligi
   req.session.regenerate((err) => {
-    if (err) return res.status(500).json({ error: 'Oturum olusturulamadi' });
+    if (err) return res.status(500).json({ error: 'Oturum oluşturulamadı' });
     req.session.userId = user.id;
     res.json({ user: toPublicUser(user) });
   });
@@ -49,12 +49,12 @@ router.get('/me', requireOturum, (req, res) => {
 router.post('/sifre-degistir', requireOturum, (req, res) => {
   const { mevcut_sifre, yeni_sifre } = req.body;
   if (!mevcut_sifre || !verifyPassword(mevcut_sifre, req.user.sifre_salt, req.user.sifre_hash)) {
-    return res.status(400).json({ error: 'Mevcut sifre hatali' });
+    return res.status(400).json({ error: 'Mevcut şifre hatalı' });
   }
   const kuralHatasi = sifreKuraliHatasi(yeni_sifre);
   if (kuralHatasi) return res.status(400).json({ error: kuralHatasi });
   if (yeni_sifre === mevcut_sifre) {
-    return res.status(400).json({ error: 'Yeni sifre mevcut sifreyle ayni olamaz' });
+    return res.status(400).json({ error: 'Yeni şifre mevcut şifreyle aynı olamaz' });
   }
 
   const { hash, salt } = hashPassword(yeni_sifre);

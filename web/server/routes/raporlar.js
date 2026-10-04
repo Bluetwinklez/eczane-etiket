@@ -53,9 +53,9 @@ router.get('/satis', (req, res) => {
   sql += ' GROUP BY donem ORDER BY donem DESC';
 
   const rows = db.prepare(sql).all(...params);
-  cikisYap(req, res, 'satis-raporu', 'Satis Raporu', rows, [
-    { alan: 'donem', baslik: 'Donem' },
-    { alan: 'satis_adedi', baslik: 'Satis Adedi' },
+  cikisYap(req, res, 'satis-raporu', 'Satış Raporu', rows, [
+    { alan: 'donem', baslik: 'Dönem' },
+    { alan: 'satis_adedi', baslik: 'Satış Adedi' },
     { alan: 'toplam_ciro', baslik: 'Toplam Ciro (TL)' }
   ]);
 });
@@ -80,9 +80,9 @@ router.get('/en-cok-satan', (req, res) => {
   params.push(limit);
 
   const rows = db.prepare(sql).all(...params);
-  cikisYap(req, res, 'en-cok-satan', 'En Cok Satan Ilaclar', rows, [
-    { alan: 'ilac_adi', baslik: 'Ilac' },
-    { alan: 'toplam_adet', baslik: 'Satilan Adet' },
+  cikisYap(req, res, 'en-cok-satan', 'En Çok Satan İlaçlar', rows, [
+    { alan: 'ilac_adi', baslik: 'İlaç' },
+    { alan: 'toplam_adet', baslik: 'Satılan Adet' },
     { alan: 'toplam_ciro', baslik: 'Toplam Ciro (TL)' }
   ]);
 });
@@ -107,9 +107,9 @@ router.get('/kritik-stok-skt', (req, res) => {
   const filtreli = rows.filter((r) => r.stok <= r.kritik_stok || (r.skt && new Date(r.skt) <= otuzGunSonra));
 
   cikisYap(req, res, 'kritik-stok-skt-raporu', 'Kritik Stok ve SKT Raporu', filtreli, [
-    { alan: 'ad', baslik: 'Ilac' },
+    { alan: 'ad', baslik: 'İlaç' },
     { alan: 'stok', baslik: 'Stok' },
-    { alan: 'kritik_stok', baslik: 'Kritik Stok Siniri' },
+    { alan: 'kritik_stok', baslik: 'Kritik Stok Sınırı' },
     { alan: 'skt', baslik: 'Son Kullanma Tarihi' }
   ]);
 });
@@ -195,14 +195,14 @@ router.get('/kar-zarar', (req, res) => {
     .map((r) => ({ ...r, net_kar: r.kar - r.toplam_gider }))
     .sort((a, b) => (a.tarih < b.tarih ? 1 : -1));
 
-  cikisYap(req, res, 'kar-zarar-raporu', 'Kar-Zarar Raporu', rows, [
+  cikisYap(req, res, 'kar-zarar-raporu', 'Kâr-Zarar Raporu', rows, [
     { alan: 'tarih', baslik: 'Tarih' },
-    { alan: 'toplam_satis', baslik: 'Toplam Satis (TL)' },
-    { alan: 'toplam_iade', baslik: 'Iade (TL)' },
+    { alan: 'toplam_satis', baslik: 'Toplam Satış (TL)' },
+    { alan: 'toplam_iade', baslik: 'İade (TL)' },
     { alan: 'toplam_maliyet', baslik: 'Mal Maliyeti (TL)' },
-    { alan: 'kar', baslik: 'Brut Kar (TL)' },
-    { alan: 'toplam_gider', baslik: 'Isletme Gideri (TL)' },
-    { alan: 'net_kar', baslik: 'Net Kar (TL)' }
+    { alan: 'kar', baslik: 'Brüt Kâr (TL)' },
+    { alan: 'toplam_gider', baslik: 'İşletme Gideri (TL)' },
+    { alan: 'net_kar', baslik: 'Net Kâr (TL)' }
   ]);
 });
 
@@ -225,12 +225,12 @@ router.get('/recete-sgk', (req, res) => {
   sql += ' ORDER BY sa.tarih DESC';
 
   const rows = db.prepare(sql).all(...params);
-  cikisYap(req, res, 'recete-sgk-raporu', 'Recete/SGK Islem Raporu', rows, [
-    { alan: 'id', baslik: 'Satis No' },
+  cikisYap(req, res, 'recete-sgk-raporu', 'Reçete/SGK İşlem Raporu', rows, [
+    { alan: 'id', baslik: 'Satış No' },
     { alan: 'tarih', baslik: 'Tarih' },
-    { alan: 'musteri_adi', baslik: 'Musteri' },
-    { alan: 'recete_no', baslik: 'Recete No' },
-    { alan: 'recete_turu', baslik: 'Recete Turu' },
+    { alan: 'musteri_adi', baslik: 'Müşteri' },
+    { alan: 'recete_no', baslik: 'Reçete No' },
+    { alan: 'recete_turu', baslik: 'Reçete Türü' },
     { alan: 'doktor_adi', baslik: 'Doktor' },
     { alan: 'toplam_tutar', baslik: 'Tutar (TL)' }
   ]);
@@ -273,7 +273,7 @@ router.get('/kontrollu-ilac', (req, res) => {
       bakiye[h.ilac_id] = ((mevcut.get(h.ilac_id, subeId) || { stok: 0 }).stok) - netDonem[h.ilac_id];
     }
     bakiye[h.ilac_id] += h.tip === 'giris' ? h.adet : -h.adet;
-    const satis = h.tip === 'cikis' && /^Satis #\d+$/.test(h.aciklama || '') ? satisBilgisi.get(h.satis_no) : null;
+    const satis = h.tip === 'cikis' && /^Sat(is|ış) #\d+$/.test(h.aciklama || '') ? satisBilgisi.get(h.satis_no) : null;
     return {
       tarih: h.tarih,
       ilac_adi: h.ilac_adi,
@@ -288,18 +288,18 @@ router.get('/kontrollu-ilac', (req, res) => {
       hasta_tc: satis ? satis.hasta_tc || '' : ''
     };
   });
-  cikisYap(req, res, 'kontrollu-ilac-defteri', 'Kontrollu Ilac Defteri', rows, [
+  cikisYap(req, res, 'kontrollu-ilac-defteri', 'Kontrollü İlaç Defteri', rows, [
     { alan: 'tarih', baslik: 'Tarih' },
-    { alan: 'ilac_adi', baslik: 'Ilac' },
-    { alan: 'recete_rengi', baslik: 'Recete' },
-    { alan: 'giris', baslik: 'Giris' },
-    { alan: 'cikis', baslik: 'Cikis' },
+    { alan: 'ilac_adi', baslik: 'İlaç' },
+    { alan: 'recete_rengi', baslik: 'Reçete' },
+    { alan: 'giris', baslik: 'Giriş' },
+    { alan: 'cikis', baslik: 'Çıkış' },
     { alan: 'bakiye', baslik: 'Bakiye' },
-    { alan: 'recete_no', baslik: 'Recete No' },
+    { alan: 'recete_no', baslik: 'Reçete No' },
     { alan: 'doktor', baslik: 'Doktor' },
     { alan: 'hasta', baslik: 'Hasta' },
     { alan: 'hasta_tc', baslik: 'Hasta TC' },
-    { alan: 'aciklama', baslik: 'Aciklama' }
+    { alan: 'aciklama', baslik: 'Açıklama' }
   ]);
 });
 
@@ -337,7 +337,7 @@ router.get('/stok-degeri', (req, res) => {
   }
 
   const rows = db.prepare(sql).all(...params);
-  cikisYap(req, res, 'stok-degeri-raporu', 'Stok Degeri Raporu', rows, [
+  cikisYap(req, res, 'stok-degeri-raporu', 'Stok Değeri Raporu', rows, [
     { alan: 'kategori', baslik: 'Kategori' },
     { alan: 'urun_cesidi', baslik: 'Ürün Çeşidi' },
     { alan: 'toplam_adet', baslik: 'Toplam Adet' },
@@ -367,7 +367,7 @@ router.get('/personel-performans', (req, res) => {
   sql += ' GROUP BY sa.kullanici_id ORDER BY toplam_ciro DESC';
 
   const rows = db.prepare(sql).all(...params);
-  cikisYap(req, res, 'personel-performans-raporu', 'Personel Satis Performans Raporu', rows, [
+  cikisYap(req, res, 'personel-performans-raporu', 'Personel Satış Performans Raporu', rows, [
     { alan: 'personel', baslik: 'Personel' },
     { alan: 'rol', baslik: 'Rol' },
     { alan: 'satis_adedi', baslik: 'Satış Adedi' },
@@ -405,7 +405,7 @@ router.get('/urun-tipi', (req, res) => {
     ciro_payi: toplamCiro ? Math.round((r.toplam_ciro / toplamCiro) * 1000) / 10 : 0
   }));
 
-  cikisYap(req, res, 'urun-tipi-raporu', 'Urun Tipi Bazinda Satis', sonuc, [
+  cikisYap(req, res, 'urun-tipi-raporu', 'Ürün Tipi Bazında Satış', sonuc, [
     { alan: 'urun_tipi_adi', baslik: 'Ürün Tipi' },
     { alan: 'toplam_adet', baslik: 'Satılan Adet' },
     { alan: 'toplam_ciro', baslik: 'Ciro (TL)' },
@@ -433,13 +433,13 @@ router.get('/kampanya-performansi', (req, res) => {
     params.push(subeId);
   }
   sql += ' GROUP BY sk.kampanya_adi ORDER BY toplam_indirim DESC';
-  cikisYap(req, res, 'kampanya-performansi', 'Kampanya Performansi', db.prepare(sql).all(...params), [
+  cikisYap(req, res, 'kampanya-performansi', 'Kampanya Performansı', db.prepare(sql).all(...params), [
     { alan: 'kampanya_adi', baslik: 'Kampanya' },
-    { alan: 'satis_adedi', baslik: 'Satis Adedi' },
-    { alan: 'toplam_adet', baslik: 'Urun Adedi' },
-    { alan: 'toplam_indirim', baslik: 'Verilen Indirim (TL)' },
+    { alan: 'satis_adedi', baslik: 'Satış Adedi' },
+    { alan: 'toplam_adet', baslik: 'Ürün Adedi' },
+    { alan: 'toplam_indirim', baslik: 'Verilen İndirim (TL)' },
     { alan: 'net_ciro', baslik: 'Net Ciro (TL)' },
-    { alan: 'brut_kar', baslik: 'Brut Kar (TL)' }
+    { alan: 'brut_kar', baslik: 'Brüt Kâr (TL)' }
   ]);
 });
 
@@ -466,12 +466,12 @@ router.get('/olu-stok', (req, res) => {
     .map((r) => ({ ...r, son_satis: r.son_satis || 'Hic satilmadi', en_yakin_skt: r.en_yakin_skt || '-' }));
 
   cikisYap(req, res, 'olu-stok-raporu', `Olu Stok (${gun} gundur satilmayan)`, rows, [
-    { alan: 'ad', baslik: 'Urun' },
+    { alan: 'ad', baslik: 'Ürün' },
     { alan: 'kategori', baslik: 'Kategori' },
     { alan: 'stok', baslik: 'Stok' },
-    { alan: 'son_satis', baslik: 'Son Satis' },
-    { alan: 'en_yakin_skt', baslik: 'En Yakin SKT' },
-    { alan: 'bagli_sermaye', baslik: 'Bagli Sermaye (TL)' }
+    { alan: 'son_satis', baslik: 'Son Satış' },
+    { alan: 'en_yakin_skt', baslik: 'En Yakın SKT' },
+    { alan: 'bagli_sermaye', baslik: 'Bağlı Sermaye (TL)' }
   ]);
 });
 
@@ -512,13 +512,13 @@ router.get('/abc', (req, res) => {
     };
   });
   cikisYap(req, res, 'abc-analizi', 'ABC Analizi', rows, [
-    { alan: 'sinif', baslik: 'Sinif' },
-    { alan: 'ad', baslik: 'Urun' },
+    { alan: 'sinif', baslik: 'Sınıf' },
+    { alan: 'ad', baslik: 'Ürün' },
     { alan: 'adet', baslik: 'Adet' },
     { alan: 'ciro', baslik: 'Ciro (TL)' },
     { alan: 'pay', baslik: 'Pay (%)' },
-    { alan: 'kumulatif_pay', baslik: 'Kumulatif (%)' },
-    { alan: 'brut_kar', baslik: 'Brut Kar (TL)' }
+    { alan: 'kumulatif_pay', baslik: 'Kümülatif (%)' },
+    { alan: 'brut_kar', baslik: 'Brüt Kâr (TL)' }
   ]);
 });
 
@@ -554,9 +554,9 @@ router.get('/tedarikci-fiyat', (req, res) => {
       fark_yuzde: min ? Math.round(((r.son_maliyet - min) / min) * 1000) / 10 : 0
     };
   });
-  cikisYap(req, res, 'tedarikci-fiyat-karsilastirma', 'Tedarikci Fiyat Karsilastirma', rows, [
-    { alan: 'ilac_adi', baslik: 'Urun' },
-    { alan: 'tedarikci', baslik: 'Tedarikci' },
+  cikisYap(req, res, 'tedarikci-fiyat-karsilastirma', 'Tedarikçi Fiyat Karşılaştırma', rows, [
+    { alan: 'ilac_adi', baslik: 'Ürün' },
+    { alan: 'tedarikci', baslik: 'Tedarikçi' },
     { alan: 'son_maliyet', baslik: 'Son Birim Maliyet (TL)' },
     { alan: 'ortalama_maliyet', baslik: 'Ortalama (TL)' },
     { alan: 'fark_yuzde', baslik: 'En Ucuzdan Fark (%)' },
@@ -611,16 +611,16 @@ router.get('/iadeler', (req, res) => {
     params.push(subeId);
   }
   sql += ' ORDER BY i.tarih DESC';
-  cikisYap(req, res, 'iade-raporu', 'Iade Raporu', db.prepare(sql).all(...params), [
-    { alan: 'id', baslik: 'Iade No' },
+  cikisYap(req, res, 'iade-raporu', 'İade Raporu', db.prepare(sql).all(...params), [
+    { alan: 'id', baslik: 'İade No' },
     { alan: 'tarih', baslik: 'Tarih' },
-    { alan: 'satis_id', baslik: 'Satis No' },
+    { alan: 'satis_id', baslik: 'Satış No' },
     { alan: 'urunler', baslik: 'Urunler' },
     { alan: 'toplam_tutar', baslik: 'Tutar (TL)' },
-    { alan: 'odeme_tipi', baslik: 'Odeme' },
+    { alan: 'odeme_tipi', baslik: 'Ödeme' },
     { alan: 'stoga_alindi', baslik: 'Stoga Alindi' },
     { alan: 'neden', baslik: 'Neden' },
-    { alan: 'kullanici_adi', baslik: 'Kullanici' }
+    { alan: 'kullanici_adi', baslik: 'Kullanıcı' }
   ]);
 });
 
@@ -648,13 +648,13 @@ router.get('/parti-skt', (req, res) => {
   const rows = db.prepare(sql).all(...params).map((r) => ({ ...r, parti_no: r.parti_no || '-' }));
 
   cikisYap(req, res, 'parti-skt-raporu', 'Parti Bazli SKT Raporu', rows, [
-    { alan: 'ilac_adi', baslik: 'Urun' },
+    { alan: 'ilac_adi', baslik: 'Ürün' },
     { alan: 'parti_no', baslik: 'Parti No' },
-    { alan: 'sube_adi', baslik: 'Sube' },
+    { alan: 'sube_adi', baslik: 'Şube' },
     { alan: 'skt', baslik: 'SKT' },
-    { alan: 'kalan_gun', baslik: 'Kalan Gun' },
+    { alan: 'kalan_gun', baslik: 'Kalan Gün' },
     { alan: 'miktar', baslik: 'Miktar' },
-    { alan: 'alis_degeri', baslik: 'Alis Degeri (TL)' }
+    { alan: 'alis_degeri', baslik: 'Alış Değeri (TL)' }
   ]);
 });
 

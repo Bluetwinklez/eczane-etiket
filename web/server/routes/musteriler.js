@@ -42,7 +42,7 @@ router.put('/sadakat/ayarlar', requireRole('admin'), (req, res) => {
   const kazanim = Number(req.body.kazanim_orani);
   const deger = Number(req.body.puan_degeri);
   if (!(kazanim >= 0 && kazanim <= 100) || !(deger > 0 && deger <= 10)) {
-    return res.status(400).json({ error: 'Kazanim orani 0-100, puan degeri 0-10 TL arasinda olmali' });
+    return res.status(400).json({ error: 'Kazanım oranı 0-100, puan değeri 0-10 TL arasında olmalı' });
   }
   res.json(sadakat.ayarlariKaydet({ kazanim_orani: kazanim, puan_degeri: deger, aktif: req.body.aktif !== false }));
 });
@@ -51,7 +51,7 @@ router.put('/sadakat/ayarlar', requireRole('admin'), (req, res) => {
 // aralarindaki etkilesimler ve saglik notundaki alerjiler
 router.get('/:id/kullanim-karti', (req, res) => {
   const musteri = db.prepare('SELECT id, ad_soyad, tc_no, telefon, saglik_notu FROM musteriler WHERE id = ?').get(req.params.id);
-  if (!musteri) return res.status(404).json({ error: 'Musteri bulunamadi' });
+  if (!musteri) return res.status(404).json({ error: 'Müşteri bulunamadı' });
   const gun = Math.min(365, Math.max(7, Number(req.query.gun) || 90));
   const ilaclar = db
     .prepare(
@@ -81,13 +81,13 @@ router.get('/:id/puan', (req, res) => {
 
 router.get('/:id', (req, res) => {
   const row = db.prepare('SELECT * FROM musteriler WHERE id = ?').get(req.params.id);
-  if (!row) return res.status(404).json({ error: 'Musteri bulunamadi' });
+  if (!row) return res.status(404).json({ error: 'Müşteri bulunamadı' });
   res.json({ ...row, veresiye_bakiyesi: musteriBakiyesi(row.id), puan: sadakat.puanBakiyesi(row.id) });
 });
 
 router.get('/:id/satislar', (req, res) => {
   const musteri = db.prepare('SELECT * FROM musteriler WHERE id = ?').get(req.params.id);
-  if (!musteri) return res.status(404).json({ error: 'Musteri bulunamadi' });
+  if (!musteri) return res.status(404).json({ error: 'Müşteri bulunamadı' });
   const satislar = db
     .prepare('SELECT * FROM satislar WHERE musteri_id = ? ORDER BY tarih DESC')
     .all(req.params.id);
@@ -98,7 +98,7 @@ router.post('/', (req, res) => {
   const { ad_soyad, telefon, email, tc_no, adres, saglik_notu } = req.body;
   if (!ad_soyad || !ad_soyad.trim()) return res.status(400).json({ error: 'Ad soyad zorunludur' });
   const limit = limitOku(req.body.veresiye_limiti);
-  if (Number.isNaN(limit)) return res.status(400).json({ error: 'Gecersiz veresiye limiti' });
+  if (Number.isNaN(limit)) return res.status(400).json({ error: 'Geçersiz veresiye limiti' });
 
   const info = db
     .prepare('INSERT INTO musteriler (ad_soyad, telefon, email, tc_no, adres, saglik_notu, veresiye_limiti, ileti_izni) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
@@ -108,13 +108,13 @@ router.post('/', (req, res) => {
 
 router.put('/:id', (req, res) => {
   const existing = db.prepare('SELECT * FROM musteriler WHERE id = ?').get(req.params.id);
-  if (!existing) return res.status(404).json({ error: 'Musteri bulunamadi' });
+  if (!existing) return res.status(404).json({ error: 'Müşteri bulunamadı' });
 
   const { ad_soyad, telefon, email, tc_no, adres, saglik_notu } = req.body;
   if (!ad_soyad || !ad_soyad.trim()) return res.status(400).json({ error: 'Ad soyad zorunludur' });
   // veresiye_limiti gonderilmezse mevcut deger korunur
   const limit = 'veresiye_limiti' in req.body ? limitOku(req.body.veresiye_limiti) : existing.veresiye_limiti;
-  if (Number.isNaN(limit)) return res.status(400).json({ error: 'Gecersiz veresiye limiti' });
+  if (Number.isNaN(limit)) return res.status(400).json({ error: 'Geçersiz veresiye limiti' });
 
   const iletiIzni = 'ileti_izni' in req.body ? (req.body.ileti_izni ? 1 : 0) : existing.ileti_izni;
   db.prepare('UPDATE musteriler SET ad_soyad=?, telefon=?, email=?, tc_no=?, adres=?, saglik_notu=?, veresiye_limiti=?, ileti_izni=? WHERE id=?').run(
@@ -133,9 +133,9 @@ router.put('/:id', (req, res) => {
 
 router.delete('/:id', (req, res) => {
   const existing = db.prepare('SELECT * FROM musteriler WHERE id = ?').get(req.params.id);
-  if (!existing) return res.status(404).json({ error: 'Musteri bulunamadi' });
+  if (!existing) return res.status(404).json({ error: 'Müşteri bulunamadı' });
   if (Math.abs(musteriBakiyesi(existing.id)) > 0.001) {
-    return res.status(400).json({ error: 'Veresiye bakiyesi olan musteri silinemez' });
+    return res.status(400).json({ error: 'Veresiye bakiyesi olan müşteri silinemez' });
   }
   db.prepare('DELETE FROM musteriler WHERE id = ?').run(req.params.id);
   res.status(204).end();

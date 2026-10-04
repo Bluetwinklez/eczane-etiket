@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Eczanem Programı</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="stylesheet" href="css/style.css" />
   <script>
     (function () {
@@ -18,12 +19,13 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="sidebar-marka"><span id="logo-yer"></span><h2>Eczanem Programı</h2></div>
+      <div class="sidebar-marka"><span id="logo-yer"></span><h2>Eczanem<small>Programı</small></h2></div>
       <button id="cp-ac-btn" class="cp-ac" type="button"><span id="cp-ikon"></span>Hızlı ara <kbd>Ctrl+K</kbd></button>
       <nav id="nav"></nav>
     </aside>
     <div class="main">
       <div class="topbar">
+        <button class="ikon-btn menu-ac" id="menu-ac-btn" type="button" aria-label="Menüyü aç" aria-controls="nav"></button>
         <h1 id="page-title">Yükleniyor...</h1>
         <div class="topbar-sag">
           <div class="zil-kutu">
@@ -47,6 +49,8 @@
       <div class="content" id="content"></div>
     </div>
   </div>
+  <div class="cekmece-perde" id="cekmece-perde"></div>
+  <nav class="alt-cubuk" id="alt-cubuk" aria-label="Hızlı gezinme"></nav>
   <div class="toast-wrap" id="toast-wrap"></div>
 
   <script src="js/api.js"></script>

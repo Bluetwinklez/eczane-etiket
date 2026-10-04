@@ -618,17 +618,52 @@ function verifyPassword(plain, salt, hash) {
   return crypto.timingSafeEqual(Buffer.from(check, 'hex'), Buffer.from(hash, 'hex'));
 }
 
+// Eski kurulumlardaki ASCII demo metinlerini Turkce karakterli hallerine cevirir.
+// Yalnizca demo verisiyle birebir ayni kalmis alanlar degisir; kullanicinin
+// duzenledigi kayitlara dokunulmaz.
+const DEMO_METIN_DUZELTMELERI = [
+  ['subeler', 'ad'], ['subeler', 'adres'], ['kullanicilar', 'ad_soyad'], ['ilaclar', 'ad'], ['ilaclar', 'kategori'],
+  ['musteriler', 'ad_soyad'], ['musteriler', 'adres'], ['tedarikciler', 'firma_adi'], ['tedarikciler', 'yetkili'],
+  ['kampanyalar', 'hedef_deger']
+];
+const DEMO_METINLER = [
+  ['Ataturk Mah. Cumhuriyet Cad. No:1, Istanbul', 'Atatürk Mah. Cumhuriyet Cad. No:1, İstanbul'],
+  ['Kadikoy Subesi', 'Kadıköy Şubesi'],
+  ['Bagdat Cad. No:45, Istanbul', 'Bağdat Cad. No:45, İstanbul'],
+  ['Sistem Yoneticisi', 'Sistem Yöneticisi'],
+  ['Eczaci Kullanici', 'Eczacı Kullanıcı'],
+  ['Kasiyer Kullanici', 'Kasiyer Kullanıcı'],
+  ['Agri Kesici', 'Ağrı Kesici'],
+  ['Mide Bagirsak', 'Mide Bağırsak'],
+  ['Cilt Bakim', 'Cilt Bakım'],
+  ['Olcum Cihazi', 'Ölçüm Cihazı'],
+  ['Omega-3 Balik Yagi 60 Kapsul', 'Omega-3 Balık Yağı 60 Kapsül'],
+  ['Cerrahi Maske 50li', "Cerrahi Maske 50'li"],
+  ['Ahmet Yilmaz', 'Ahmet Yılmaz'],
+  ['Ataturk Mah. No:5, Istanbul', 'Atatürk Mah. No:5, İstanbul'],
+  ['Ayse Kaya', 'Ayşe Kaya'],
+  ['Hedef Ilac Dagitim', 'Hedef İlaç Dağıtım'],
+  ['Selcuk Ecza Deposu', 'Selçuk Ecza Deposu'],
+  ['Fatma Sahin', 'Fatma Şahin']
+];
+function demoMetinleriniDuzelt() {
+  for (const [tablo, alan] of DEMO_METIN_DUZELTMELERI) {
+    const guncelle = db.prepare(`UPDATE ${tablo} SET ${alan} = ? WHERE ${alan} = ?`);
+    for (const [eski, yeni] of DEMO_METINLER) guncelle.run(yeni, eski);
+  }
+}
+
 function seedIfEmpty() {
   const subeCount = db.prepare('SELECT COUNT(*) AS c FROM subeler').get().c;
   if (subeCount === 0) {
     db.prepare('INSERT INTO subeler (ad, adres, telefon) VALUES (?, ?, ?)').run(
       'Merkez Eczane',
-      'Ataturk Mah. Cumhuriyet Cad. No:1, Istanbul',
+      'Atatürk Mah. Cumhuriyet Cad. No:1, İstanbul',
       '02121234567'
     );
     db.prepare('INSERT INTO subeler (ad, adres, telefon) VALUES (?, ?, ?)').run(
-      'Kadikoy Subesi',
-      'Bagdat Cad. No:45, Istanbul',
+      'Kadıköy Şubesi',
+      'Bağdat Cad. No:45, İstanbul',
       '02167654321'
     );
   }
@@ -640,19 +675,19 @@ function seedIfEmpty() {
     db.prepare(
       `INSERT INTO kullanicilar (kullanici_adi, sifre_hash, sifre_salt, ad_soyad, rol, sube_id, sifre_degistirilmeli)
        VALUES (?, ?, ?, ?, ?, ?, 1)`
-    ).run('admin', admin.hash, admin.salt, 'Sistem Yoneticisi', 'admin', merkezId);
+    ).run('admin', admin.hash, admin.salt, 'Sistem Yöneticisi', 'admin', merkezId);
 
     const eczaci = hashPassword('eczaci123');
     db.prepare(
       `INSERT INTO kullanicilar (kullanici_adi, sifre_hash, sifre_salt, ad_soyad, rol, sube_id, sifre_degistirilmeli)
        VALUES (?, ?, ?, ?, ?, ?, 1)`
-    ).run('eczaci', eczaci.hash, eczaci.salt, 'Eczaci Kullanici', 'eczaci', merkezId);
+    ).run('eczaci', eczaci.hash, eczaci.salt, 'Eczacı Kullanıcı', 'eczaci', merkezId);
 
     const kasiyer = hashPassword('kasiyer123');
     db.prepare(
       `INSERT INTO kullanicilar (kullanici_adi, sifre_hash, sifre_salt, ad_soyad, rol, sube_id, sifre_degistirilmeli)
        VALUES (?, ?, ?, ?, ?, ?, 1)`
-    ).run('kasiyer', kasiyer.hash, kasiyer.salt, 'Kasiyer Kullanici', 'kasiyer', merkezId);
+    ).run('kasiyer', kasiyer.hash, kasiyer.salt, 'Kasiyer Kullanıcı', 'kasiyer', merkezId);
   }
 
   const ilacCount = db.prepare('SELECT COUNT(*) AS c FROM ilaclar').get().c;
@@ -665,15 +700,15 @@ function seedIfEmpty() {
     const insertStok = db.prepare('INSERT INTO ilac_stok (ilac_id, sube_id, stok) VALUES (?, ?, ?)');
 
     const ornekIlaclar = [
-      ['Parol 500mg 20 Tablet', '8699504010012', 'Agri Kesici', 'Atabay', 0, 20, 15.5, 24.9, '2027-03-01', [120, 60]],
-      ['Aspirin 100mg 30 Tablet', '8699504010029', 'Agri Kesici', 'Bayer', 0, 15, 22.0, 35.5, '2026-11-15', [80, 40]],
+      ['Parol 500mg 20 Tablet', '8699504010012', 'Ağrı Kesici', 'Atabay', 0, 20, 15.5, 24.9, '2027-03-01', [120, 60]],
+      ['Aspirin 100mg 30 Tablet', '8699504010029', 'Ağrı Kesici', 'Bayer', 0, 15, 22.0, 35.5, '2026-11-15', [80, 40]],
       ['Augmentin BID 1000mg 14 Tablet', '8699504010036', 'Antibiyotik', 'GSK', 1, 10, 65.0, 98.75, '2026-05-20', [40, 15]],
-      ['Nurofen 400mg 24 Tablet', '8699504010043', 'Agri Kesici', 'Reckitt', 0, 15, 28.0, 42.0, '2027-01-10', [60, 25]],
+      ['Nurofen 400mg 24 Tablet', '8699504010043', 'Ağrı Kesici', 'Reckitt', 0, 15, 28.0, 42.0, '2027-01-10', [60, 25]],
       ['Cipralex 10mg 28 Tablet', '8699504010050', 'Psikiyatrik', 'Lundbeck', 1, 8, 110.0, 165.0, '2026-09-30', [25, 10]],
-      ['Voltaren Emulgel 50g', '8699504010067', 'Agri Kesici', 'Novartis', 0, 10, 48.0, 72.5, '2027-06-01', [45, 20]],
+      ['Voltaren Emulgel 50g', '8699504010067', 'Ağrı Kesici', 'Novartis', 0, 10, 48.0, 72.5, '2027-06-01', [45, 20]],
       ['Coraspin 100mg 30 Tablet', '8699504010074', 'Kalp Damar', 'Bayer', 0, 20, 18.0, 27.9, '2026-12-25', [90, 30]],
       ['Xanax 0.5mg 30 Tablet', '8699504010081', 'Psikiyatrik', 'Pfizer', 1, 5, 32.0, 49.0, '2026-08-05', [15, 5]],
-      ['Talcid 500mg 20 Tablet', '8699504010098', 'Mide Bagirsak', 'Bayer', 0, 12, 20.0, 31.0, '2027-02-14', [55, 20]],
+      ['Talcid 500mg 20 Tablet', '8699504010098', 'Mide Bağırsak', 'Bayer', 0, 12, 20.0, 31.0, '2027-02-14', [55, 20]],
       ['Beloc Zok 50mg 28 Tablet', '8699504010104', 'Kalp Damar', 'AstraZeneca', 1, 10, 25.0, 38.5, '2026-10-01', [8, 3]]
     ];
     for (const [ad, barkod, kategori, uretici, receteli, kritikStok, alis, satis, skt, stoklar] of ornekIlaclar) {
@@ -685,12 +720,12 @@ function seedIfEmpty() {
 
     // Eczanelerde ilac disi urunler de satilir; ornek veriler
     const ilacDisiUrunler = [
-      ['La Roche-Posay Effaclar Jel 200ml', '3337875545723', 'Cilt Bakim', 'La Roche-Posay', 'dermokozmetik', 5, 310.0, 449.0, '2028-01-01', [12, 6]],
-      ['Bioderma Sensibio H2O 250ml', '3401345935571', 'Cilt Bakim', 'Bioderma', 'dermokozmetik', 5, 260.0, 379.0, '2027-11-01', [10, 4]],
+      ['La Roche-Posay Effaclar Jel 200ml', '3337875545723', 'Cilt Bakım', 'La Roche-Posay', 'dermokozmetik', 5, 310.0, 449.0, '2028-01-01', [12, 6]],
+      ['Bioderma Sensibio H2O 250ml', '3401345935571', 'Cilt Bakım', 'Bioderma', 'dermokozmetik', 5, 260.0, 379.0, '2027-11-01', [10, 4]],
       ['Supradyn Energy 30 Tablet', '8699546352071', 'Vitamin', 'Bayer', 'takviye', 6, 140.0, 219.0, '2027-08-01', [18, 8]],
-      ['Omega-3 Balik Yagi 60 Kapsul', '8681234560017', 'Vitamin', 'Solgar', 'takviye', 6, 190.0, 289.0, '2027-05-01', [9, 4]],
-      ['Omron M3 Tansiyon Aleti', '4015672105911', 'Olcum Cihazi', 'Omron', 'medikal', 2, 1350.0, 1890.0, null, [4, 2]],
-      ['Cerrahi Maske 50li', '8682345670019', 'Koruyucu', 'Medikal Tekstil', 'medikal', 10, 45.0, 79.0, '2029-01-01', [40, 20]]
+      ['Omega-3 Balık Yağı 60 Kapsül', '8681234560017', 'Vitamin', 'Solgar', 'takviye', 6, 190.0, 289.0, '2027-05-01', [9, 4]],
+      ['Omron M3 Tansiyon Aleti', '4015672105911', 'Ölçüm Cihazı', 'Omron', 'medikal', 2, 1350.0, 1890.0, null, [4, 2]],
+      ["Cerrahi Maske 50'li", '8682345670019', 'Koruyucu', 'Medikal Tekstil', 'medikal', 10, 45.0, 79.0, '2029-01-01', [40, 20]]
     ];
     const insertUrun = db.prepare(`
       INSERT INTO ilaclar (ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt, urun_tipi)
@@ -707,20 +742,20 @@ function seedIfEmpty() {
   const musteriCount = db.prepare('SELECT COUNT(*) AS c FROM musteriler').get().c;
   if (musteriCount === 0) {
     db.prepare('INSERT INTO musteriler (ad_soyad, telefon, email, tc_no, adres) VALUES (?, ?, ?, ?, ?)').run(
-      'Ahmet Yilmaz', '05551112233', 'ahmet.yilmaz@example.com', '12345678901', 'Ataturk Mah. No:5, Istanbul'
+      'Ahmet Yılmaz', '05551112233', 'ahmet.yilmaz@example.com', '12345678901', 'Atatürk Mah. No:5, İstanbul'
     );
     db.prepare('INSERT INTO musteriler (ad_soyad, telefon, email, tc_no, adres) VALUES (?, ?, ?, ?, ?)').run(
-      'Ayse Kaya', '05339876543', 'ayse.kaya@example.com', '98765432109', 'Cumhuriyet Cad. No:12, Ankara'
+      'Ayşe Kaya', '05339876543', 'ayse.kaya@example.com', '98765432109', 'Cumhuriyet Cad. No:12, Ankara'
     );
   }
 
   const tedarikciCount = db.prepare('SELECT COUNT(*) AS c FROM tedarikciler').get().c;
   if (tedarikciCount === 0) {
     db.prepare('INSERT INTO tedarikciler (firma_adi, yetkili, telefon, email) VALUES (?, ?, ?, ?)').run(
-      'Hedef Ilac Dagitim', 'Mehmet Demir', '02123334455', 'info@hedefilac.com'
+      'Hedef İlaç Dağıtım', 'Mehmet Demir', '02123334455', 'info@hedefilac.com'
     );
     db.prepare('INSERT INTO tedarikciler (firma_adi, yetkili, telefon, email) VALUES (?, ?, ?, ?)').run(
-      'Selcuk Ecza Deposu', 'Fatma Sahin', '02163332211', 'satis@selcukecza.com'
+      'Selçuk Ecza Deposu', 'Fatma Şahin', '02163332211', 'satis@selcukecza.com'
     );
   }
 }
@@ -729,5 +764,6 @@ seedIfEmpty();
 ornekEtkenMaddeleriDoldur();
 ornekKutuGunleriniDoldur();
 ornekReceteTurleriniDoldur();
+demoMetinleriniDuzelt();
 
-module.exports = { db, hashPassword, verifyPassword, ayarOku, ayarYaz };
+module.exports = { db, hashPassword, verifyPassword, ayarOku, ayarYaz, demoMetinleriniDuzelt };
