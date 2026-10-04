@@ -1,37 +1,55 @@
+// Menu gruplara ayrilir; grup basliklari yalnizca gorunur ogesi olan gruplar icin cizilir
 const NAV = [
-  { key: 'anasayfa', label: 'Ana Sayfa' },
-  { key: 'ilaclar', label: 'İlaçlar' },
-  { key: 'stok', label: 'Stok Hareketleri' },
-  { key: 'satis', label: 'Satış (POS)' },
-  { key: 'iadeler', label: 'Satış İadeleri', roles: ['admin', 'eczaci'] },
-  { key: 'musteriler', label: 'Müşteriler' },
-  { key: 'tedarikciler', label: 'Tedarikçiler' },
-  { key: 'siparisler', label: 'Siparişler', roles: ['admin', 'eczaci'] },
-  { key: 'raporlar', label: 'Raporlar', roles: ['admin', 'eczaci'] },
-  { key: 'kasa-kapanisi', label: 'Kasa Kapanışı' },
-  { key: 'giderler', label: 'Giderler', roles: ['admin', 'eczaci'] },
-  { key: 'kampanyalar', label: 'Kampanyalar' },
-  { key: 'veresiye', label: 'Veresiye Defteri' },
-  { key: 'etkilesimler', label: 'İlaç Etkileşimleri' },
-  { key: 'gorevler', label: 'Görevler' },
-  { key: 'nobetler', label: 'Nöbetçi Takvimi' },
-  { key: 'bildirimler', label: 'Bildirimler' },
-  { key: 'kullanicilar', label: 'Kullanıcılar', roles: ['admin'] },
-  { key: 'subeler', label: 'Şubeler', roles: ['admin'] },
-  { key: 'yedekleme', label: 'Yedekleme', roles: ['admin'] },
-  { key: 'islem-kaydi', label: 'İşlem Kaydı', roles: ['admin'] }
+  { key: 'anasayfa', label: 'Ana Sayfa', grup: '' },
+  { key: 'satis', label: 'Satış (POS)', grup: 'Satış' },
+  { key: 'iadeler', label: 'Satış İadeleri', grup: 'Satış', roles: ['admin', 'eczaci'] },
+  { key: 'kasa-kapanisi', label: 'Kasa Kapanışı', grup: 'Satış' },
+  { key: 'kampanyalar', label: 'Kampanyalar', grup: 'Satış' },
+  { key: 'veresiye', label: 'Veresiye Defteri', grup: 'Satış' },
+  { key: 'ilaclar', label: 'İlaçlar', grup: 'Stok' },
+  { key: 'stok', label: 'Stok Hareketleri', grup: 'Stok' },
+  { key: 'mal-kabul', label: 'Mal Kabul', grup: 'Stok', roles: ['admin', 'eczaci'] },
+  { key: 'siparisler', label: 'Siparişler', grup: 'Stok', roles: ['admin', 'eczaci'] },
+  { key: 'tedarikciler', label: 'Tedarikçiler', grup: 'Stok' },
+  { key: 'sayim', label: 'Stok Sayımı', grup: 'Stok', roles: ['admin', 'eczaci'] },
+  { key: 'transferler', label: 'Şube Transferleri', grup: 'Stok', roles: ['admin', 'eczaci'] },
+  { key: 'etiketler', label: 'Raf Etiketleri', grup: 'Stok' },
+  { key: 'musteriler', label: 'Müşteriler', grup: 'Müşteri & Eczacılık' },
+  { key: 'hatirlatmalar', label: 'İlaç Hatırlatmaları', grup: 'Müşteri & Eczacılık' },
+  { key: 'istekler', label: 'İstek / Eksik Defteri', grup: 'Müşteri & Eczacılık' },
+  { key: 'emanetler', label: 'Emanet Defteri', grup: 'Müşteri & Eczacılık', roles: ['admin', 'eczaci'] },
+  { key: 'etkilesimler', label: 'İlaç Etkileşimleri', grup: 'Müşteri & Eczacılık' },
+  { key: 'bildirimler', label: 'Bildirimler / SMS', grup: 'Müşteri & Eczacılık' },
+  { key: 'raporlar', label: 'Raporlar', grup: 'Rapor', roles: ['admin', 'eczaci'] },
+  { key: 'analiz', label: 'Satış Analizi & Hedef', grup: 'Rapor' },
+  { key: 'giderler', label: 'Giderler', grup: 'Rapor', roles: ['admin', 'eczaci'] },
+  { key: 'gorevler', label: 'Görevler', grup: 'Ekip' },
+  { key: 'vardiya', label: 'Vardiya Çizelgesi', grup: 'Ekip' },
+  { key: 'nobetler', label: 'Nöbetçi Takvimi', grup: 'Ekip' },
+  { key: 'kullanicilar', label: 'Kullanıcılar', grup: 'Yönetim', roles: ['admin'] },
+  { key: 'subeler', label: 'Şubeler', grup: 'Yönetim', roles: ['admin'] },
+  { key: 'yedekleme', label: 'Yedekleme', grup: 'Yönetim', roles: ['admin'] },
+  { key: 'islem-kaydi', label: 'İşlem Kaydı', grup: 'Yönetim', roles: ['admin'] }
 ];
 
 const TITLES = {
   anasayfa: 'Ana Sayfa',
   ilaclar: 'İlaçlar',
   stok: 'Stok Hareketleri',
+  sayim: 'Stok Sayımı',
+  transferler: 'Şubeler Arası Transfer',
+  etiketler: 'Raf / Fiyat Etiketleri',
   satis: 'Satış (POS)',
   iadeler: 'Satış İadeleri',
   musteriler: 'Müşteriler',
+  hatirlatmalar: 'İlaç Bitiş Hatırlatmaları',
+  istekler: 'İstek / Eksik Defteri',
+  emanetler: 'Emanet İlaç Defteri',
   tedarikciler: 'Tedarikçiler',
   siparisler: 'Siparişler',
+  'mal-kabul': 'Mal Kabul (İrsaliye / Fatura)',
   raporlar: 'Raporlar',
+  analiz: 'Satış Analizi ve Hedef',
   'kasa-kapanisi': 'Kasa Kapanışı',
   giderler: 'Giderler',
   kampanyalar: 'Kampanyalar',
@@ -39,6 +57,7 @@ const TITLES = {
   etkilesimler: 'İlaç Etkileşimleri',
   gorevler: 'Görevler',
   nobetler: 'Nöbetçi Takvimi',
+  vardiya: 'Personel Vardiya Çizelgesi',
   bildirimler: 'Bildirimler',
   kullanicilar: 'Kullanıcılar',
   subeler: 'Şubeler',
@@ -87,12 +106,13 @@ const AnaSayfaView = {
     const buAy = new Date().toISOString().slice(0, 7);
     const yoneticiMi = CURRENT_USER.rol === 'admin' || CURRENT_USER.rol === 'eczaci';
 
-    const [uyarilar, satislar7Gun, bekleyenGorevler, buAykiNobetler, bekleyenSiparisler] = await Promise.all([
+    const [uyarilar, satislar7Gun, bekleyenGorevler, buAykiNobetler, bekleyenSiparisler, hedef] = await Promise.all([
       Api.get('/api/ilaclar/uyarilar'),
       Api.get('/api/satislar?baslangic=' + gunStr(yediGunOnce)),
       Api.get('/api/gorevler?durum=bekliyor'),
       Api.get('/api/nobetler?ay=' + buAy),
-      yoneticiMi ? Api.get('/api/siparisler?durum=beklemede') : Promise.resolve([])
+      yoneticiMi ? Api.get('/api/siparisler?durum=beklemede') : Promise.resolve([]),
+      Api.get('/api/hedefler/aktif').catch(() => null)
     ]);
 
     const bugun = gunStr(new Date());
@@ -129,6 +149,16 @@ const AnaSayfaView = {
           <div class="value">${uyarilar.skt_yaklasan.length}</div>
         </div>
       </div>
+      ${
+        hedef && hedef.hedef
+          ? `<div class="card">
+              <div class="toolbar" style="margin:0 0 8px"><h3 style="margin:0">🎯 Aylık Hedef</h3><div class="spacer"></div>
+                <span style="font-size:13px">${UI.tl(hedef.gerceklesen)} / ${UI.tl(hedef.hedef)} · <b>%${hedef.yuzde}</b></span></div>
+              <div class="hedef-cubuk"><div style="width:${Math.min(100, hedef.yuzde)}%;background:${hedef.yuzde >= 100 ? 'var(--success)' : 'var(--primary)'}"></div></div>
+              <a href="#analiz" style="font-size:12px">Ayrıntılar →</a>
+            </div>`
+          : ''
+      }
       <div class="card">
         <h3>Son 7 Gün Satış Trendi</h3>
         ${satisTrendSvg(gunlukVeri)}
@@ -192,8 +222,13 @@ function menuIcinRolUygunMu(item) {
 
 function navOlustur() {
   const nav = document.getElementById('nav');
+  let sonGrup = null;
   nav.innerHTML = NAV.filter(menuIcinRolUygunMu)
-    .map((item) => `<a href="#${item.key}" data-key="${item.key}">${item.label}</a>`)
+    .map((item) => {
+      const baslik = item.grup && item.grup !== sonGrup ? `<div class="nav-grup">${item.grup}</div>` : '';
+      sonGrup = item.grup;
+      return `${baslik}<a href="#${item.key}" data-key="${item.key}">${item.label}</a>`;
+    })
     .join('');
 }
 
@@ -207,12 +242,20 @@ const VIEW_MAP = {
   anasayfa: AnaSayfaView,
   ilaclar: () => Views.ilaclar,
   stok: () => Views.stok,
+  sayim: () => Views.sayim,
+  transferler: () => Views.transferler,
+  etiketler: () => Views.etiketler,
   satis: () => Views.satis,
   iadeler: () => Views.iadeler,
   musteriler: () => Views.musteriler,
+  hatirlatmalar: () => Views.hatirlatmalar,
+  istekler: () => Views.istekler,
+  emanetler: () => Views.emanetler,
   tedarikciler: () => Views.tedarikciler,
   siparisler: () => Views.siparisler,
+  'mal-kabul': () => Views.malKabul,
   raporlar: () => Views.raporlar,
+  analiz: () => Views.analiz,
   'kasa-kapanisi': () => Views.kasaKapanisi,
   giderler: () => Views.giderler,
   kampanyalar: () => Views.kampanyalar,
@@ -220,6 +263,7 @@ const VIEW_MAP = {
   etkilesimler: () => Views.etkilesimler,
   gorevler: () => Views.gorevler,
   nobetler: () => Views.nobetler,
+  vardiya: () => Views.vardiya,
   bildirimler: () => Views.bildirimler,
   kullanicilar: () => Views.kullanicilar,
   subeler: () => Views.subeler,
@@ -316,6 +360,7 @@ async function init() {
   });
 
   window.addEventListener('hashchange', rotayiRenderEt);
+  BildirimMerkezi.baslat();
   rotayiRenderEt();
 }
 

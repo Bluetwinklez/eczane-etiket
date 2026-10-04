@@ -1,15 +1,29 @@
 const express = require('express');
 const { db } = require('../db');
 const { requireRole } = require('../auth');
-const { URUN_TIPLERI } = require('../sabitler');
+const { URUN_TIPLERI, RECETE_TURLERI } = require('../sabitler');
 const { partiGiris, partiCikis, partiMiktariniKontrolEt, FEFO_SIRASI } = require('../partiler');
 const { karekodCoz } = require('../karekod');
 const { maddeleriAyir } = require('../etkilesim');
+const { satirlariCoz, SABLON } = require('../csvIceAktar');
 
 // "Amoksisilin + Klavulanik asit" -> "amoksisilin, klavulanik asit"
 function etkenMaddeNormallestir(deger) {
   const maddeler = maddeleriAyir(deger);
   return maddeler.length ? maddeler.join(', ') : null;
+}
+
+// Bos birakilirsa takip edilmez; 1-365 gun arasi tam sayi olmali
+function kutuGunOku(deger) {
+  if (deger === undefined || deger === null || deger === '') return null;
+  const n = Number(deger);
+  return Number.isInteger(n) && n >= 1 && n <= 365 ? n : NaN;
+}
+
+// Ilacin gerektirdigi ozel recete: bos/beyaz = normal
+function receteTuruOku(deger) {
+  if (deger === undefined || deger === null || deger === '' || deger === 'beyaz') return null;
+  return Object.prototype.hasOwnProperty.call(RECETE_TURLERI, deger) ? deger : NaN;
 }
 
 function urunTipiGecerliMi(tip) {
@@ -104,6 +118,182 @@ router.get('/uyarilar', (req, res) => {
   res.json({ kritik_stok: kritikStok, skt_yaklasan: sktYaklasan });
 });
 
+// CSV (Excel'den "CSV olarak kaydet") ile toplu urun ekleme/guncelleme.
+// Barkodu kayitli urun guncellenir (yalnizca dolu hucreler), digerleri eklenir.
+router.get('/ice-aktar/sablon', (req, res) => {
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="urun-sablonu.csv"');
+  res.send('﻿' + SABLON);
+});
+
+const ICE_AKTAR_ALANLARI = ['ad', 'barkod', 'kategori', 'uretici', 'receteli', 'alis_fiyati', 'satis_fiyati', 'kritik_stok', 'urun_tipi', 'etken_madde', 'kutu_gun', 'skt'];
+
+router.post('/ice-aktar', requireRole('admin', 'eczaci'), (req, res) => {
+  if (typeof req.body.csv !== 'string' || !req.body.csv.trim()) return res.status(400).json({ error: 'CSV icerigi bos' });
+  const cozum = satirlariCoz(req.body.csv);
+  if (cozum.hata) return res.status(400).json({ error: cozum.hata });
+  if (cozum.satirlar.length > 5000) return res.status(400).json({ error: 'Tek seferde en fazla 5000 satir' });
+
+  const barkodla = db.prepare('SELECT * FROM ilaclar WHERE barkod = ?');
+  const gorulenBarkod = new Set();
+  const plan = cozum.satirlar.map((s) => {
+    const a = s.alanlar;
+    const hatalar = [...s.hatalar];
+    if (a.barkod) {
+      if (gorulenBarkod.has(a.barkod)) hatalar.push('ayni barkod dosyada birden fazla');
+      gorulenBarkod.add(a.barkod);
+    }
+    const mevcut = a.barkod ? barkodla.get(a.barkod) : null;
+    if (!mevcut) {
+      if (!a.ad) hatalar.push('yeni urun icin ad zorunlu');
+      if (a.satis_fiyati == null) hatalar.push('yeni urun icin satis fiyati zorunlu');
+    }
+    const degisen = mevcut ? ICE_AKTAR_ALANLARI.filter((f) => a[f] !== undefined && a[f] !== mevcut[f]) : [];
+    return {
+      satir: s.satir,
+      islem: hatalar.length ? 'hata' : mevcut ? (degisen.length ? 'guncelle' : 'ayni') : 'yeni',
+      ilac_id: mevcut ? mevcut.id : null,
+      ad: a.ad || (mevcut && mevcut.ad) || '',
+      barkod: a.barkod || null,
+      degisen,
+      hatalar,
+      alanlar: a,
+      eski_satis: mevcut ? mevcut.satis_fiyati : null
+    };
+  });
+  const ozet = {
+    yeni: plan.filter((p) => p.islem === 'yeni').length,
+    guncelle: plan.filter((p) => p.islem === 'guncelle').length,
+    ayni: plan.filter((p) => p.islem === 'ayni').length,
+    hata: plan.filter((p) => p.islem === 'hata').length
+  };
+  if (req.body.onizleme) return res.json({ ozet, satirlar: plan, taninan_sutunlar: cozum.sutunlar });
+  if (ozet.hata) return res.status(400).json({ error: `${ozet.hata} satirda hata var; once duzeltin`, ozet, satirlar: plan });
+
+  db.exec('BEGIN');
+  try {
+    const subeler = db.prepare('SELECT id FROM subeler').all();
+    const stokEkle = db.prepare('INSERT OR IGNORE INTO ilac_stok (ilac_id, sube_id, stok) VALUES (?, ?, 0)');
+    const gecmis = db.prepare('INSERT INTO fiyat_gecmisi (ilac_id, eski_fiyat, yeni_fiyat) VALUES (?, ?, ?)');
+    for (const p of plan) {
+      if (p.islem === 'yeni') {
+        const a = p.alanlar;
+        const id = Number(
+          db
+            .prepare(
+              `INSERT INTO ilaclar (ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt, urun_tipi, etken_madde, kutu_gun)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            )
+            .run(a.ad, a.barkod || null, a.kategori || null, a.uretici || null, a.receteli || 0, a.kritik_stok ?? 10, a.alis_fiyati || 0,
+              a.satis_fiyati, a.skt || null, a.urun_tipi || 'ilac', a.etken_madde || null, a.kutu_gun ?? null).lastInsertRowid
+        );
+        for (const s of subeler) stokEkle.run(id, s.id);
+        p.ilac_id = id;
+      } else if (p.islem === 'guncelle') {
+        const set = p.degisen.map((f) => `${f} = ?`).join(', ');
+        db.prepare(`UPDATE ilaclar SET ${set} WHERE id = ?`).run(...p.degisen.map((f) => p.alanlar[f]), p.ilac_id);
+        if (p.degisen.includes('satis_fiyati')) gecmis.run(p.ilac_id, p.eski_satis, p.alanlar.satis_fiyati);
+      }
+    }
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    return res.status(500).json({ error: 'Ice aktarma basarisiz: ' + err.message });
+  }
+  res.json({ ozet, satirlar: plan });
+});
+
+// Son `gun` gun icinde satis fiyati degisen urunler (yeni raf etiketi basmak icin)
+router.get('/fiyat-degisenler', (req, res) => {
+  const gun = Math.min(365, Math.max(1, Number(req.query.gun) || 7));
+  const rows = db
+    .prepare(
+      `SELECT ilac_id, MAX(tarih) AS son_degisim FROM fiyat_gecmisi
+       WHERE tarih >= datetime('now', ?) GROUP BY ilac_id`
+    )
+    .all(`-${gun} days`);
+  res.json(rows);
+});
+
+// Toplu fiyat guncelleme (orn. ilac fiyat kararnamesi, dermokozmetik zam donemi)
+const YUVARLAMALAR = {
+  kurus: (f) => Math.round(f * 100) / 100,
+  yarim: (f) => Math.round(f * 2) / 2,
+  lira: (f) => Math.round(f),
+  // Psikolojik fiyat: 123,40 -> 122,90 / 123,90 (en yakin ,90)
+  doksan: (f) => Math.max(0.9, Math.round(f + 0.1) - 0.1)
+};
+
+function topluFiyatHedefleri(hedef) {
+  let sql = 'SELECT id, ad, kategori, urun_tipi, receteli, alis_fiyati, satis_fiyati FROM ilaclar WHERE 1=1';
+  const params = [];
+  const tip = hedef && hedef.tip;
+  if (tip === 'kategori') {
+    sql += ' AND kategori = ?';
+    params.push(String(hedef.deger || ''));
+  } else if (tip === 'urun_tipi') {
+    sql += ' AND urun_tipi = ?';
+    params.push(String(hedef.deger || ''));
+  } else if (tip === 'receteli') {
+    sql += ' AND receteli = 1';
+  } else if (tip === 'recetesiz') {
+    sql += ' AND receteli = 0';
+  } else if (tip !== 'tumu') {
+    return null;
+  }
+  return db.prepare(sql + ' ORDER BY ad').all(...params);
+}
+
+router.post('/toplu-fiyat', requireRole('admin', 'eczaci'), (req, res) => {
+  const { hedef, onizleme } = req.body;
+  const yuzde = Number(req.body.yuzde);
+  const alan = req.body.alan || 'satis';
+  const yuvarla = YUVARLAMALAR[req.body.yuvarlama || 'kurus'];
+  if (!Number.isFinite(yuzde) || yuzde === 0 || yuzde < -90 || yuzde > 500) {
+    return res.status(400).json({ error: 'Yuzde -90 ile 500 arasinda ve sifirdan farkli olmali' });
+  }
+  if (!['satis', 'alis', 'ikisi'].includes(alan)) return res.status(400).json({ error: 'Gecersiz fiyat alani' });
+  if (!yuvarla) return res.status(400).json({ error: 'Gecersiz yuvarlama' });
+
+  const urunler = topluFiyatHedefleri(hedef);
+  if (!urunler) return res.status(400).json({ error: 'Gecersiz hedef' });
+
+  const carpan = 1 + yuzde / 100;
+  const degisiklikler = urunler.map((u) => {
+    const yeniSatis = alan === 'alis' ? u.satis_fiyati : yuvarla(u.satis_fiyati * carpan);
+    // Alis fiyati faturadan gelir; psikolojik yuvarlama uygulanmaz
+    const yeniAlis = alan === 'satis' ? u.alis_fiyati : Math.round(u.alis_fiyati * carpan * 100) / 100;
+    return {
+      id: u.id,
+      ad: u.ad,
+      eski_satis: u.satis_fiyati,
+      yeni_satis: yeniSatis,
+      eski_alis: u.alis_fiyati,
+      yeni_alis: yeniAlis,
+      // Satis fiyati alisin altina duserse uyar
+      zararina: yeniSatis < yeniAlis
+    };
+  });
+
+  if (onizleme) return res.json({ urun_sayisi: degisiklikler.length, degisiklikler });
+  if (!degisiklikler.length) return res.status(400).json({ error: 'Hedefte urun yok' });
+
+  db.exec('BEGIN');
+  try {
+    const guncelle = db.prepare('UPDATE ilaclar SET satis_fiyati = ?, alis_fiyati = ? WHERE id = ?');
+    const gecmis = db.prepare('INSERT INTO fiyat_gecmisi (ilac_id, eski_fiyat, yeni_fiyat) VALUES (?, ?, ?)');
+    for (const d of degisiklikler) {
+      guncelle.run(d.yeni_satis, d.yeni_alis, d.id);
+      if (d.yeni_satis !== d.eski_satis) gecmis.run(d.id, d.eski_satis, d.yeni_satis);
+    }
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    return res.status(500).json({ error: 'Fiyatlar guncellenemedi' });
+  }
+  res.json({ urun_sayisi: degisiklikler.length, degisiklikler });
+});
+
 // Karekod (GS1 DataMatrix) okutuldugunda urunu, parti ve SKT bilgisini doner
 router.get('/karekod', (req, res) => {
   const karekod = karekodCoz(req.query.kod);
@@ -162,6 +352,10 @@ router.get('/:id/fiyat-gecmisi', (req, res) => {
 router.post('/', requireRole('admin', 'eczaci'), (req, res) => {
   const { ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt, stok, urun_tipi, etken_madde } = req.body;
   if (!ad || !ad.trim()) return res.status(400).json({ error: 'Ilac adi zorunludur' });
+  const kutuGun = kutuGunOku(req.body.kutu_gun);
+  if (Number.isNaN(kutuGun)) return res.status(400).json({ error: 'Kutu suresi 1-365 gun arasinda olmali' });
+  const receteTuru = receteTuruOku(req.body.recete_turu);
+  if (Number.isNaN(receteTuru)) return res.status(400).json({ error: 'Gecersiz recete turu' });
   if (!urunTipiGecerliMi(urun_tipi)) return res.status(400).json({ error: 'Gecersiz urun tipi' });
   if (satis_fiyati == null || Number(satis_fiyati) < 0) {
     return res.status(400).json({ error: 'Gecerli bir satis fiyati girin' });
@@ -171,21 +365,23 @@ router.post('/', requireRole('admin', 'eczaci'), (req, res) => {
   try {
     const info = db
       .prepare(
-        `INSERT INTO ilaclar (ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt, urun_tipi, etken_madde)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO ilaclar (ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt, urun_tipi, etken_madde, kutu_gun, recete_turu)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         ad.trim(),
         barkod || null,
         kategori || null,
         uretici || null,
-        receteli ? 1 : 0,
+        receteli || receteTuru ? 1 : 0,
         Number(kritik_stok) || 10,
         Number(alis_fiyati) || 0,
         Number(satis_fiyati),
         skt || null,
         urun_tipi || 'ilac',
-        etkenMaddeNormallestir(etken_madde)
+        etkenMaddeNormallestir(etken_madde),
+        kutuGun,
+        receteTuru
       );
 
     const subeler = db.prepare('SELECT id FROM subeler').all();
@@ -220,6 +416,11 @@ router.put('/:id', requireRole('admin', 'eczaci'), (req, res) => {
 
   const { ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt, urun_tipi, etken_madde } = req.body;
   if (!ad || !ad.trim()) return res.status(400).json({ error: 'Ilac adi zorunludur' });
+  // kutu_gun gonderilmezse mevcut deger korunur
+  const kutuGun = 'kutu_gun' in req.body ? kutuGunOku(req.body.kutu_gun) : existing.kutu_gun;
+  if (Number.isNaN(kutuGun)) return res.status(400).json({ error: 'Kutu suresi 1-365 gun arasinda olmali' });
+  const receteTuru = 'recete_turu' in req.body ? receteTuruOku(req.body.recete_turu) : existing.recete_turu;
+  if (Number.isNaN(receteTuru)) return res.status(400).json({ error: 'Gecersiz recete turu' });
   if (!urunTipiGecerliMi(urun_tipi)) return res.status(400).json({ error: 'Gecersiz urun tipi' });
 
   db.exec('BEGIN');
@@ -227,19 +428,21 @@ router.put('/:id', requireRole('admin', 'eczaci'), (req, res) => {
     const yeniSatisFiyati = Number(satis_fiyati) || 0;
     db.prepare(
       `UPDATE ilaclar SET ad=?, barkod=?, kategori=?, uretici=?, receteli=?, kritik_stok=?, alis_fiyati=?, satis_fiyati=?, skt=?, urun_tipi=?,
-       etken_madde=? WHERE id=?`
+       etken_madde=?, kutu_gun=?, recete_turu=? WHERE id=?`
     ).run(
       ad.trim(),
       barkod || null,
       kategori || null,
       uretici || null,
-      receteli ? 1 : 0,
+      receteli || receteTuru ? 1 : 0,
       Number(kritik_stok) || 10,
       Number(alis_fiyati) || 0,
       yeniSatisFiyati,
       skt || null,
       urun_tipi || existing.urun_tipi,
       etken_madde === undefined ? existing.etken_madde : etkenMaddeNormallestir(etken_madde),
+      kutuGun,
+      receteTuru,
       req.params.id
     );
 
