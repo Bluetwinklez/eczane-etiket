@@ -317,7 +317,19 @@
       <div class="kart-ikili">
         <a class="kart kart-dokun bg-sari" href="#/urunler?filtre=kritik"><h2>Kritik stok</h2><div class="tutar">${d.kritik_stok}</div><div class="fark" style="max-width:none">ürün azaldı</div></a>
         <a class="kart kart-dokun bg-mavi" href="#/urunler?filtre=skt"><h2>SKT uyarısı</h2><div class="tutar">${d.skt_yakin}</div><div class="fark" style="max-width:none">parti 30 gün içinde</div></a>
-      </div>`
+      </div>
+      <h3 class="bolum-baslik">Hızlı işlemler</h3>
+      <div class="kart-ikili">
+        <a class="kart kart-dokun bg-mor" href="#/hizli-satis"><h2>Hızlı satış</h2><div class="fark" style="max-width:none">Sepete ekle, sat</div></a>
+        <a class="kart kart-dokun bg-pembe" href="#/musteriler"><h2>Müşteriler</h2><div class="fark" style="max-width:none">Veresiye, tahsilat</div></a>
+        ${
+          ['admin', 'eczaci'].includes(oturum.kullanici.rol)
+            ? `<a class="kart kart-dokun bg-turuncu" href="#/mal-kabul"><h2>Mal kabul</h2><div class="fark" style="max-width:none">Gelen malı okut</div></a>
+               <a class="kart kart-dokun bg-krem" href="#/siparisler"><h2>Siparişler</h2><div class="fark" style="max-width:none">Durumları gör</div></a>`
+            : ''
+        }
+      </div>
+      <a class="kart kart-dokun bg-yesil" href="#/oneri" style="margin-top:14px"><h2>Akıllı öneriler</h2><div class="fark" style="max-width:none">Stok bitiş tahmini, SKT indirimi, gün sonu özeti</div></a>`
     );
     uyg.querySelectorAll('[data-donem]').forEach((b) =>
       b.addEventListener('click', () => {
@@ -496,6 +508,32 @@
     });
   }
 
+  // Kamera: yerel zxing (EAN-13, Code 128, QR, GS1 DataMatrix) — iOS WebView dahil her yerde calisir.
+  // kamera: kapsayici eleman, okundu(metin): her okumada cagrilir. Donus: durdurma fonksiyonu (kamera yoksa null).
+  async function kameraBaslat(kamera, okundu) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.ZXing) {
+      kamera.innerHTML = '<div>Bu cihazda kamera kullanılamıyor. Barkodu elle yazabilirsiniz.</div>';
+      return null;
+    }
+    try {
+      const ipuclari = new Map();
+      ipuclari.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8, ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.QR_CODE, ZXing.BarcodeFormat.DATA_MATRIX]);
+      ipuclari.set(ZXing.DecodeHintType.TRY_HARDER, true);
+      const okuyucu = new ZXing.BrowserMultiFormatReader(ipuclari, 300);
+      kamera.className = 'kamera';
+      kamera.innerHTML = '<video playsinline muted></video><div class="cerceve"></div><div class="tarama-cizgi"></div><div class="kamera-mesaj">Barkodu çerçeveye getirin</div>';
+      const video = $('video', kamera);
+      await okuyucu.decodeFromConstraints({ video: { facingMode: { ideal: 'environment' } }, audio: false }, video, (sonuc) => {
+        if (sonuc) okundu(sonuc.getText());
+      });
+      return () => okuyucu.reset();
+    } catch (e) {
+      kamera.className = 'kamera kapali';
+      kamera.innerHTML = `<div>Kamera açılamadı (${esc(e.name === 'NotAllowedError' ? 'izin verilmedi' : e.message)}). Barkodu elle yazabilirsiniz.</div>`;
+      return null;
+    }
+  }
+
   // ---------- Tarama ----------
   let tarayici = null; // { dur() }
   function taramayiDurdur() {
@@ -616,27 +654,8 @@
     });
 
     // Kamera: yerel zxing (EAN-13, Code 128, QR, GS1 DataMatrix) — iOS WebView dahil her yerde calisir
-    const kamera = $('#kamera');
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.ZXing) {
-      kamera.innerHTML = '<div>Bu cihazda kamera kullanılamıyor. Barkodu aşağıya yazabilirsiniz.</div>';
-      return;
-    }
-    try {
-      const ipuclari = new Map();
-      ipuclari.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8, ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.QR_CODE, ZXing.BarcodeFormat.DATA_MATRIX]);
-      ipuclari.set(ZXing.DecodeHintType.TRY_HARDER, true);
-      const okuyucu = new ZXing.BrowserMultiFormatReader(ipuclari, 300);
-      kamera.className = 'kamera';
-      kamera.innerHTML = '<video playsinline muted></video><div class="cerceve"></div><div class="tarama-cizgi"></div><div class="kamera-mesaj">Barkodu çerçeveye getirin</div>';
-      const video = $('video', kamera);
-      await okuyucu.decodeFromConstraints({ video: { facingMode: { ideal: 'environment' } }, audio: false }, video, (sonuc) => {
-        if (sonuc) okundu(sonuc.getText());
-      });
-      tarayici = { dur: () => okuyucu.reset() };
-    } catch (e) {
-      kamera.className = 'kamera kapali';
-      kamera.innerHTML = `<div>Kamera açılamadı (${esc(e.name === 'NotAllowedError' ? 'izin verilmedi' : e.message)}). Barkodu aşağıya yazabilirsiniz.</div>`;
-    }
+    const dur = await kameraBaslat($('#kamera'), okundu);
+    if (dur) tarayici = { dur };
   }
 
   // ---------- Ekran: bildirimler ----------
@@ -755,8 +774,17 @@
 
   // ---------- Yonlendirme ----------
   const EKRANLAR = { ozet: ozetEkrani, satis: satisEkrani, tara: taraEkrani, urunler: urunlerEkrani, bildirim: bildirimEkrani, profil: profilEkrani };
+  // Islem ekranlari (mobil-islemler.js) cekirdegin yardimcilariyla kaydolur
+  const ekranTemizle = [];
+  if (typeof window.EczamEklenti === 'function') {
+    Object.assign(
+      EKRANLAR,
+      window.EczamEklenti({ $, esc, tl, svg, get, post, put, kuyruklaGonder, toast, sayfaAc, cerceve, hataKutusu, cevrimdisiNot, oturum, uyg, urunKarti, barkodCoz, kameraBaslat, yerel, yerelYaz, ekranTemizle })
+    );
+  }
   async function yonlendir() {
     taramayiDurdur();
+    ekranTemizle.forEach((f) => f());
     document.querySelectorAll('.perde').forEach((p) => p.remove());
     const [yol, sorgu] = location.hash.replace(/^#\/?/, '').split('?');
     const ad = yol || 'ozet';

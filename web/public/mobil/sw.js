@@ -1,8 +1,8 @@
 // Eczam Mobil servis calisani: uygulama kabugu onbelleklenir (cevrimdisi acilir),
 // bazi GET API cagrilari agdan once denenir, ag yoksa onbellekten doner.
-const SURUM = 'eczanem-mobil-v2';
+const SURUM = 'eczanem-mobil-v3';
 const KABUK = [
-  '/mobil/', '/mobil/index.html', '/mobil/mobil.css', '/mobil/mobil.js', '/mobil/vendor/zxing.min.js',
+  '/mobil/', '/mobil/index.html', '/mobil/mobil.css', '/mobil/mobil.js', '/mobil/mobil-islemler.js', '/mobil/vendor/zxing.min.js',
   '/mobil/manifest.webmanifest', '/mobil/ikonlar/ikon-192.png', '/mobil/ikonlar/ikon-512.png',
   '/img/logo-isaret.svg', '/favicon.svg',
   '/fonts/bricolage-grotesque-latin.woff2', '/fonts/bricolage-grotesque-latin-ext.woff2',
