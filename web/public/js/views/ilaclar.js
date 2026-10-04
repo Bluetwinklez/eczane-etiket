@@ -83,6 +83,7 @@
         </div>
         <div><label><input type="checkbox" name="receteli" style="width:auto" ${i.receteli ? 'checked' : ''} /> Reçeteli ilaç</label></div>
         <div><label><input type="checkbox" name="yasli_uyari" style="width:auto" ${i.yasli_uyari ? 'checked' : ''} /> 65 yaş üstünde dikkat gerektirir (kasada uyarı)</label></div>
+        <div><label><input type="checkbox" name="hizli_tus" style="width:auto" ${i.hizli_tus ? 'checked' : ''} /> Kasada hızlı tuş olarak göster</label></div>
         <div class="modal-actions">
           <button type="button" class="secondary" data-action="kapat">Vazgeç</button>
           <button type="submit">Kaydet</button>
@@ -112,7 +113,8 @@
       raf_konumu: fd.get('raf_konumu') || null,
       gebelik_uyari: fd.get('gebelik_uyari') || null,
       min_yas: fd.get('min_yas') === '' ? null : Number(fd.get('min_yas')),
-      yasli_uyari: form.querySelector('[name="yasli_uyari"]').checked
+      yasli_uyari: form.querySelector('[name="yasli_uyari"]').checked,
+      hizli_tus: form.querySelector('[name="hizli_tus"]').checked
     };
   }
 

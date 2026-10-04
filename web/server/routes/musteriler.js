@@ -3,6 +3,7 @@ const { db } = require('../db');
 const { musteriBakiyesi } = require('../cari');
 const sadakat = require('../sadakat');
 const { requireRole } = require('../auth');
+const { bildirimGonder } = require('../bildirim');
 const { etkilesimleriBul, alerjiKontrol } = require('../etkilesim');
 
 function limitOku(deger) {
@@ -14,26 +15,92 @@ function limitOku(deger) {
 const router = express.Router();
 
 router.get('/', (req, res) => {
-  const { q } = req.query;
-  if (q) {
-    const like = `%${q}%`;
-    return res.json(
-      db
-        .prepare(
-          `SELECT m.*, COALESCE((SELECT SUM(puan) FROM puan_hareketleri p WHERE p.musteri_id = m.id), 0) AS puan
-           FROM musteriler m WHERE ad_soyad LIKE ? OR telefon LIKE ? OR tc_no LIKE ? ORDER BY ad_soyad`
-        )
-        .all(like, like, like)
-    );
-  }
-  res.json(
-    db
-      .prepare(
-        `SELECT m.*, COALESCE((SELECT SUM(puan) FROM puan_hareketleri p WHERE p.musteri_id = m.id), 0) AS puan
-         FROM musteriler m ORDER BY m.ad_soyad`
-      )
-      .all()
-  );
+  const rows = db
+    .prepare(
+      `SELECT m.*, COALESCE((SELECT SUM(puan) FROM puan_hareketleri p WHERE p.musteri_id = m.id), 0) AS puan
+       FROM musteriler m ORDER BY m.ad_soyad`
+    )
+    .all();
+  const q = String(req.query.q || '').trim();
+  if (!q) return res.json(rows);
+  // SQLite LIKE yalnizca ASCII harflerde buyuk/kucuk harf duyarsizdir; Turkce harfler icin JS'de karsilastir
+  const kucuk = (m) => String(m || '').toLocaleLowerCase('tr-TR');
+  const needle = kucuk(q);
+  res.json(rows.filter((m) => kucuk(m.ad_soyad).includes(needle) || (m.telefon || '').includes(q) || (m.tc_no || '').includes(q)));
+});
+
+// RFM benzeri musteri segmentleri: son alim, sikligi ve harcamaya gore
+const SEGMENT_ADLARI = { sadik: 'Sadık', yeni: 'Yeni', risk: 'Kaybedilmek üzere', kayip: 'Kayıp', ara: 'Ara sıra', hic: 'Alışveriş yok' };
+function musteriSegmentleri() {
+  const rows = db
+    .prepare(
+      `SELECT m.id, m.ad_soyad, m.telefon, m.ileti_izni,
+              MIN(sa.tarih) AS ilk_alim, MAX(sa.tarih) AS son_alim,
+              SUM(CASE WHEN sa.tarih >= datetime('now', '-180 days') THEN 1 ELSE 0 END) AS alim_180,
+              COUNT(sa.id) AS alim_toplam,
+              ROUND(COALESCE(SUM(CASE WHEN sa.tarih >= datetime('now', '-365 days') THEN sa.toplam_tutar END), 0), 2) AS harcama_365,
+              CAST(julianday('now') - julianday(MAX(sa.tarih)) AS INTEGER) AS gun_once
+       FROM musteriler m LEFT JOIN satislar sa ON sa.musteri_id = m.id
+       GROUP BY m.id ORDER BY harcama_365 DESC, m.ad_soyad`
+    )
+    .all();
+  return rows.map((r) => {
+    let segment;
+    if (!r.alim_toplam) segment = 'hic';
+    else if (julianDay(r.ilk_alim) >= -30) segment = 'yeni';
+    else if (r.gun_once <= 45 && r.alim_180 >= 4) segment = 'sadik';
+    else if (r.gun_once > 120) segment = 'kayip';
+    else if (r.gun_once > 45 && r.alim_toplam >= 2) segment = 'risk';
+    else segment = 'ara';
+    return { ...r, segment, segment_adi: SEGMENT_ADLARI[segment] };
+  });
+}
+// tarihin bugune gore kac gun once oldugu (negatif = gecmis)
+function julianDay(tarih) {
+  return -Math.floor((Date.now() - new Date(String(tarih).replace(' ', 'T') + 'Z').getTime()) / 86400000);
+}
+
+router.get('/segmentler', (req, res) => {
+  const liste = musteriSegmentleri();
+  const ozet = {};
+  for (const k of Object.keys(SEGMENT_ADLARI)) ozet[k] = { ad: SEGMENT_ADLARI[k], sayi: 0 };
+  for (const m of liste) ozet[m.segment].sayi += 1;
+  res.json({ ozet, musteriler: liste });
+});
+
+// Onumuzdeki N gun icinde dogum gunu olan musteriler (yil sonu gecisi dahil)
+function yaklasanDogumGunleri(gun) {
+  const bugun = new Date();
+  bugun.setHours(0, 0, 0, 0);
+  return db
+    .prepare('SELECT id, ad_soyad, telefon, dogum_tarihi, ileti_izni FROM musteriler WHERE dogum_tarihi IS NOT NULL')
+    .all()
+    .map((m) => {
+      const [y, a, g] = m.dogum_tarihi.split('-').map(Number);
+      let sonraki = new Date(bugun.getFullYear(), a - 1, g);
+      if (sonraki < bugun) sonraki = new Date(bugun.getFullYear() + 1, a - 1, g);
+      const kalan = Math.round((sonraki - bugun) / 86400000);
+      return { ...m, kalan_gun: kalan, yeni_yas: sonraki.getFullYear() - y };
+    })
+    .filter((m) => m.kalan_gun <= gun)
+    .sort((x, z) => x.kalan_gun - z.kalan_gun || x.ad_soyad.localeCompare(z.ad_soyad, 'tr'));
+}
+
+router.get('/dogum-gunleri', (req, res) => {
+  const istenen = req.query.gun === undefined || req.query.gun === '' ? 7 : Number(req.query.gun);
+  const gun = Number.isFinite(istenen) ? Math.min(Math.max(Math.floor(istenen), 0), 60) : 7;
+  res.json(yaklasanDogumGunleri(gun));
+});
+
+router.post('/:id/dogum-gunu-mesaji', async (req, res) => {
+  const m = db.prepare('SELECT * FROM musteriler WHERE id = ?').get(req.params.id);
+  if (!m) return res.status(404).json({ error: 'Müşteri bulunamadı' });
+  if (!m.ileti_izni) return res.status(409).json({ error: 'Müşterinin ileti izni (İYS) yok' });
+  if (!m.telefon) return res.status(400).json({ error: 'Müşterinin telefonu yok' });
+  const ad = m.ad_soyad.split(/\s+/)[0];
+  const mesaj = String(req.body.mesaj || '').trim() || `Sevgili ${ad}, doğum gününüzü kutlar sağlıklı nice yıllar dileriz. — Eczanemiz`;
+  const b = await bildirimGonder(m, 'sms', mesaj.slice(0, 480));
+  res.status(201).json(b);
 });
 
 // Sadakat puani ayarlari (herkes okur, yalnizca admin degistirir)
@@ -167,3 +234,4 @@ router.delete('/:id', (req, res) => {
 });
 
 module.exports = router;
+module.exports.yaklasanDogumGunleri = yaklasanDogumGunleri;

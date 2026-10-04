@@ -281,10 +281,12 @@
   const view = {
     async render(container) {
       let ayarlar;
-      [musteriler, aktifKampanyalar, ayarlar] = await Promise.all([
+      let hizliUrunler;
+      [musteriler, aktifKampanyalar, ayarlar, hizliUrunler] = await Promise.all([
         Api.get('/api/musteriler'),
         Api.get('/api/kampanyalar/aktif').catch(() => []),
-        Api.get('/api/ayarlar').catch(() => ({ kasiyer_indirim_limiti: 100 }))
+        Api.get('/api/ayarlar').catch(() => ({ kasiyer_indirim_limiti: 100 })),
+        Api.get('/api/ilaclar?hizli=1').catch(() => [])
       ]);
       const indirimLimiti = CURRENT_USER.rol === 'kasiyer' ? ayarlar.kasiyer_indirim_limiti : 100;
       sepet = [];
@@ -293,6 +295,14 @@
         <div class="pos-layout">
           <div>
             <div class="card">
+              ${
+                hizliUrunler.length
+                  ? `<div class="hizli-tuslar" aria-label="Hızlı ürünler">${hizliUrunler
+                      .slice(0, 12)
+                      .map((u) => `<button type="button" class="hizli-tus" data-hizli="${u.id}" ${u.stok <= 0 ? 'disabled title="Stok yok"' : ''}><b>${UI.esc(u.ad)}</b><span>${UI.tl(u.satis_fiyati)}</span></button>`)
+                      .join('')}</div>`
+                  : ''
+              }
               <input id="pos-arama" placeholder="İlaç adı, barkod veya karekod okutun..." autofocus />
               <table style="margin-top:12px">
                 <thead><tr><th>Ad</th><th>Barkod</th><th class="num">Stok</th><th class="num">Fiyat</th></tr></thead>
@@ -317,10 +327,13 @@
               <div class="form-grid" style="margin-top:10px">
                 <div>
                   <label>Müşteri (opsiyonel)</label>
-                  <select id="pos-musteri">
-                    <option value="">- Müşteri seçilmedi -</option>
-                    ${musteriler.map((m) => `<option value="${m.id}">${UI.esc(m.ad_soyad)}</option>`).join('')}
-                  </select>
+                  <div class="musteri-secim">
+                    <select id="pos-musteri">
+                      <option value="">- Müşteri seçilmedi -</option>
+                      ${musteriler.map((m) => `<option value="${m.id}">${UI.esc(m.ad_soyad)}</option>`).join('')}
+                    </select>
+                    <button type="button" class="secondary" id="pos-musteri-ekle" title="Yeni müşteri ekle" aria-label="Yeni müşteri ekle">+</button>
+                  </div>
                   <div id="pos-saglik-uyarisi"></div>
                   <div id="pos-puan" hidden style="margin-top:6px">
                     <label>Puan Kullan <span class="form-ipucu" id="pos-puan-bakiye"></span></label>
@@ -406,6 +419,45 @@
           e.preventDefault();
           sepeteEkle(sonAramaSonuclari[0], container);
         }
+      });
+
+      container.querySelectorAll('[data-hizli]').forEach((b) =>
+        b.addEventListener('click', () => {
+          const u = hizliUrunler.find((x) => x.id === Number(b.dataset.hizli));
+          if (u) sepeteEkle(u, container);
+        })
+      );
+
+      // Kasadan cikmadan hizli musteri kaydi: ad ve telefon yeterli
+      document.getElementById('pos-musteri-ekle').addEventListener('click', () => {
+        const modal = UI.openModal(`
+          <h3>Hızlı Müşteri Ekle</h3>
+          <form id="hizli-musteri-form">
+            <div class="form-grid">
+              <div><label>Ad Soyad</label><input name="ad_soyad" required autofocus /></div>
+              <div><label>Telefon</label><input name="telefon" inputmode="tel" /></div>
+            </div>
+            <div><label><input type="checkbox" name="ileti_izni" style="width:auto" /> Kampanya SMS'i almayı kabul ediyor (İYS)</label></div>
+            <p class="form-ipucu">Diğer bilgiler (doğum tarihi, sağlık notu) sonradan Müşteriler sayfasından eklenebilir.</p>
+            <div class="modal-actions"><button type="button" class="secondary" data-action="kapat">Vazgeç</button><button type="submit">Kaydet ve Seç</button></div>
+          </form>`);
+        modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));
+        modal.querySelector('#hizli-musteri-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const f = e.target;
+          try {
+            const m = await Api.post('/api/musteriler', { ad_soyad: f.ad_soyad.value, telefon: f.telefon.value || null, ileti_izni: f.ileti_izni.checked });
+            musteriler.push(m);
+            const sec = document.getElementById('pos-musteri');
+            sec.insertAdjacentHTML('beforeend', `<option value="${m.id}">${UI.esc(m.ad_soyad)}</option>`);
+            sec.value = String(m.id);
+            sec.dispatchEvent(new Event('change'));
+            UI.closeModal(modal);
+            UI.toast(`${m.ad_soyad} eklendi ve seçildi`, 'success');
+          } catch (err) {
+            UI.toast(err.message, 'error');
+          }
+        });
       });
 
       document.getElementById('arama-tbody').addEventListener('click', (e) => {

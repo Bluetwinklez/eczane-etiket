@@ -2,6 +2,7 @@ const express = require('express');
 const { db } = require('../db');
 const { bitisTahminleri } = require('./hatirlatmalar');
 const { acikFaturalar } = require('./tedarikciler');
+const { yaklasanDogumGunleri } = require('./musteriler');
 
 const router = express.Router();
 
@@ -67,6 +68,15 @@ router.get('/', (req, res) => {
         : 0,
     seviye: 'info',
     link: '#kalite'
+  });
+
+  ekle({
+    kod: 'dogum_gunu',
+    baslik: 'Bugün doğum günü olan müşteri',
+    aciklama: 'Kutlama mesajı gönderebilirsiniz (ileti izni olanlara)',
+    sayi: yaklasanDogumGunleri(0).length,
+    seviye: 'ok',
+    link: '#musteriler'
   });
 
   const bitenler = bitisTahminleri(sube).filter((r) => r.kalan_gun <= 3 && r.kalan_gun >= -30 && !r.hatirlatildi);

@@ -786,3 +786,28 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-sp
 .grafik-svg .sicaklik-bant { fill: var(--lime-soft); }
 .grafik-svg .sicaklik-nokta { fill: var(--seri-1); stroke: var(--surface); stroke-width: 2; }
 .grafik-svg .sicaklik-hata { fill: var(--danger); stroke: var(--surface); stroke-width: 2; }
+
+/* ---- POS hizli tuslar ve hizli musteri ---- */
+.hizli-tuslar { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.hizli-tus {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border-radius: var(--radius);
+  background: var(--surface-2); color: var(--text); border: 1px solid var(--border-soft); padding: 9px 11px; min-height: 56px;
+}
+.hizli-tus:hover { background: var(--lime-soft); border-color: var(--lime-strong); }
+.hizli-tus b { font-size: 12.5px; line-height: 1.2; font-weight: 700; }
+.hizli-tus span { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.musteri-secim { display: flex; gap: 6px; }
+.musteri-secim select { flex: 1; min-width: 0; }
+.musteri-secim button { padding: 0 14px; font-size: 18px; line-height: 1; }
+
+/* ---- Musteri segmentleri ve dogum gunleri ---- */
+.musteri-ust { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; }
+.musteri-ust .card { margin-bottom: 18px; }
+@media (max-width: 900px) { .musteri-ust { grid-template-columns: 1fr; } }
+.segment-cipler { display: flex; flex-wrap: wrap; gap: 8px; }
+.segment-cip { display: inline-flex; align-items: center; gap: 6px; background: var(--surface-2); color: var(--text); border: 1px solid var(--border-soft); }
+.segment-cip.aktif { border-color: var(--text); box-shadow: var(--focus-ring); }
+.dogum-liste { list-style: none; margin: 0; padding: 0; }
+.dogum-liste li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border-soft); }
+.dogum-liste li:last-child { border-bottom: none; }
+.dogum-liste small { color: var(--text-muted); }
