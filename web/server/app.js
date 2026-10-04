@@ -16,6 +16,7 @@ const tedarikcilerRoutes = require('./routes/tedarikciler');
 const raporlarRoutes = require('./routes/raporlar');
 const kaliteRoutes = require('./routes/kalite');
 const ayarlarRoutes = require('./routes/ayarlar');
+const sistemRoutes = require('./routes/sistem');
 const kullanicilarRoutes = require('./routes/kullanicilar');
 const subelerRoutes = require('./routes/subeler');
 const bildirimlerRoutes = require('./routes/bildirimler');
@@ -108,6 +109,7 @@ app.use('/api/islem-kayitlari', requireLogin, requireRole('admin'), islemKayitla
 
 app.use('/api/kalite', requireLogin, kaliteRoutes);
 app.use('/api/ayarlar', requireLogin, ayarlarRoutes);
+app.use('/api/sistem', requireLogin, sistemRoutes);
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 

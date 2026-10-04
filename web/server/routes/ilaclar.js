@@ -1,5 +1,6 @@
 const express = require('express');
 const { db } = require('../db');
+const { sendCsv } = require('../export');
 const { requireRole } = require('../auth');
 const { URUN_TIPLERI, RECETE_TURLERI } = require('../sabitler');
 const { partiGiris, partiCikis, partiMiktariniKontrolEt, FEFO_SIRASI } = require('../partiler');
@@ -122,6 +123,25 @@ function ekAlanlariKaydet(id, govde) {
   if (alanlar.length) db.prepare(`UPDATE ilaclar SET ${alanlar.join(', ')} WHERE id = ?`).run(...degerler, id);
   return null;
 }
+
+// Urun listesini (sube stoku ile) Excel uyumlu CSV olarak indirir
+router.get('/disa-aktar', requireRole('admin', 'eczaci'), (req, res) => {
+  const rows = ilacWithStok(req.user.sube_id).map((r) => ({ ...r, receteli: r.receteli ? 'Evet' : 'Hayır' }));
+  sendCsv(res, 'ilaclar.csv', rows, [
+    { alan: 'ad', baslik: 'Ad' },
+    { alan: 'barkod', baslik: 'Barkod' },
+    { alan: 'kategori', baslik: 'Kategori' },
+    { alan: 'uretici', baslik: 'Üretici' },
+    { alan: 'etken_madde', baslik: 'Etken Madde' },
+    { alan: 'receteli', baslik: 'Reçeteli' },
+    { alan: 'raf_konumu', baslik: 'Raf' },
+    { alan: 'stok', baslik: 'Stok' },
+    { alan: 'kritik_stok', baslik: 'Kritik Stok' },
+    { alan: 'alis_fiyati', baslik: 'Alış Fiyatı' },
+    { alan: 'satis_fiyati', baslik: 'Satış Fiyatı' },
+    { alan: 'en_yakin_skt', baslik: 'En Yakın SKT' }
+  ]);
+});
 
 // Ayni etken madde(ler)e sahip, bu subede stogu olan diger urunler
 router.get('/:id/muadiller', (req, res) => {

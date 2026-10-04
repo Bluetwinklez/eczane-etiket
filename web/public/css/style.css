@@ -811,3 +811,68 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-sp
 .dogum-liste li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border-soft); }
 .dogum-liste li:last-child { border-bottom: none; }
 .dogum-liste small { color: var(--text-muted); }
+
+/* ---- Ikincil hap baglanti (CSV indir vb.) ---- */
+.hap-link.ikincil-link { background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 8px 16px; font-size: 13.5px; }
+.hap-link.ikincil-link:hover { background: var(--surface-2); }
+
+/* ---- Duyuru panosu ---- */
+.duyuru-pano { background: var(--surface); border: 1px solid var(--border-soft); border-left: 5px solid var(--lime-strong); border-radius: var(--radius-lg); padding: 14px 18px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
+.duyuru-bas { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.duyuru-bas .ikon { width: 19px; height: 19px; color: var(--primary); }
+.duyuru-bas button { margin-left: auto; padding: 5px 12px; font-size: 12.5px; }
+.duyuru-pano ul { list-style: none; margin: 0; padding: 0; }
+.duyuru-pano li { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; padding: 8px 0; border-top: 1px solid var(--border-soft); }
+.duyuru-pano li:first-child { border-top: none; }
+.duyuru-pano li > div { display: flex; flex-direction: column; gap: 2px; }
+.duyuru-pano li span { font-size: 13.5px; color: var(--text); }
+.duyuru-pano li small { font-size: 11.5px; color: var(--text-muted); }
+.duyuru-pano li.onemli b::before { content: '❗ '; }
+.duyuru-pano li button { padding: 4px 10px; font-size: 12px; }
+
+/* ---- Gorunum ayarlari ---- */
+.secim-grup { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.secim-kart { margin: 0; cursor: pointer; }
+.secim-kart input { position: absolute; opacity: 0; pointer-events: none; }
+.secim-kart span {
+  display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 8px; border-radius: var(--radius);
+  border: 1.5px solid var(--border); background: var(--surface-2); color: var(--text); font-weight: 600; font-size: 13.5px;
+}
+.secim-kart input:checked + span { border-color: var(--text); background: var(--lime-soft); box-shadow: var(--focus-ring); }
+.secim-kart input:focus-visible + span { box-shadow: var(--focus-ring); }
+html[data-yazi="buyuk"] .content, html[data-yazi="buyuk"] .modal { zoom: 1.12; }
+html[data-yazi="kucuk"] .content, html[data-yazi="kucuk"] .modal { zoom: 0.92; }
+
+/* ---- Ekran kilidi ---- */
+.ekran-kilidi {
+  position: fixed; inset: 0; z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 16px;
+  background:
+    radial-gradient(circle at 80% 15%, rgba(198, 239, 78, 0.18) 0 160px, transparent 161px),
+    rgba(10, 11, 9, 0.94);
+  backdrop-filter: blur(10px);
+}
+.kilit-kart { width: 100%; max-width: 340px; display: flex; flex-direction: column; align-items: center; gap: 10px; color: #fff; text-align: center; }
+.kilit-kart .logo-isaret { height: 40px; }
+.kilit-kart h2 { margin: 6px 0 0; font-size: 22px; color: #fff; }
+.kilit-kart p { margin: 0 0 6px; color: rgba(255, 255, 255, 0.65); font-size: 13.5px; }
+.kilit-kart input { text-align: center; background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.2); color: #fff; border-radius: var(--radius-pill); padding: 12px 16px; }
+.kilit-kart button { width: 100%; padding: 12px; background: var(--lime); color: var(--on-lime); }
+.kilit-kart .kilit-cikis { background: transparent; color: rgba(255, 255, 255, 0.7); font-weight: 500; }
+.kilit-avatar { width: 64px; height: 64px; font-size: 22px; }
+.kilit-hata { color: #ff9b8b; font-size: 13px; }
+
+/* ---- Baglanti bandi ---- */
+.baglanti-bandi {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 2500; background: var(--danger); color: #fff; text-align: center;
+  padding: 8px 16px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.baglanti-bandi .nokta { width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: nabiz 1.2s ease-in-out infinite; }
+@keyframes nabiz { 50% { opacity: 0.25; } }
+
+/* ---- Klavye kisayollari ---- */
+.kisayol-tablo td:first-child { white-space: nowrap; width: 1%; }
+kbd {
+  display: inline-block; font-family: var(--font-govde); font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 6px;
+  background: var(--surface-2); border: 1px solid var(--border); border-bottom-width: 2px; color: var(--text);
+}
+@media (prefers-reduced-motion: reduce) { .baglanti-bandi .nokta { animation: none; } }

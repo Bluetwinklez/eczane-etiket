@@ -127,6 +127,7 @@
           <input id="musteri-ara" placeholder="Müşteri ara..." style="max-width:320px" />
           <div class="spacer"></div>
           ${ctx && ctx.user.rol === 'admin' ? '<button class="secondary" id="sadakat-ayar-btn">Puan Ayarları</button>' : ''}
+          ${ctx && ['admin', 'eczaci'].includes(ctx.user.rol) ? '<a class="hap-link ikincil-link" href="/api/musteriler/disa-aktar" download>CSV Dışa Aktar</a>' : ''}
           <button id="yeni-musteri-btn">+ Yeni Müşteri</button>
         </div>
         <div class="musteri-ust">

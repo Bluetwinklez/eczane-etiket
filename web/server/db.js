@@ -346,6 +346,20 @@ sutunEkleGerekirse('ilaclar', 'recete_turu', 'TEXT');
 sutunEkleGerekirse('satis_kalemleri', 'kullanim', 'TEXT');
 // Ticari elektronik ileti onayi (IYS): toplu kampanya mesajlari yalnizca onayli musterilere
 sutunEkleGerekirse('musteriler', 'ileti_izni', 'INTEGER NOT NULL DEFAULT 0');
+// Ekip duyuru panosu
+db.exec(`
+  CREATE TABLE IF NOT EXISTS duyurular (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sube_id INTEGER REFERENCES subeler(id),
+    baslik TEXT NOT NULL,
+    metin TEXT,
+    onemli INTEGER NOT NULL DEFAULT 0,
+    bitis TEXT,
+    kullanici_id INTEGER REFERENCES kullanicilar(id),
+    tarih TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`);
+
 // Kasa ve finans: gun ici kasa giris/cikislari, tedarikci cari hesabi
 db.exec(`
   CREATE TABLE IF NOT EXISTS kasa_hareketleri (

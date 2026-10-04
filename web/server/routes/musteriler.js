@@ -4,6 +4,7 @@ const { musteriBakiyesi } = require('../cari');
 const sadakat = require('../sadakat');
 const { requireRole } = require('../auth');
 const { bildirimGonder } = require('../bildirim');
+const { sendCsv } = require('../export');
 const { etkilesimleriBul, alerjiKontrol } = require('../etkilesim');
 
 function limitOku(deger) {
@@ -27,6 +28,29 @@ router.get('/', (req, res) => {
   const kucuk = (m) => String(m || '').toLocaleLowerCase('tr-TR');
   const needle = kucuk(q);
   res.json(rows.filter((m) => kucuk(m.ad_soyad).includes(needle) || (m.telefon || '').includes(q) || (m.tc_no || '').includes(q)));
+});
+
+// Musteri listesini Excel uyumlu CSV olarak indirir (yonetici/eczaci)
+router.get('/disa-aktar', requireRole('admin', 'eczaci'), (req, res) => {
+  const seg = Object.fromEntries(musteriSegmentleri().map((m) => [m.id, m]));
+  const rows = db.prepare('SELECT * FROM musteriler ORDER BY ad_soyad').all().map((m) => ({
+    ...m,
+    ileti_izni: m.ileti_izni ? 'Evet' : 'Hayır',
+    segment: seg[m.id] ? seg[m.id].segment_adi : '',
+    son_alim: seg[m.id] && seg[m.id].son_alim ? seg[m.id].son_alim.slice(0, 10) : '',
+    bakiye: musteriBakiyesi(m.id)
+  }));
+  sendCsv(res, 'musteriler.csv', rows, [
+    { alan: 'ad_soyad', baslik: 'Ad Soyad' },
+    { alan: 'telefon', baslik: 'Telefon' },
+    { alan: 'email', baslik: 'E-posta' },
+    { alan: 'dogum_tarihi', baslik: 'Doğum Tarihi' },
+    { alan: 'adres', baslik: 'Adres' },
+    { alan: 'ileti_izni', baslik: 'İleti İzni' },
+    { alan: 'segment', baslik: 'Segment' },
+    { alan: 'son_alim', baslik: 'Son Alım' },
+    { alan: 'bakiye', baslik: 'Veresiye Bakiyesi (TL)' }
+  ]);
 });
 
 // RFM benzeri musteri segmentleri: son alim, sikligi ve harcamaya gore
