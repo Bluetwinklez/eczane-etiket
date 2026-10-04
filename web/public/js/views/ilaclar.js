@@ -34,7 +34,7 @@
         <td>${UI.esc(ilac.kategori || '-')}</td>
         <td class="num">${ilac.stok} ${stokRozeti}</td>
         <td class="num">${UI.tl(ilac.satis_fiyati)}</td>
-        <td>${ilac.en_yakin_skt || '-'}${ilac.aktif_parti_sayisi > 1 ? ` <span class="badge muted" title="Elde stoğu olan parti sayısı">${ilac.aktif_parti_sayisi} parti</span>` : ''}</td>
+        <td class="nowrap">${ilac.en_yakin_skt || '-'}${ilac.aktif_parti_sayisi > 1 ? ` <span class="badge muted" title="Elde stoğu olan parti sayısı">${ilac.aktif_parti_sayisi} parti</span>` : ''}</td>
         <td class="actions-col">${aksiyonlar}</td>
       </tr>
     `;
