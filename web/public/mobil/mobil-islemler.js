@@ -305,12 +305,42 @@ window.EczamEklenti = (M) => {
       };
   }
 
+  // Yeni musteri ekleme (musteriler ekrani ve musteri secici ortak)
+  function musteriEkle(sonra) {
+    const perde = sayfaAc(`<h2 style="font-family:var(--font-baslik);margin:0 0 10px">Yeni müşteri</h2>
+      <form id="ym-form">
+        <label class="etiket" for="ym-ad">Ad soyad</label><input class="alan" id="ym-ad" maxlength="120" required autocomplete="off" />
+        <label class="etiket" for="ym-tel" style="margin-top:12px">Telefon</label><input class="alan" id="ym-tel" type="tel" inputmode="tel" autocomplete="off" />
+        <label class="satir" style="cursor:pointer;margin-top:8px"><input type="checkbox" id="ym-izin" style="width:22px;height:22px" /><div class="ad">Kampanya ve hatırlatma iletileri gönderilebilir<small>Müşteri onay verdiyse işaretleyin</small></div></label>
+        <button class="hap siyah" type="submit" style="margin-top:8px">Kaydet</button>
+        <button class="hap" type="button" id="ym-vazgec" style="width:100%;margin-top:10px">Vazgeç</button>
+      </form>`);
+    $('#ym-vazgec', perde).onclick = () => perde.remove();
+    $('#ym-form', perde).addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        const m = await post('/api/musteriler', {
+          ad_soyad: $('#ym-ad', perde).value,
+          telefon: $('#ym-tel', perde).value.trim() || undefined,
+          ileti_izni: $('#ym-izin', perde).checked
+        });
+        perde.remove();
+        toast('Müşteri eklendi');
+        sonra(m);
+      } catch (err) {
+        toast(hataMesaji(err));
+      }
+    });
+  }
+
   // Musteri secici (satis ve diger ekranlar)
   function musteriSec(secildi) {
     const perde = sayfaAc(`<h2 style="font-family:var(--font-baslik);margin:0 0 10px">Müşteri seç</h2>
       <input class="alan" id="ms-ara" placeholder="Ad veya telefon" autocomplete="off" aria-label="Müşteri ara" />
       <div id="ms-liste" style="margin-top:8px"></div>
-      <button class="hap" id="ms-kapat" style="width:100%;margin-top:12px">Kapat</button>`);
+      <button class="hap" id="ms-yeni" style="width:100%;margin-top:12px">+ Yeni müşteri</button>
+      <button class="hap" id="ms-kapat" style="width:100%;margin-top:10px">Kapat</button>`);
+    $('#ms-yeni', perde).onclick = () => musteriEkle((m) => (perde.remove(), secildi(m)));
     let z;
     const yukle = async () => {
       const q = $('#ms-ara', perde).value.trim();
@@ -341,12 +371,13 @@ window.EczamEklenti = (M) => {
     cerceve(
       'Müşteriler',
       'bildirim',
-      `<div class="cipler">${[['hepsi', 'Tümü'], ['borclu', 'Veresiye borcu']].map(([k, a]) => `<button class="hap ${musteriSekme === k ? 'secili' : ''}" data-sekme="${k}">${a}</button>`).join('')}</div>
+      `<div class="cipler">${[['hepsi', 'Tümü'], ['borclu', 'Veresiye borcu']].map(([k, a]) => `<button class="hap ${musteriSekme === k ? 'secili' : ''}" data-sekme="${k}">${a}</button>`).join('')}<button class="hap siyah" id="m-yeni" style="width:auto;padding:10px 16px;font-size:15px">+ Yeni</button></div>
        <input class="alan" id="m-ara" placeholder="Ad veya telefon ara" aria-label="Müşteri ara" autocomplete="off" />
        <div id="m-liste" style="margin-top:10px"><div class="yukleniyor">Yükleniyor…</div></div>`,
       { geri: true }
     );
     uyg.querySelectorAll('[data-sekme]').forEach((b) => (b.onclick = () => ((musteriSekme = b.dataset.sekme), musterilerEkrani())));
+    $('#m-yeni').onclick = () => musteriEkle((m) => musteriKarti(m.id));
     const liste = $('#m-liste');
     const ciz = async () => {
       const q = $('#m-ara').value.trim();
