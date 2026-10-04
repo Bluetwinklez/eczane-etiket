@@ -26,7 +26,7 @@ async function bildirimGonder(musteri, kanal, mesaj) {
       await getTransporter().sendMail({
         from: process.env.SMTP_FROM || process.env.SMTP_USER,
         to: musteri.email,
-        subject: 'Eczanem Programi - Hatirlatma',
+        subject: 'Eczanem Programı - Hatırlatma',
         text: mesaj
       });
       db.prepare(`UPDATE bildirimler SET durum='gonderildi' WHERE id=?`).run(bildirimId);

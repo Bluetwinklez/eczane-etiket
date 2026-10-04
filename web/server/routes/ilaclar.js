@@ -189,13 +189,13 @@ router.post('/ice-aktar', requireRole('admin', 'eczaci'), (req, res) => {
     const a = s.alanlar;
     const hatalar = [...s.hatalar];
     if (a.barkod) {
-      if (gorulenBarkod.has(a.barkod)) hatalar.push('ayni barkod dosyada birden fazla');
+      if (gorulenBarkod.has(a.barkod)) hatalar.push('aynı barkod dosyada birden fazla');
       gorulenBarkod.add(a.barkod);
     }
     const mevcut = a.barkod ? barkodla.get(a.barkod) : null;
     if (!mevcut) {
-      if (!a.ad) hatalar.push('yeni urun icin ad zorunlu');
-      if (a.satis_fiyati == null) hatalar.push('yeni urun icin satis fiyati zorunlu');
+      if (!a.ad) hatalar.push('yeni ürün için ad zorunlu');
+      if (a.satis_fiyati == null) hatalar.push('yeni ürün için satış fiyatı zorunlu');
     }
     const degisen = mevcut ? ICE_AKTAR_ALANLARI.filter((f) => a[f] !== undefined && a[f] !== mevcut[f]) : [];
     return {

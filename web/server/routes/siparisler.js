@@ -1,6 +1,7 @@
 const express = require('express');
 const { db } = require('../db');
 const { partiGiris } = require('../partiler');
+const { sendPdf } = require('../export');
 
 const router = express.Router();
 
@@ -76,6 +77,40 @@ router.get('/', (req, res) => {
   }
   sql += ' ORDER BY sp.olusturma_tarihi DESC';
   res.json(db.prepare(sql).all(...params));
+});
+
+// Tedarikciye gonderilecek siparis formu (PDF): barkod, urun, adet, tahmini tutar
+router.get('/:id/form', (req, res) => {
+  const siparis = db
+    .prepare(
+      `SELECT s.*, t.firma_adi, t.telefon AS tedarikci_tel, sb.ad AS sube_adi, sb.telefon AS sube_tel
+       FROM siparisler s JOIN tedarikciler t ON t.id = s.tedarikci_id JOIN subeler sb ON sb.id = s.sube_id
+       WHERE s.id = ?`
+    )
+    .get(req.params.id);
+  if (!siparis) return res.status(404).json({ error: 'Sipariş bulunamadı' });
+  const kalemler = db
+    .prepare(
+      `SELECT k.ilac_adi, i.barkod, k.istenen_adet, k.tahmini_birim_fiyat,
+              ROUND(k.istenen_adet * k.tahmini_birim_fiyat, 2) AS tutar
+       FROM siparis_kalemleri k LEFT JOIN ilaclar i ON i.id = k.ilac_id WHERE k.siparis_id = ? ORDER BY k.id`
+    )
+    .all(siparis.id);
+  const toplam = kalemler.reduce((t, k) => t + k.tutar, 0);
+  const baslik = `Sipariş Formu #${siparis.id} — ${siparis.sube_adi} → ${siparis.firma_adi} — ${siparis.olusturma_tarihi.slice(0, 10)}`;
+  sendPdf(
+    res,
+    `siparis-${siparis.id}.pdf`,
+    baslik,
+    [...kalemler, { ilac_adi: 'TOPLAM', istenen_adet: kalemler.reduce((t, k) => t + k.istenen_adet, 0), tutar: Math.round(toplam * 100) / 100 }],
+    [
+      { alan: 'ilac_adi', baslik: 'Ürün' },
+      { alan: 'barkod', baslik: 'Barkod' },
+      { alan: 'istenen_adet', baslik: 'Adet' },
+      { alan: 'tahmini_birim_fiyat', baslik: 'Birim Fiyat (TL)' },
+      { alan: 'tutar', baslik: 'Tutar (TL)' }
+    ]
+  );
 });
 
 router.get('/:id', (req, res) => {

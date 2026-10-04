@@ -123,15 +123,15 @@ function satirlariCoz(metin) {
       if (ham === '') return;
       if (['alis_fiyati', 'satis_fiyati'].includes(alan)) {
         const n = sayi(ham);
-        if (Number.isNaN(n) || n < 0) hatalar.push(`${alan} gecersiz: "${ham}"`);
+        if (Number.isNaN(n) || n < 0) hatalar.push(`${alan} geçersiz: "${ham}"`);
         else alanlar[alan] = Math.round(n * 100) / 100;
       } else if (['kritik_stok', 'kutu_gun'].includes(alan)) {
         const n = sayi(ham);
-        if (!Number.isInteger(n) || n < 0 || (alan === 'kutu_gun' && (n < 1 || n > 365))) hatalar.push(`${alan} gecersiz: "${ham}"`);
+        if (!Number.isInteger(n) || n < 0 || (alan === 'kutu_gun' && (n < 1 || n > 365))) hatalar.push(`${alan} geçersiz: "${ham}"`);
         else alanlar[alan] = n;
       } else if (alan === 'receteli') {
         const v = evetHayir(ham);
-        if (v === null) hatalar.push(`receteli gecersiz: "${ham}"`);
+        if (v === null) hatalar.push(`reçeteli geçersiz: "${ham}"`);
         else alanlar.receteli = v;
       } else if (alan === 'urun_tipi') {
         const v = urunTipiCoz(ham);
@@ -139,7 +139,7 @@ function satirlariCoz(metin) {
         else alanlar.urun_tipi = v;
       } else if (alan === 'skt') {
         const v = tarihCoz(ham);
-        if (!v) hatalar.push(`SKT gecersiz: "${ham}"`);
+        if (!v) hatalar.push(`SKT geçersiz: "${ham}"`);
         else alanlar.skt = v;
       } else if (alan === 'etken_madde') {
         alanlar.etken_madde = ham.toLocaleLowerCase('tr-TR').split(/[,+;/]/).map((m) => m.trim()).filter(Boolean).join(', ');

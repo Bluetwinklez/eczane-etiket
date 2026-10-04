@@ -87,8 +87,8 @@ router.get('/ilac-bitis', (req, res) => {
 });
 
 function varsayilanMesaj(kayit, eczaneAdi) {
-  const ne_zaman = kayit.kalan_gun < 0 ? `${kayit.bitis_tarihi} tarihinde bitmis olmali` : `${kayit.bitis_tarihi} tarihinde bitecek`;
-  return `Sayin ${kayit.ad_soyad}, ${kayit.ilac_adi} ilaciniz ${ne_zaman}. Receteniz varsa yenilemeyi unutmayin. Saglikli gunler dileriz - ${eczaneAdi}`;
+  const ne_zaman = kayit.kalan_gun < 0 ? `${kayit.bitis_tarihi} tarihinde bitmiş olmalı` : `${kayit.bitis_tarihi} tarihinde bitecek`;
+  return `Sayın ${kayit.ad_soyad}, ${kayit.ilac_adi} ilacınız ${ne_zaman}. Reçeteniz varsa yenilemeyi unutmayın. Sağlıklı günler dileriz - ${eczaneAdi}`;
 }
 
 router.post('/ilac-bitis/gonder', async (req, res) => {
