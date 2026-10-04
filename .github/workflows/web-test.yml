@@ -10,7 +10,7 @@ on:
 
 jobs:
   test:
-    name: Eczanem Web (Node ${{ matrix.node-version }})
+    name: Eczam Web (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

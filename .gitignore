@@ -77,3 +77,14 @@ templates.json
 api_config.json
 staff.json
 scratch/
+
+# Imzalama anahtarları ve sertifikalar: ASLA commit edilmez (GitHub Secrets kullanılır)
+*.p12
+*.p8
+*.pfx
+*.cer
+*.mobileprovision
+*.keystore
+*.jks
+key.properties
+AuthKey_*

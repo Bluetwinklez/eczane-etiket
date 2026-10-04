@@ -1,0 +1,45 @@
+name: iOS derleme kontrolü
+
+# İmzasız iOS derlemesi: yerel kabuk (Swift Paketleri dahil) derleniyor mu?
+# Hiçbir şey yayınlanmaz; secret gerekmez.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'mobil-uygulama/**'
+      - '.github/workflows/ios-compile.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-compile-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compile:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: mobil-uygulama
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Bağımlılıkları kur
+        run: |
+          npm ci
+          npm run senkron
+
+      - name: iOS cihazı için derle (imzasız)
+        run: |
+          xcodebuild build \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO
