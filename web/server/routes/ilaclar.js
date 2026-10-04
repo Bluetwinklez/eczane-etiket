@@ -75,16 +75,60 @@ router.get('/', (req, res) => {
   const { q, urun_tipi } = req.query;
   if (urun_tipi) rows = rows.filter((r) => r.urun_tipi === urun_tipi);
   if (q) {
-    const needle = q.toLowerCase();
+    // Turkce buyuk/kucuk harf kurallariyla karsilastir (I/ı, İ/i)
+    const kucuk = (m) => String(m || '').toLocaleLowerCase('tr-TR');
+    const needle = kucuk(q);
     rows = rows.filter(
       (r) =>
-        r.ad.toLowerCase().includes(needle) ||
+        kucuk(r.ad).includes(needle) ||
         (r.barkod || '').includes(q) ||
-        (r.kategori || '').toLowerCase().includes(needle) ||
-        (r.etken_madde || '').includes(q.toLocaleLowerCase('tr-TR'))
+        kucuk(r.kategori).includes(needle) ||
+        kucuk(r.etken_madde).includes(needle) ||
+        kucuk(r.raf_konumu) === needle
     );
   }
   res.json(rows);
+});
+
+const GEBELIK_UYARILARI = ['dikkat', 'kontrendike'];
+// Hasta guvenligi ve raf alanlari: yalnizca istekte gelen alanlar guncellenir
+function ekAlanlariKaydet(id, govde) {
+  const alanlar = [];
+  const degerler = [];
+  if ('gebelik_uyari' in govde) {
+    if (govde.gebelik_uyari && !GEBELIK_UYARILARI.includes(govde.gebelik_uyari)) return 'Geçersiz gebelik uyarısı';
+    alanlar.push('gebelik_uyari = ?');
+    degerler.push(govde.gebelik_uyari || null);
+  }
+  if ('min_yas' in govde) {
+    const yas = govde.min_yas === '' || govde.min_yas == null ? null : Number(govde.min_yas);
+    if (yas !== null && !(Number.isInteger(yas) && yas >= 0 && yas <= 99)) return 'Minimum yaş 0-99 arasında olmalı';
+    alanlar.push('min_yas = ?');
+    degerler.push(yas);
+  }
+  if ('yasli_uyari' in govde) {
+    alanlar.push('yasli_uyari = ?');
+    degerler.push(govde.yasli_uyari ? 1 : 0);
+  }
+  if ('raf_konumu' in govde) {
+    alanlar.push('raf_konumu = ?');
+    degerler.push(String(govde.raf_konumu || '').trim().slice(0, 40) || null);
+  }
+  if (alanlar.length) db.prepare(`UPDATE ilaclar SET ${alanlar.join(', ')} WHERE id = ?`).run(...degerler, id);
+  return null;
+}
+
+// Ayni etken madde(ler)e sahip, bu subede stogu olan diger urunler
+router.get('/:id/muadiller', (req, res) => {
+  const ilac = db.prepare('SELECT id, etken_madde FROM ilaclar WHERE id = ?').get(req.params.id);
+  if (!ilac) return res.status(404).json({ error: 'İlaç bulunamadı' });
+  const anahtar = (m) => String(m || '').toLocaleLowerCase('tr-TR').split(/[,+;/]/).map((x) => x.trim()).filter(Boolean).sort().join('+');
+  const hedef = anahtar(ilac.etken_madde);
+  if (!hedef) return res.json([]);
+  const muadiller = ilacWithStok(req.user.sube_id)
+    .filter((r) => r.id !== ilac.id && anahtar(r.etken_madde) === hedef)
+    .sort((a, b) => (b.stok > 0) - (a.stok > 0) || a.satis_fiyati - b.satis_fiyati);
+  res.json(muadiller);
 });
 
 router.get('/uyarilar', (req, res) => {
@@ -397,6 +441,11 @@ router.post('/', requireRole('admin', 'eczaci'), (req, res) => {
         kaynak: 'acilis'
       });
     }
+    const ekHata = ekAlanlariKaydet(Number(info.lastInsertRowid), req.body);
+    if (ekHata) {
+      db.exec('ROLLBACK');
+      return res.status(400).json({ error: ekHata });
+    }
     db.exec('COMMIT');
 
     const created = ilacWithStok(req.user.sube_id).find((r) => r.id === Number(info.lastInsertRowid));
@@ -452,6 +501,11 @@ router.put('/:id', requireRole('admin', 'eczaci'), (req, res) => {
         existing.satis_fiyati,
         yeniSatisFiyati
       );
+    }
+    const ekHata = ekAlanlariKaydet(Number(req.params.id), req.body);
+    if (ekHata) {
+      db.exec('ROLLBACK');
+      return res.status(400).json({ error: ekHata });
     }
     db.exec('COMMIT');
 

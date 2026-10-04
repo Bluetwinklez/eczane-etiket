@@ -12,6 +12,15 @@
           <div><label>E-posta</label><input name="email" type="email" value="${UI.esc(x.email || '')}" /></div>
           <div><label>TC No</label><input name="tc_no" value="${UI.esc(x.tc_no || '')}" /></div>
           <div><label>Veresiye Limiti (TL)</label><input name="veresiye_limiti" type="number" step="0.01" min="0" placeholder="Boş = limitsiz" value="${x.veresiye_limiti ?? ''}" /></div>
+          <div><label>Doğum Tarihi</label><input name="dogum_tarihi" type="date" value="${x.dogum_tarihi || ''}" title="Yaşa bağlı ilaç uyarıları ve doğum günü listesi için" /></div>
+          <div>
+            <label>Gebelik / Emzirme</label>
+            <select name="gebelik_durumu" title="Kasada gebelikte riskli ilaçlar için uyarı verilir">
+              <option value="">Yok</option>
+              <option value="gebe" ${x.gebelik_durumu === 'gebe' ? 'selected' : ''}>Gebe</option>
+              <option value="emziren" ${x.gebelik_durumu === 'emziren' ? 'selected' : ''}>Emziriyor</option>
+            </select>
+          </div>
         </div>
         <div><label>Adres</label><textarea name="adres" rows="2">${UI.esc(x.adres || '')}</textarea></div>
         <div>
@@ -40,7 +49,9 @@
         adres: fd.get('adres') || null,
         saglik_notu: fd.get('saglik_notu') || null,
         veresiye_limiti: fd.get('veresiye_limiti') === '' ? null : Number(fd.get('veresiye_limiti')),
-        ileti_izni: e.target.querySelector('[name="ileti_izni"]').checked
+        ileti_izni: e.target.querySelector('[name="ileti_izni"]').checked,
+        dogum_tarihi: fd.get('dogum_tarihi') || null,
+        gebelik_durumu: fd.get('gebelik_durumu') || null
       };
       try {
         if (musteri) {
