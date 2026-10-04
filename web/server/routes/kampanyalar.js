@@ -107,7 +107,7 @@ router.post('/', requireRole('admin', 'eczaci'), (req, res) => {
 
 router.put('/:id', requireRole('admin', 'eczaci'), (req, res) => {
   const mevcut = db.prepare('SELECT id FROM kampanyalar WHERE id = ?').get(req.params.id);
-  if (!mevcut) return res.status(404).json({ error: 'Kampanya bulunamadi' });
+  if (!mevcut) return res.status(404).json({ error: 'Kampanya bulunamadı' });
   const hata = dogrula(req.body);
   if (hata) return res.status(400).json({ error: hata });
   db.prepare(
@@ -120,7 +120,7 @@ router.put('/:id', requireRole('admin', 'eczaci'), (req, res) => {
 
 router.delete('/:id', requireRole('admin', 'eczaci'), (req, res) => {
   const info = db.prepare('DELETE FROM kampanyalar WHERE id = ?').run(req.params.id);
-  if (!info.changes) return res.status(404).json({ error: 'Kampanya bulunamadi' });
+  if (!info.changes) return res.status(404).json({ error: 'Kampanya bulunamadı' });
   res.status(204).end();
 });
 

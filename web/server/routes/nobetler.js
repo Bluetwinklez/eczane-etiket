@@ -59,7 +59,7 @@ router.get('/export', (req, res) => {
 router.post('/', requireRole('admin', 'eczaci'), (req, res) => {
   const { tarih, notlar } = req.body;
   if (!tarih || !/^\d{4}-\d{2}-\d{2}$/.test(tarih)) {
-    return res.status(400).json({ error: 'Gecerli bir tarih girin (YYYY-MM-DD)' });
+    return res.status(400).json({ error: 'Geçerli bir tarih girin (YYYY-MM-DD)' });
   }
 
   try {
@@ -69,15 +69,15 @@ router.post('/', requireRole('admin', 'eczaci'), (req, res) => {
     res.status(201).json(db.prepare('SELECT * FROM nobetler WHERE id = ?').get(info.lastInsertRowid));
   } catch (err) {
     if (String(err.message).includes('UNIQUE')) {
-      return res.status(409).json({ error: 'Bu tarih icin zaten nobet kaydi var' });
+      return res.status(409).json({ error: 'Bu tarih için zaten nöbet kaydı var' });
     }
-    res.status(500).json({ error: 'Nobet eklenemedi' });
+    res.status(500).json({ error: 'Nöbet eklenemedi' });
   }
 });
 
 router.delete('/:id', requireRole('admin', 'eczaci'), (req, res) => {
   const mevcut = db.prepare('SELECT * FROM nobetler WHERE id = ?').get(req.params.id);
-  if (!mevcut) return res.status(404).json({ error: 'Nobet kaydi bulunamadi' });
+  if (!mevcut) return res.status(404).json({ error: 'Nöbet kaydı bulunamadı' });
   db.prepare('DELETE FROM nobetler WHERE id = ?').run(req.params.id);
   res.status(204).end();
 });

@@ -52,7 +52,7 @@ router.get('/', (req, res) => {
 
 router.get('/:musteriId', (req, res) => {
   const musteri = db.prepare('SELECT id, ad_soyad, telefon, veresiye_limiti FROM musteriler WHERE id = ?').get(req.params.musteriId);
-  if (!musteri) return res.status(404).json({ error: 'Musteri bulunamadi' });
+  if (!musteri) return res.status(404).json({ error: 'Müşteri bulunamadı' });
   const hareketler = db
     .prepare(
       `SELECT c.*, u.ad_soyad AS kullanici_adi, s.ad AS sube_adi
@@ -75,16 +75,16 @@ router.get('/:musteriId', (req, res) => {
 
 router.post('/:musteriId/tahsilat', (req, res) => {
   const musteri = db.prepare('SELECT id FROM musteriler WHERE id = ?').get(req.params.musteriId);
-  if (!musteri) return res.status(404).json({ error: 'Musteri bulunamadi' });
+  if (!musteri) return res.status(404).json({ error: 'Müşteri bulunamadı' });
 
   const tutar = yuvarla(Number(req.body.tutar));
-  if (!(tutar > 0)) return res.status(400).json({ error: 'Gecerli bir tutar girin' });
+  if (!(tutar > 0)) return res.status(400).json({ error: 'Geçerli bir tutar girin' });
   const odemeTipi = req.body.odeme_tipi || 'nakit';
-  if (!['nakit', 'kredi_karti'].includes(odemeTipi)) return res.status(400).json({ error: 'Gecersiz odeme tipi' });
+  if (!['nakit', 'kredi_karti'].includes(odemeTipi)) return res.status(400).json({ error: 'Geçersiz ödeme tipi' });
 
   const bakiye = musteriBakiyesi(musteri.id);
   if (tutar > bakiye + 0.001) {
-    return res.status(400).json({ error: `Tahsilat borctan fazla olamaz (borc: ${bakiye.toFixed(2)} TL)` });
+    return res.status(400).json({ error: `Tahsilat borçtan fazla olamaz (borç: ${bakiye.toFixed(2)} TL)` });
   }
 
   const id = cariHareketEkle({

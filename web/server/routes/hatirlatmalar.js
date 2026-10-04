@@ -95,17 +95,17 @@ router.post('/ilac-bitis/gonder', async (req, res) => {
   const musteriId = Number(req.body.musteri_id);
   const ilacId = Number(req.body.ilac_id);
   const kanal = req.body.kanal || 'sms';
-  if (!['sms', 'email'].includes(kanal)) return res.status(400).json({ error: 'Kanal sms veya email olmali' });
+  if (!['sms', 'email'].includes(kanal)) return res.status(400).json({ error: 'Kanal sms veya email olmalı' });
 
   const kayit = bitisTahminleri(resolveSubeId(req, req.body.sube_id)).find(
     (r) => r.musteri_id === musteriId && r.ilac_id === ilacId
   );
-  if (!kayit) return res.status(404).json({ error: 'Bu musteri icin takip edilen ilac bulunamadi' });
+  if (!kayit) return res.status(404).json({ error: 'Bu müşteri için takip edilen ilaç bulunamadı' });
   if (kayit.hatirlatildi) {
-    return res.status(409).json({ error: `Bu donem icin zaten hatirlatildi (${kayit.hatirlatildi})` });
+    return res.status(409).json({ error: `Bu dönem için zaten hatırlatıldı (${kayit.hatirlatildi})` });
   }
-  if (kanal === 'sms' && !kayit.telefon) return res.status(400).json({ error: 'Musterinin telefon numarasi yok' });
-  if (kanal === 'email' && !kayit.email) return res.status(400).json({ error: 'Musterinin e-posta adresi yok' });
+  if (kanal === 'sms' && !kayit.telefon) return res.status(400).json({ error: 'Müşterinin telefon numarası yok' });
+  if (kanal === 'email' && !kayit.email) return res.status(400).json({ error: 'Müşterinin e-posta adresi yok' });
 
   const sube = db.prepare('SELECT ad FROM subeler WHERE id = ?').get(req.user.sube_id);
   const mesaj = (req.body.mesaj && String(req.body.mesaj).trim()) || varsayilanMesaj(kayit, sube ? sube.ad : 'Eczaneniz');
@@ -118,7 +118,7 @@ router.post('/ilac-bitis/gonder', async (req, res) => {
       .prepare('INSERT INTO ilac_hatirlatmalari (musteri_id, ilac_id, bitis_tarihi, kullanici_id) VALUES (?, ?, ?, ?)')
       .run(musteriId, ilacId, kayit.bitis_tarihi, req.user.id).lastInsertRowid;
   } catch (err) {
-    if (String(err.message).includes('UNIQUE')) return res.status(409).json({ error: 'Bu donem icin zaten hatirlatildi' });
+    if (String(err.message).includes('UNIQUE')) return res.status(409).json({ error: 'Bu dönem için zaten hatırlatıldı' });
     throw err;
   }
   const bildirim = await bildirimGonder(musteri, kanal, mesaj);

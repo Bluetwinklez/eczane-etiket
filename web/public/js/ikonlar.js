@@ -41,7 +41,8 @@ const Ikon = (() => {
     asagi: '<path d="M7 7l10 10"/><path d="M17 8v9H8"/>',
     ok: '<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>',
     arti: '<path d="M12 5v14M5 12h14"/>',
-    asagiOk: '<path d="m6 9 6 6 6-6"/>'
+    asagiOk: '<path d="m6 9 6 6 6-6"/>',
+    menu: '<path d="M4 7h16M4 12h16M4 17h10"/>'
   };
 
   function svg(ad, ekSinif = '') {
@@ -49,13 +50,9 @@ const Ikon = (() => {
     return `<svg class="ikon ${ekSinif}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${govde}</svg>`;
   }
 
-  // Marka logosu: ince halka uzerinde fistik yesili yay
-  function logo(iz = 'rgba(255,255,255,0.22)') {
-    return `<svg class="logo-halka" viewBox="0 0 32 32" aria-hidden="true">
-      <circle cx="16" cy="16" r="12" fill="none" stroke="${iz}" stroke-width="4"/>
-      <circle cx="16" cy="16" r="12" fill="none" stroke="#c6ef4e" stroke-width="4" stroke-linecap="round"
-        stroke-dasharray="56 100" transform="rotate(-90 16 16)"/>
-    </svg>`;
+  // Marka logosu: E + havan-tokmak + arti isareti (img/logo-isaret.svg)
+  function logo() {
+    return '<img class="logo-isaret" src="img/logo-isaret.svg" alt="" width="40" height="34" />';
   }
 
   return { svg, logo };
