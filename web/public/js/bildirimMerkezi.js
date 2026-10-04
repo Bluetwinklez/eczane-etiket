@@ -54,7 +54,10 @@ const BildirimMerkezi = (function () {
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') panel.hidden = true;
     });
-    window.addEventListener('hashchange', () => setTimeout(yenile, 300));
+    window.addEventListener('hashchange', () => {
+      panel.hidden = true;
+      setTimeout(yenile, 300);
+    });
     yenile();
     setInterval(yenile, 60000);
   }
