@@ -1,0 +1,64 @@
+name: Mobil kontrolleri
+
+# Eczam Mobil için hızlı kontroller (Linux): kabuk testleri, ayar tutarlılığı,
+# mağaza metni sınırları, ekran görüntüsü boyutları, gizli dosya koruması.
+on:
+  push:
+    paths:
+      - 'mobil-uygulama/**'
+      - 'web/public/mobil/**'
+      - 'docs/**'
+      - 'tool/**'
+      - 'tests/test_asc_tools.py'
+      - '.github/workflows/**'
+  pull_request:
+    paths:
+      - 'mobil-uygulama/**'
+      - 'web/public/mobil/**'
+      - 'docs/**'
+      - 'tool/**'
+      - 'tests/test_asc_tools.py'
+      - '.github/workflows/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobil-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  kabuk:
+    name: Kabuk testleri ve Capacitor eşitleme
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+      - name: Kabuk testleri
+        working-directory: mobil-uygulama
+        run: npm test
+      - name: Capacitor eşitleme (iOS projesi güncelleniyor mu?)
+        working-directory: mobil-uygulama
+        run: |
+          npm ci
+          npm run senkron
+      - name: Web mobil testleri
+        working-directory: web
+        run: |
+          npm ci
+          node --test tests/mobil.test.js
+
+  asc-araclari:
+    name: App Store Connect araçları (Python)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pytest
+      - run: python -m pytest tests/test_asc_tools.py -q

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f9b572" />
+  <title>Eczam</title>
+  <link rel="stylesheet" href="baglan.css" />
+</head>
+<body>
+  <main class="kutu" id="kutu">
+    <div class="logo"><img src="logo-isaret.svg" alt="" /></div>
+    <h1>Eczam<br />Mobil</h1>
+    <p class="alt">Eczanenizin sunucusuna bağlanın. Adresi eczane yöneticinizden öğrenebilirsiniz.</p>
+    <div id="hata" class="hata" role="alert" hidden></div>
+    <form id="form" novalidate>
+      <label for="adres">Sunucu adresi</label>
+      <input id="adres" inputmode="url" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="eczam.ornekeczane.com" autocomplete="url" />
+      <button id="baglan" type="submit">Bağlan</button>
+    </form>
+    <p class="ipucu">Güvenli bağlantı (HTTPS) gerekir. Yerel ağdaki adresler (ör. 192.168.1.20:3000) HTTP ile de kullanılabilir.</p>
+    <a class="baglanti" href="#" id="gizlilik" hidden>Gizlilik politikası</a>
+  </main>
+  <script src="baglan.js"></script>
+</body>
+</html>
