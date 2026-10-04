@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" role="img" aria-label="Eczanem Programı">
+  <defs>
+    <linearGradient id="ust" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#1c8f9e"/><stop offset="1" stop-color="#5fcba4"/>
+    </linearGradient>
+    <linearGradient id="kase" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2a86b8"/><stop offset="0.55" stop-color="#1b4f8f"/><stop offset="1" stop-color="#143a72"/>
+    </linearGradient>
+    <linearGradient id="kenar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1b6fa3"/><stop offset="1" stop-color="#5fcba4"/>
+    </linearGradient>
+  </defs>
+  <!-- arti isareti -->
+  <rect x="19" y="23" width="13" height="34" rx="4" fill="#4cbfa6"/><rect x="8.5" y="33.5" width="34" height="13" rx="4" fill="#4cbfa6"/>
+  <!-- turuncu kavis -->
+  <path d="M44 72c-6-14-4-30 8-44 2 3 2 5 1 8-7 11-8 23-3 36Z" fill="#f28a2e"/>
+  <!-- E'nin ust kolu (turkuaz serit) -->
+  <path d="M50 30c4-12 14-20 30-20h28c-1 8-6 12-14 12H80c-9 0-15 6-17 16l-2 12H49Z" fill="url(#ust)"/>
+  <!-- E'nin orta kolu -->
+  <path d="M62 42c3-6 9-9 17-9h17c-1 6-5 9-11 9H66Z" fill="#2593ab"/>
+  <!-- havan kasesi / E'nin alt kavisi -->
+  <path d="M49 52c0 22 16 38 38 38 16 0 26-8 30-20-6 6-14 8-22 8-18 0-30-12-30-28 0-6 2-11 5-15H55c-4 5-6 11-6 17Z" fill="url(#kase)"/>
+  <path d="M71 66c8 6 22 8 38 4-4 8-12 12-22 12-8 0-14-6-16-16Z" fill="url(#kenar)" opacity="0.9"/>
+  <!-- tokmak -->
+  <path d="M74 70 101 32" stroke="#1d5f93" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="103" cy="28" r="6.5" fill="#2a7fb5"/>
+  <path d="M84 47h6" stroke="#4cbfa6" stroke-width="3" stroke-linecap="round"/>
+</svg>

@@ -42,13 +42,13 @@ router.get('/toplu/segmentler', (req, res) => {
 router.post('/toplu', async (req, res) => {
   const { segment, mesaj, onizleme } = req.body;
   const kanal = req.body.kanal || 'sms';
-  if (!['sms', 'email'].includes(kanal)) return res.status(400).json({ error: 'Kanal sms veya email olmali' });
+  if (!['sms', 'email'].includes(kanal)) return res.status(400).json({ error: 'Kanal sms veya email olmalı' });
   const liste = alicilar(segment, kanal);
-  if (!liste) return res.status(400).json({ error: 'Gecersiz alici grubu' });
+  if (!liste) return res.status(400).json({ error: 'Geçersiz alıcı grubu' });
   const metin = String(mesaj || '').trim();
-  if (!metin) return res.status(400).json({ error: 'Mesaj bos olamaz' });
+  if (!metin) return res.status(400).json({ error: 'Mesaj boş olamaz' });
   if (kanal === 'sms' && metin.length > 459) return res.status(400).json({ error: 'SMS en fazla 459 karakter (3 mesaj) olabilir' });
-  if (liste.length > 500) return res.status(400).json({ error: 'Tek seferde en fazla 500 aliciya gonderilir' });
+  if (liste.length > 500) return res.status(400).json({ error: 'Tek seferde en fazla 500 alıcıya gönderilir' });
 
   const kisisel = (m) => metin.replace(/\{ad\}/g, m.ad_soyad.split(' ')[0]).replace(/\{adsoyad\}/g, m.ad_soyad);
   if (onizleme) {
@@ -59,7 +59,7 @@ router.post('/toplu', async (req, res) => {
       sms_parca: kanal === 'sms' ? Math.ceil(metin.length / 153) || 1 : null
     });
   }
-  if (!liste.length) return res.status(400).json({ error: 'Bu grupta onayli alici yok' });
+  if (!liste.length) return res.status(400).json({ error: 'Bu grupta onaylı alıcı yok' });
   const sonuc = { gonderildi: 0, simule: 0, hata: 0 };
   for (const m of liste) {
     const b = await bildirimGonder(m, kanal, kisisel(m));
@@ -92,11 +92,11 @@ router.get('/', (req, res) => {
 router.post('/', async (req, res) => {
   const { musteri_id, kanal, mesaj } = req.body;
   if (!musteri_id || !['email', 'sms'].includes(kanal) || !mesaj || !mesaj.trim()) {
-    return res.status(400).json({ error: 'Musteri, kanal (email/sms) ve mesaj zorunludur' });
+    return res.status(400).json({ error: 'Müşteri, kanal (email/sms) ve mesaj zorunludur' });
   }
 
   const musteri = db.prepare('SELECT * FROM musteriler WHERE id = ?').get(musteri_id);
-  if (!musteri) return res.status(404).json({ error: 'Musteri bulunamadi' });
+  if (!musteri) return res.status(404).json({ error: 'Müşteri bulunamadı' });
 
   const sonuc = await bildirimGonder(musteri, kanal, mesaj.trim());
   res.status(201).json(sonuc);

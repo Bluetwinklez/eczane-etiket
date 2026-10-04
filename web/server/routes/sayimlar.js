@@ -64,13 +64,13 @@ router.get('/', (req, res) => {
 
 router.post('/', (req, res) => {
   const acik = db.prepare("SELECT id FROM sayimlar WHERE sube_id = ? AND durum = 'acik'").get(req.user.sube_id);
-  if (acik) return res.status(409).json({ error: `Bu subede zaten acik bir sayim var (#${acik.id})` });
+  if (acik) return res.status(409).json({ error: `Bu şubede zaten açık bir sayım var (#${acik.id})` });
 
   const kapsam = {};
   if (req.body.kategori) kapsam.kategori = String(req.body.kategori);
   if (req.body.urun_tipi) {
     if (!Object.prototype.hasOwnProperty.call(URUN_TIPLERI, req.body.urun_tipi)) {
-      return res.status(400).json({ error: 'Gecersiz urun tipi' });
+      return res.status(400).json({ error: 'Geçersiz ürün tipi' });
     }
     kapsam.urun_tipi = req.body.urun_tipi;
   }
@@ -82,7 +82,7 @@ router.post('/', (req, res) => {
 
 router.get('/:id', (req, res) => {
   const sayim = sayimGetir(req.params.id, req);
-  if (!sayim) return res.status(404).json({ error: 'Sayim bulunamadi' });
+  if (!sayim) return res.status(404).json({ error: 'Sayım bulunamadı' });
   const urunler = kapsamdakiUrunler(sayim).map((u) => {
     // Acik sayimda fark guncel stoga gore; tamamlanmista kapanistaki kayda gore
     const fark = sayim.durum === 'tamamlandi' ? u.kayitli_fark : u.sayilan == null ? null : u.sayilan - u.sistem_stok;
@@ -106,19 +106,19 @@ router.get('/:id', (req, res) => {
 // Sayilan adedi yazar; arti: true ise mevcut sayima ekler (barkod okutma)
 router.put('/:id/kalemler', (req, res) => {
   const sayim = sayimGetir(req.params.id, req);
-  if (!sayim) return res.status(404).json({ error: 'Sayim bulunamadi' });
-  if (sayim.durum !== 'acik') return res.status(400).json({ error: 'Sayim kapanmis' });
+  if (!sayim) return res.status(404).json({ error: 'Sayım bulunamadı' });
+  if (sayim.durum !== 'acik') return res.status(400).json({ error: 'Sayım kapanmış' });
 
   const ilacId = Number(req.body.ilac_id);
   if (!kapsamdakiUrunler(sayim).some((u) => u.id === ilacId)) {
-    return res.status(400).json({ error: 'Urun bu sayimin kapsaminda degil' });
+    return res.status(400).json({ error: 'Ürün bu sayımın kapsamında değil' });
   }
   if (req.body.sayilan === null || req.body.sayilan === '') {
     db.prepare('DELETE FROM sayim_kalemleri WHERE sayim_id = ? AND ilac_id = ?').run(sayim.id, ilacId);
     return res.json({ ilac_id: ilacId, sayilan: null });
   }
   const miktar = Number(req.body.sayilan);
-  if (!Number.isInteger(miktar) || miktar < 0) return res.status(400).json({ error: 'Sayilan adet 0 veya pozitif tam sayi olmali' });
+  if (!Number.isInteger(miktar) || miktar < 0) return res.status(400).json({ error: 'Sayılan adet 0 veya pozitif tam sayı olmalı' });
 
   if (req.body.arti) {
     db.prepare(
@@ -138,11 +138,11 @@ router.put('/:id/kalemler', (req, res) => {
 // Yalnizca sayilan urunler duzeltilir; fark tamamlama anindaki stoga gore hesaplanir
 router.post('/:id/tamamla', (req, res) => {
   const sayim = sayimGetir(req.params.id, req);
-  if (!sayim) return res.status(404).json({ error: 'Sayim bulunamadi' });
-  if (sayim.durum !== 'acik') return res.status(400).json({ error: 'Sayim zaten kapanmis' });
+  if (!sayim) return res.status(404).json({ error: 'Sayım bulunamadı' });
+  if (sayim.durum !== 'acik') return res.status(400).json({ error: 'Sayım zaten kapanmış' });
 
   const kalemler = db.prepare('SELECT * FROM sayim_kalemleri WHERE sayim_id = ?').all(sayim.id);
-  if (!kalemler.length) return res.status(400).json({ error: 'Hic urun sayilmamis' });
+  if (!kalemler.length) return res.status(400).json({ error: 'Hiç ürün sayılmamış' });
 
   db.exec('BEGIN');
   try {
@@ -156,29 +156,29 @@ router.post('/:id/tamamla', (req, res) => {
         `INSERT INTO ilac_stok (ilac_id, sube_id, stok) VALUES (?, ?, ?)
          ON CONFLICT(ilac_id, sube_id) DO UPDATE SET stok = excluded.stok`
       ).run(k.ilac_id, sayim.sube_id, k.sayilan);
-      if (fark > 0) partiGiris(k.ilac_id, sayim.sube_id, fark, { kaynak: `sayim #${sayim.id}` });
+      if (fark > 0) partiGiris(k.ilac_id, sayim.sube_id, fark, { kaynak: `sayım #${sayim.id}` });
       else partiCikis(k.ilac_id, sayim.sube_id, -fark);
       db.prepare('INSERT INTO stok_hareketleri (ilac_id, sube_id, tip, adet, aciklama) VALUES (?, ?, ?, ?, ?)').run(
         k.ilac_id,
         sayim.sube_id,
         fark > 0 ? 'giris' : 'cikis',
         Math.abs(fark),
-        `Sayim #${sayim.id} duzeltmesi`
+        `Sayım #${sayim.id} düzeltmesi`
       );
     }
     db.prepare("UPDATE sayimlar SET durum = 'tamamlandi', bitis = datetime('now') WHERE id = ?").run(sayim.id);
     db.exec('COMMIT');
   } catch (err) {
     db.exec('ROLLBACK');
-    return res.status(500).json({ error: 'Sayim tamamlanamadi' });
+    return res.status(500).json({ error: 'Sayım tamamlanamadı' });
   }
   res.json(db.prepare('SELECT * FROM sayimlar WHERE id = ?').get(sayim.id));
 });
 
 router.post('/:id/iptal', (req, res) => {
   const sayim = sayimGetir(req.params.id, req);
-  if (!sayim) return res.status(404).json({ error: 'Sayim bulunamadi' });
-  if (sayim.durum !== 'acik') return res.status(400).json({ error: 'Sayim zaten kapanmis' });
+  if (!sayim) return res.status(404).json({ error: 'Sayım bulunamadı' });
+  if (sayim.durum !== 'acik') return res.status(400).json({ error: 'Sayım zaten kapanmış' });
   db.prepare("UPDATE sayimlar SET durum = 'iptal', bitis = datetime('now') WHERE id = ?").run(sayim.id);
   res.json(db.prepare('SELECT * FROM sayimlar WHERE id = ?').get(sayim.id));
 });

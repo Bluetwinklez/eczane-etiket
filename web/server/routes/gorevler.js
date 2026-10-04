@@ -30,9 +30,9 @@ router.get('/', (req, res) => {
 
 router.post('/', (req, res) => {
   const { baslik, aciklama, atanan_kullanici_id, oncelik } = req.body;
-  if (!baslik || !baslik.trim()) return res.status(400).json({ error: 'Baslik zorunludur' });
+  if (!baslik || !baslik.trim()) return res.status(400).json({ error: 'Başlık zorunludur' });
   if (oncelik && !['dusuk', 'orta', 'yuksek'].includes(oncelik)) {
-    return res.status(400).json({ error: 'Gecersiz oncelik' });
+    return res.status(400).json({ error: 'Geçersiz öncelik' });
   }
 
   const info = db
@@ -47,11 +47,11 @@ router.post('/', (req, res) => {
 
 router.put('/:id', (req, res) => {
   const mevcut = db.prepare('SELECT * FROM gorevler WHERE id = ?').get(req.params.id);
-  if (!mevcut) return res.status(404).json({ error: 'Gorev bulunamadi' });
+  if (!mevcut) return res.status(404).json({ error: 'Görev bulunamadı' });
 
   const { baslik, aciklama, atanan_kullanici_id, oncelik, durum } = req.body;
   if (durum && !['bekliyor', 'tamamlandi'].includes(durum)) {
-    return res.status(400).json({ error: 'Gecersiz durum' });
+    return res.status(400).json({ error: 'Geçersiz durum' });
   }
 
   db.prepare(
@@ -79,7 +79,7 @@ router.put('/:id', (req, res) => {
 
 router.delete('/:id', (req, res) => {
   const mevcut = db.prepare('SELECT * FROM gorevler WHERE id = ?').get(req.params.id);
-  if (!mevcut) return res.status(404).json({ error: 'Gorev bulunamadi' });
+  if (!mevcut) return res.status(404).json({ error: 'Görev bulunamadı' });
   db.prepare('DELETE FROM gorevler WHERE id = ?').run(req.params.id);
   res.status(204).end();
 });

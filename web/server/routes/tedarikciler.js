@@ -18,13 +18,13 @@ router.get('/', (req, res) => {
 
 router.get('/:id', (req, res) => {
   const row = db.prepare('SELECT * FROM tedarikciler WHERE id = ?').get(req.params.id);
-  if (!row) return res.status(404).json({ error: 'Tedarikci bulunamadi' });
+  if (!row) return res.status(404).json({ error: 'Tedarikçi bulunamadı' });
   res.json(row);
 });
 
 router.post('/', (req, res) => {
   const { firma_adi, yetkili, telefon, email } = req.body;
-  if (!firma_adi || !firma_adi.trim()) return res.status(400).json({ error: 'Firma adi zorunludur' });
+  if (!firma_adi || !firma_adi.trim()) return res.status(400).json({ error: 'Firma adı zorunludur' });
 
   const info = db
     .prepare('INSERT INTO tedarikciler (firma_adi, yetkili, telefon, email) VALUES (?, ?, ?, ?)')
@@ -34,10 +34,10 @@ router.post('/', (req, res) => {
 
 router.put('/:id', (req, res) => {
   const existing = db.prepare('SELECT * FROM tedarikciler WHERE id = ?').get(req.params.id);
-  if (!existing) return res.status(404).json({ error: 'Tedarikci bulunamadi' });
+  if (!existing) return res.status(404).json({ error: 'Tedarikçi bulunamadı' });
 
   const { firma_adi, yetkili, telefon, email } = req.body;
-  if (!firma_adi || !firma_adi.trim()) return res.status(400).json({ error: 'Firma adi zorunludur' });
+  if (!firma_adi || !firma_adi.trim()) return res.status(400).json({ error: 'Firma adı zorunludur' });
 
   db.prepare('UPDATE tedarikciler SET firma_adi=?, yetkili=?, telefon=?, email=? WHERE id=?').run(
     firma_adi.trim(),
@@ -51,7 +51,7 @@ router.put('/:id', (req, res) => {
 
 router.delete('/:id', (req, res) => {
   const existing = db.prepare('SELECT * FROM tedarikciler WHERE id = ?').get(req.params.id);
-  if (!existing) return res.status(404).json({ error: 'Tedarikci bulunamadi' });
+  if (!existing) return res.status(404).json({ error: 'Tedarikçi bulunamadı' });
   db.prepare('DELETE FROM tedarikciler WHERE id = ?').run(req.params.id);
   res.status(204).end();
 });

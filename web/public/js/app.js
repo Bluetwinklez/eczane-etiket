@@ -83,7 +83,26 @@ function navOlustur() {
     .join('');
 }
 
+// Telefondaki alt sekme cubugu: en sik kullanilan sayfalar + tum menuyu acan dugme
+const ALT_CUBUK = ['anasayfa', 'satis', 'ilaclar', 'musteriler'];
+function altCubukOlustur() {
+  const cubuk = document.getElementById('alt-cubuk');
+  cubuk.innerHTML =
+    ALT_CUBUK.map((k) => NAV.find((n) => n.key === k))
+      .filter((n) => n && menuIcinRolUygunMu(n))
+      .map((n) => `<a href="#${n.key}" data-key="${n.key}" aria-label="${n.label}">${Ikon.svg(n.key)}<span>${n.label}</span></a>`)
+      .join('') +
+    `<button type="button" class="alt-menu" id="alt-menu-btn" aria-label="Tüm menü">${Ikon.svg('menu')}</button>`;
+  document.getElementById('alt-menu-btn').addEventListener('click', () => cekmeceAc(true));
+}
+
+function cekmeceAc(acik) {
+  document.body.classList.toggle('cekmece-acik', acik);
+  document.getElementById('menu-ac-btn').setAttribute('aria-expanded', String(acik));
+}
+
 function aktifLinkiGuncelle(key) {
+  document.querySelectorAll('#alt-cubuk a').forEach((a) => a.classList.toggle('aktif', a.dataset.key === key));
   let hedef = null;
   document.querySelectorAll('#nav a').forEach((a) => {
     const aktif = a.dataset.key === key;
@@ -216,6 +235,13 @@ async function init() {
   document.getElementById('cp-ikon').innerHTML = Ikon.svg('ara');
   document.getElementById('zil-ikon').innerHTML = Ikon.svg('zil');
   navOlustur();
+  altCubukOlustur();
+  const menuAcBtn = document.getElementById('menu-ac-btn');
+  menuAcBtn.innerHTML = Ikon.svg('menu');
+  menuAcBtn.addEventListener('click', () => cekmeceAc(!document.body.classList.contains('cekmece-acik')));
+  document.getElementById('cekmece-perde').addEventListener('click', () => cekmeceAc(false));
+  window.addEventListener('hashchange', () => cekmeceAc(false));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') cekmeceAc(false); });
 
   // Kullanici menusu (tema, sifre, cikis): disari tiklayinca ve sayfa degisince kapanir
   const kullaniciBtn = document.getElementById('kullanici-btn');

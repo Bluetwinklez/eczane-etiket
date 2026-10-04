@@ -11,17 +11,17 @@ router.get('/', (req, res) => {
 
 router.get('/:id', (req, res) => {
   const row = db.prepare('SELECT * FROM kullanicilar WHERE id = ?').get(req.params.id);
-  if (!row) return res.status(404).json({ error: 'Kullanici bulunamadi' });
+  if (!row) return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
   res.json(toPublicUser(row));
 });
 
 router.post('/', (req, res) => {
   const { kullanici_adi, sifre, ad_soyad, rol, sube_id } = req.body;
   if (!kullanici_adi || !sifre || !ad_soyad || !rol) {
-    return res.status(400).json({ error: 'Kullanici adi, sifre, ad soyad ve rol zorunludur' });
+    return res.status(400).json({ error: 'Kullanıcı adı, şifre, ad soyad ve rol zorunludur' });
   }
   if (!['admin', 'eczaci', 'kasiyer'].includes(rol)) {
-    return res.status(400).json({ error: 'Gecersiz rol' });
+    return res.status(400).json({ error: 'Geçersiz rol' });
   }
   const kuralHatasi = sifreKuraliHatasi(sifre);
   if (kuralHatasi) return res.status(400).json({ error: kuralHatasi });
@@ -38,23 +38,23 @@ router.post('/', (req, res) => {
     res.status(201).json(toPublicUser(created));
   } catch (err) {
     if (String(err.message).includes('UNIQUE')) {
-      return res.status(409).json({ error: 'Bu kullanici adi zaten kayitli' });
+      return res.status(409).json({ error: 'Bu kullanıcı adı zaten kayıtlı' });
     }
-    res.status(500).json({ error: 'Kullanici olusturulamadi' });
+    res.status(500).json({ error: 'Kullanıcı oluşturulamadı' });
   }
 });
 
 router.put('/:id', (req, res) => {
   const existing = db.prepare('SELECT * FROM kullanicilar WHERE id = ?').get(req.params.id);
-  if (!existing) return res.status(404).json({ error: 'Kullanici bulunamadi' });
+  if (!existing) return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
 
   const { ad_soyad, rol, sube_id, aktif, sifre } = req.body;
   if (!ad_soyad || !rol) return res.status(400).json({ error: 'Ad soyad ve rol zorunludur' });
   if (!['admin', 'eczaci', 'kasiyer'].includes(rol)) {
-    return res.status(400).json({ error: 'Gecersiz rol' });
+    return res.status(400).json({ error: 'Geçersiz rol' });
   }
   if (existing.id === req.user.id && aktif === false) {
-    return res.status(400).json({ error: 'Kendi hesabinizi pasif hale getiremezsiniz' });
+    return res.status(400).json({ error: 'Kendi hesabınızı pasif hale getiremezsiniz' });
   }
   if (sifre) {
     const kuralHatasi = sifreKuraliHatasi(sifre);
@@ -85,9 +85,9 @@ router.put('/:id', (req, res) => {
 
 router.delete('/:id', (req, res) => {
   const existing = db.prepare('SELECT * FROM kullanicilar WHERE id = ?').get(req.params.id);
-  if (!existing) return res.status(404).json({ error: 'Kullanici bulunamadi' });
+  if (!existing) return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
   if (existing.id === req.user.id) {
-    return res.status(400).json({ error: 'Kendi hesabinizi silemezsiniz' });
+    return res.status(400).json({ error: 'Kendi hesabınızı silemezsiniz' });
   }
   db.prepare('DELETE FROM kullanicilar WHERE id = ?').run(req.params.id);
   res.status(204).end();

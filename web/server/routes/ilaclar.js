@@ -129,10 +129,10 @@ router.get('/ice-aktar/sablon', (req, res) => {
 const ICE_AKTAR_ALANLARI = ['ad', 'barkod', 'kategori', 'uretici', 'receteli', 'alis_fiyati', 'satis_fiyati', 'kritik_stok', 'urun_tipi', 'etken_madde', 'kutu_gun', 'skt'];
 
 router.post('/ice-aktar', requireRole('admin', 'eczaci'), (req, res) => {
-  if (typeof req.body.csv !== 'string' || !req.body.csv.trim()) return res.status(400).json({ error: 'CSV icerigi bos' });
+  if (typeof req.body.csv !== 'string' || !req.body.csv.trim()) return res.status(400).json({ error: 'CSV içeriği boş' });
   const cozum = satirlariCoz(req.body.csv);
   if (cozum.hata) return res.status(400).json({ error: cozum.hata });
-  if (cozum.satirlar.length > 5000) return res.status(400).json({ error: 'Tek seferde en fazla 5000 satir' });
+  if (cozum.satirlar.length > 5000) return res.status(400).json({ error: 'Tek seferde en fazla 5000 satır' });
 
   const barkodla = db.prepare('SELECT * FROM ilaclar WHERE barkod = ?');
   const gorulenBarkod = new Set();
@@ -168,7 +168,7 @@ router.post('/ice-aktar', requireRole('admin', 'eczaci'), (req, res) => {
     hata: plan.filter((p) => p.islem === 'hata').length
   };
   if (req.body.onizleme) return res.json({ ozet, satirlar: plan, taninan_sutunlar: cozum.sutunlar });
-  if (ozet.hata) return res.status(400).json({ error: `${ozet.hata} satirda hata var; once duzeltin`, ozet, satirlar: plan });
+  if (ozet.hata) return res.status(400).json({ error: `${ozet.hata} satırda hata var; önce düzeltin`, ozet, satirlar: plan });
 
   db.exec('BEGIN');
   try {
@@ -198,7 +198,7 @@ router.post('/ice-aktar', requireRole('admin', 'eczaci'), (req, res) => {
     db.exec('COMMIT');
   } catch (err) {
     db.exec('ROLLBACK');
-    return res.status(500).json({ error: 'Ice aktarma basarisiz: ' + err.message });
+    return res.status(500).json({ error: 'İçe aktarma başarısız: ' + err.message });
   }
   res.json({ ozet, satirlar: plan });
 });
@@ -250,13 +250,13 @@ router.post('/toplu-fiyat', requireRole('admin', 'eczaci'), (req, res) => {
   const alan = req.body.alan || 'satis';
   const yuvarla = YUVARLAMALAR[req.body.yuvarlama || 'kurus'];
   if (!Number.isFinite(yuzde) || yuzde === 0 || yuzde < -90 || yuzde > 500) {
-    return res.status(400).json({ error: 'Yuzde -90 ile 500 arasinda ve sifirdan farkli olmali' });
+    return res.status(400).json({ error: 'Yüzde -90 ile 500 arasında ve sıfırdan farklı olmalı' });
   }
-  if (!['satis', 'alis', 'ikisi'].includes(alan)) return res.status(400).json({ error: 'Gecersiz fiyat alani' });
-  if (!yuvarla) return res.status(400).json({ error: 'Gecersiz yuvarlama' });
+  if (!['satis', 'alis', 'ikisi'].includes(alan)) return res.status(400).json({ error: 'Geçersiz fiyat alanı' });
+  if (!yuvarla) return res.status(400).json({ error: 'Geçersiz yuvarlama' });
 
   const urunler = topluFiyatHedefleri(hedef);
-  if (!urunler) return res.status(400).json({ error: 'Gecersiz hedef' });
+  if (!urunler) return res.status(400).json({ error: 'Geçersiz hedef' });
 
   const carpan = 1 + yuzde / 100;
   const degisiklikler = urunler.map((u) => {
@@ -276,7 +276,7 @@ router.post('/toplu-fiyat', requireRole('admin', 'eczaci'), (req, res) => {
   });
 
   if (onizleme) return res.json({ urun_sayisi: degisiklikler.length, degisiklikler });
-  if (!degisiklikler.length) return res.status(400).json({ error: 'Hedefte urun yok' });
+  if (!degisiklikler.length) return res.status(400).json({ error: 'Hedefte ürün yok' });
 
   db.exec('BEGIN');
   try {
@@ -289,7 +289,7 @@ router.post('/toplu-fiyat', requireRole('admin', 'eczaci'), (req, res) => {
     db.exec('COMMIT');
   } catch (err) {
     db.exec('ROLLBACK');
-    return res.status(500).json({ error: 'Fiyatlar guncellenemedi' });
+    return res.status(500).json({ error: 'Fiyatlar güncellenemedi' });
   }
   res.json({ urun_sayisi: degisiklikler.length, degisiklikler });
 });
@@ -297,7 +297,7 @@ router.post('/toplu-fiyat', requireRole('admin', 'eczaci'), (req, res) => {
 // Karekod (GS1 DataMatrix) okutuldugunda urunu, parti ve SKT bilgisini doner
 router.get('/karekod', (req, res) => {
   const karekod = karekodCoz(req.query.kod);
-  if (!karekod) return res.status(400).json({ error: 'Karekod okunamadi' });
+  if (!karekod) return res.status(400).json({ error: 'Karekod okunamadı' });
 
   const subeId = resolveSubeId(req, req.query.sube_id);
   const ilac = ilacWithStok(subeId).find((r) => r.barkod === karekod.barkod || r.barkod === karekod.gtin) || null;
@@ -322,7 +322,7 @@ router.get('/:id', (req, res) => {
   const subeId = resolveSubeId(req, req.query.sube_id);
   const rows = ilacWithStok(subeId);
   const row = rows.find((r) => r.id === Number(req.params.id));
-  if (!row) return res.status(404).json({ error: 'Ilac bulunamadi' });
+  if (!row) return res.status(404).json({ error: 'İlaç bulunamadı' });
   res.json(row);
 });
 
@@ -351,14 +351,14 @@ router.get('/:id/fiyat-gecmisi', (req, res) => {
 
 router.post('/', requireRole('admin', 'eczaci'), (req, res) => {
   const { ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt, stok, urun_tipi, etken_madde } = req.body;
-  if (!ad || !ad.trim()) return res.status(400).json({ error: 'Ilac adi zorunludur' });
+  if (!ad || !ad.trim()) return res.status(400).json({ error: 'İlaç adı zorunludur' });
   const kutuGun = kutuGunOku(req.body.kutu_gun);
-  if (Number.isNaN(kutuGun)) return res.status(400).json({ error: 'Kutu suresi 1-365 gun arasinda olmali' });
+  if (Number.isNaN(kutuGun)) return res.status(400).json({ error: 'Kutu süresi 1-365 gün arasında olmalı' });
   const receteTuru = receteTuruOku(req.body.recete_turu);
-  if (Number.isNaN(receteTuru)) return res.status(400).json({ error: 'Gecersiz recete turu' });
-  if (!urunTipiGecerliMi(urun_tipi)) return res.status(400).json({ error: 'Gecersiz urun tipi' });
+  if (Number.isNaN(receteTuru)) return res.status(400).json({ error: 'Geçersiz reçete türü' });
+  if (!urunTipiGecerliMi(urun_tipi)) return res.status(400).json({ error: 'Geçersiz ürün tipi' });
   if (satis_fiyati == null || Number(satis_fiyati) < 0) {
-    return res.status(400).json({ error: 'Gecerli bir satis fiyati girin' });
+    return res.status(400).json({ error: 'Geçerli bir satış fiyatı girin' });
   }
 
   db.exec('BEGIN');
@@ -404,24 +404,24 @@ router.post('/', requireRole('admin', 'eczaci'), (req, res) => {
   } catch (err) {
     db.exec('ROLLBACK');
     if (String(err.message).includes('UNIQUE')) {
-      return res.status(409).json({ error: 'Bu barkod zaten kayitli' });
+      return res.status(409).json({ error: 'Bu barkod zaten kayıtlı' });
     }
-    res.status(500).json({ error: 'Ilac eklenemedi' });
+    res.status(500).json({ error: 'İlaç eklenemedi' });
   }
 });
 
 router.put('/:id', requireRole('admin', 'eczaci'), (req, res) => {
   const existing = db.prepare('SELECT * FROM ilaclar WHERE id = ?').get(req.params.id);
-  if (!existing) return res.status(404).json({ error: 'Ilac bulunamadi' });
+  if (!existing) return res.status(404).json({ error: 'İlaç bulunamadı' });
 
   const { ad, barkod, kategori, uretici, receteli, kritik_stok, alis_fiyati, satis_fiyati, skt, urun_tipi, etken_madde } = req.body;
-  if (!ad || !ad.trim()) return res.status(400).json({ error: 'Ilac adi zorunludur' });
+  if (!ad || !ad.trim()) return res.status(400).json({ error: 'İlaç adı zorunludur' });
   // kutu_gun gonderilmezse mevcut deger korunur
   const kutuGun = 'kutu_gun' in req.body ? kutuGunOku(req.body.kutu_gun) : existing.kutu_gun;
-  if (Number.isNaN(kutuGun)) return res.status(400).json({ error: 'Kutu suresi 1-365 gun arasinda olmali' });
+  if (Number.isNaN(kutuGun)) return res.status(400).json({ error: 'Kutu süresi 1-365 gün arasında olmalı' });
   const receteTuru = 'recete_turu' in req.body ? receteTuruOku(req.body.recete_turu) : existing.recete_turu;
-  if (Number.isNaN(receteTuru)) return res.status(400).json({ error: 'Gecersiz recete turu' });
-  if (!urunTipiGecerliMi(urun_tipi)) return res.status(400).json({ error: 'Gecersiz urun tipi' });
+  if (Number.isNaN(receteTuru)) return res.status(400).json({ error: 'Geçersiz reçete türü' });
+  if (!urunTipiGecerliMi(urun_tipi)) return res.status(400).json({ error: 'Geçersiz ürün tipi' });
 
   db.exec('BEGIN');
   try {
@@ -460,31 +460,31 @@ router.put('/:id', requireRole('admin', 'eczaci'), (req, res) => {
   } catch (err) {
     db.exec('ROLLBACK');
     if (String(err.message).includes('UNIQUE')) {
-      return res.status(409).json({ error: 'Bu barkod zaten kayitli' });
+      return res.status(409).json({ error: 'Bu barkod zaten kayıtlı' });
     }
-    res.status(500).json({ error: 'Ilac guncellenemedi' });
+    res.status(500).json({ error: 'İlaç güncellenemedi' });
   }
 });
 
 router.delete('/:id', requireRole('admin'), (req, res) => {
   const existing = db.prepare('SELECT * FROM ilaclar WHERE id = ?').get(req.params.id);
-  if (!existing) return res.status(404).json({ error: 'Ilac bulunamadi' });
+  if (!existing) return res.status(404).json({ error: 'İlaç bulunamadı' });
   db.prepare('DELETE FROM ilaclar WHERE id = ?').run(req.params.id);
   res.status(204).end();
 });
 
 router.post('/:id/stok', requireRole('admin', 'eczaci'), (req, res) => {
   const ilac = db.prepare('SELECT * FROM ilaclar WHERE id = ?').get(req.params.id);
-  if (!ilac) return res.status(404).json({ error: 'Ilac bulunamadi' });
+  if (!ilac) return res.status(404).json({ error: 'İlaç bulunamadı' });
 
   const subeId = req.user.rol === 'admin' && req.body.sube_id ? Number(req.body.sube_id) : req.user.sube_id;
   const { tip, adet, aciklama, parti_no, skt, parti_id } = req.body;
   const miktar = Number(adet);
   if (!['giris', 'cikis'].includes(tip) || !Number.isInteger(miktar) || miktar <= 0) {
-    return res.status(400).json({ error: 'Gecersiz stok hareketi' });
+    return res.status(400).json({ error: 'Geçersiz stok hareketi' });
   }
   if (skt && !/^\d{4}-\d{2}-\d{2}$/.test(skt)) {
-    return res.status(400).json({ error: 'SKT YYYY-AA-GG formatinda olmali' });
+    return res.status(400).json({ error: 'SKT YYYY-AA-GG formatında olmalı' });
   }
 
   const mevcut = db
@@ -499,7 +499,7 @@ router.post('/:id/stok', requireRole('admin', 'eczaci'), (req, res) => {
   // Belirli bir partiden cikis (orn. SKT'si gecen lotun imhasi)
   if (tip === 'cikis' && parti_id) {
     const parti = partiMiktariniKontrolEt(Number(parti_id), ilac.id, subeId);
-    if (!parti) return res.status(404).json({ error: 'Parti bulunamadi' });
+    if (!parti) return res.status(404).json({ error: 'Parti bulunamadı' });
     if (parti.miktar < miktar) return res.status(400).json({ error: `Partide yeterli miktar yok (kalan: ${parti.miktar})` });
   }
 

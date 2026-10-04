@@ -74,29 +74,29 @@ router.get('/', (req, res) => {
 
 router.get('/:id', (req, res) => {
   const t = transferGetir(req.params.id);
-  if (!t || !yetkiliMi(req, t)) return res.status(404).json({ error: 'Transfer bulunamadi' });
+  if (!t || !yetkiliMi(req, t)) return res.status(404).json({ error: 'Transfer bulunamadı' });
   res.json(t);
 });
 
 router.post('/', (req, res) => {
   const kaynak = req.user.rol === 'admin' && req.body.kaynak_sube_id ? Number(req.body.kaynak_sube_id) : req.user.sube_id;
   const hedef = Number(req.body.hedef_sube_id);
-  if (!db.prepare('SELECT id FROM subeler WHERE id = ?').get(hedef)) return res.status(400).json({ error: 'Hedef sube bulunamadi' });
-  if (hedef === kaynak) return res.status(400).json({ error: 'Kaynak ve hedef sube ayni olamaz' });
+  if (!db.prepare('SELECT id FROM subeler WHERE id = ?').get(hedef)) return res.status(400).json({ error: 'Hedef şube bulunamadı' });
+  if (hedef === kaynak) return res.status(400).json({ error: 'Kaynak ve hedef şube aynı olamaz' });
 
   const kalemler = Array.isArray(req.body.kalemler) ? req.body.kalemler : [];
   const birlesik = new Map();
   for (const k of kalemler) {
     const adet = Number(k.adet);
-    if (!Number.isInteger(adet) || adet <= 0) return res.status(400).json({ error: 'Gecersiz adet' });
+    if (!Number.isInteger(adet) || adet <= 0) return res.status(400).json({ error: 'Geçersiz adet' });
     birlesik.set(Number(k.ilac_id), (birlesik.get(Number(k.ilac_id)) || 0) + adet);
   }
-  if (!birlesik.size) return res.status(400).json({ error: 'En az bir urun ekleyin' });
+  if (!birlesik.size) return res.status(400).json({ error: 'En az bir ürün ekleyin' });
 
   const stokOku = db.prepare('SELECT stok FROM ilac_stok WHERE ilac_id = ? AND sube_id = ?');
   for (const [ilacId, adet] of birlesik) {
     const ilac = db.prepare('SELECT ad FROM ilaclar WHERE id = ?').get(ilacId);
-    if (!ilac) return res.status(404).json({ error: `Urun bulunamadi: ${ilacId}` });
+    if (!ilac) return res.status(404).json({ error: `Ürün bulunamadı: ${ilacId}` });
     const stok = (stokOku.get(ilacId, kaynak) || { stok: 0 }).stok;
     if (stok < adet) return res.status(400).json({ error: `Yetersiz stok: ${ilac.ad} (mevcut: ${stok})` });
   }
@@ -126,14 +126,14 @@ router.post('/', (req, res) => {
     res.status(201).json(transferGetir(transferId));
   } catch (err) {
     db.exec('ROLLBACK');
-    res.status(500).json({ error: 'Transfer olusturulamadi' });
+    res.status(500).json({ error: 'Transfer oluşturulamadı' });
   }
 });
 
 function transferiKapat(req, res, yeniDurum) {
   const t = transferGetir(req.params.id);
-  if (!t || !yetkiliMi(req, t)) return res.status(404).json({ error: 'Transfer bulunamadi' });
-  if (t.durum !== 'yolda') return res.status(400).json({ error: 'Transfer zaten sonuclanmis' });
+  if (!t || !yetkiliMi(req, t)) return res.status(404).json({ error: 'Transfer bulunamadı' });
+  if (t.durum !== 'yolda') return res.status(400).json({ error: 'Transfer zaten sonuçlanmış' });
   const teslim = yeniDurum === 'teslim_alindi';
   if (!yetkiliMi(req, t, teslim ? 'hedef' : 'kaynak')) {
     return res.status(403).json({ error: teslim ? 'Yalnizca alici sube teslim alabilir' : 'Yalnizca gonderen sube iptal edebilir' });
@@ -154,7 +154,7 @@ function transferiKapat(req, res, yeniDurum) {
     db.exec('COMMIT');
   } catch (err) {
     db.exec('ROLLBACK');
-    return res.status(500).json({ error: 'Transfer guncellenemedi' });
+    return res.status(500).json({ error: 'Transfer güncellenemedi' });
   }
   res.json(transferGetir(t.id));
 }

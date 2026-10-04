@@ -133,12 +133,12 @@ router.post('/', (req, res) => {
   const tarih = req.body.tarih || new Date().toISOString().slice(0, 10);
   const nakitSayilan = Number(req.body.nakit_sayilan);
   if (!Number.isFinite(nakitSayilan) || nakitSayilan < 0) {
-    return res.status(400).json({ error: 'Gecerli bir sayilan nakit tutari girin' });
+    return res.status(400).json({ error: 'Geçerli bir sayılan nakit tutarı girin' });
   }
 
   const mevcut = db.prepare('SELECT id FROM kasa_kapanislari WHERE sube_id = ? AND tarih = ?').get(subeId, tarih);
   if (mevcut) {
-    return res.status(409).json({ error: `${tarih} tarihi icin kasa zaten kapatilmis` });
+    return res.status(409).json({ error: `${tarih} tarihi için kasa zaten kapatılmış` });
   }
 
   const ozet = gununOzeti(subeId, tarih);
