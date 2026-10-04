@@ -139,6 +139,7 @@
           ${yazabilir ? '<button id="yeni-kampanya-btn">+ Yeni Kampanya</button>' : ''}
         </div>
         <div class="stat-row" id="kampanya-ozet"></div>
+        ${yazabilir ? '<div class="card" id="skt-oneri-kart"></div>' : ''}
         <div class="card">
           <table>
             <thead><tr><th>Kampanya</th><th>Kural</th><th>Hedef</th><th>Tarih</th><th>Durum</th><th class="num">Kullanım</th><th class="num">Verilen İndirim</th><th></th></tr></thead>
@@ -206,7 +207,50 @@
         }
       });
 
-      await yenile();
+      // SKT'si yaklasan urunler icin tek tikla indirim kampanyasi
+      const onerileriYukle = async () => {
+        const kart = document.getElementById('skt-oneri-kart');
+        if (!kart) return;
+        const liste = await Api.get('/api/kampanyalar/skt-onerileri');
+        kart.innerHTML = `
+          <h3>⏳ Miadı Yaklaşan Ürünler İçin İndirim Önerisi</h3>
+          ${
+            liste.length
+              ? `<table><thead><tr><th>Ürün</th><th>SKT</th><th class="num">Kalan</th><th class="num">Stok</th><th class="num">Önerilen</th><th></th></tr></thead><tbody>
+                  ${liste
+                    .map(
+                      (o) => `<tr><td>${UI.esc(o.ad)}</td><td>${o.skt}</td><td class="num">${o.kalan_gun} gün</td><td class="num">${o.miktar}</td>
+                        <td class="num"><input type="number" class="skt-yuzde" data-ilac="${o.ilac_id}" min="1" max="90" value="${o.onerilen_yuzde}" style="width:70px" /> %</td>
+                        <td class="actions-col"><button type="button" data-skt-kampanya="${o.ilac_id}">Kampanya Oluştur</button></td></tr>`
+                    )
+                    .join('')}</tbody></table>
+                 <p class="form-ipucu">Kampanya bugünden ürünün SKT'sine kadar geçerli olur; FEFO sayesinde önce miadı yakın kutular satılır.</p>`
+              : '<p class="form-ipucu" style="margin:0">60 gün içinde miadı dolacak, kampanyasız reçetesiz ürün yok.</p>'
+          }`;
+        kart.querySelectorAll('[data-skt-kampanya]').forEach((b) =>
+          b.addEventListener('click', async () => {
+            const o = liste.find((x) => x.ilac_id === Number(b.dataset.sktKampanya));
+            const yuzde = Number(kart.querySelector(`.skt-yuzde[data-ilac="${o.ilac_id}"]`).value);
+            try {
+              await Api.post('/api/kampanyalar', {
+                ad: `${o.ad} — SKT indirimi %${yuzde}`,
+                tip: 'yuzde',
+                indirim_yuzdesi: yuzde,
+                hedef_tip: 'urun',
+                hedef_deger: o.ilac_id,
+                baslangic: new Date().toISOString().slice(0, 10),
+                bitis: o.skt
+              });
+              UI.toast('Kampanya oluşturuldu', 'success');
+              await Promise.all([yenile(), onerileriYukle()]);
+            } catch (err) {
+              UI.toast(err.message, 'error');
+            }
+          })
+        );
+      };
+
+      await Promise.all([yenile(), onerileriYukle().catch(() => {})]);
     }
   };
 

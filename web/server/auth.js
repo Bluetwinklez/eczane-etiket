@@ -25,10 +25,10 @@ function login(kullaniciAdi, sifre) {
 
 function sifreKuraliHatasi(sifre) {
   if (typeof sifre !== 'string' || sifre.length < MIN_SIFRE_UZUNLUGU) {
-    return `Sifre en az ${MIN_SIFRE_UZUNLUGU} karakter olmalidir`;
+    return `Şifre en az ${MIN_SIFRE_UZUNLUGU} karakter olmalıdır`;
   }
   if (!/[A-Za-zÇĞİÖŞÜçğıöşü]/.test(sifre) || !/\d/.test(sifre)) {
-    return 'Sifre en az bir harf ve bir rakam icermelidir';
+    return 'Şifre en az bir harf ve bir rakam içermelidir';
   }
   return null;
 }

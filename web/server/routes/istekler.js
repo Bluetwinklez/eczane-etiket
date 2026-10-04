@@ -101,7 +101,7 @@ router.post('/:id/haber-ver', async (req, res) => {
 
   const sube = db.prepare('SELECT ad FROM subeler WHERE id = ?').get(req.user.sube_id);
   const musteri = db.prepare('SELECT * FROM musteriler WHERE id = ?').get(ist.musteri_id);
-  const mesaj = `Sayin ${musteri.ad_soyad}, istediginiz ${ist.urun_adi} eczanemize gelmistir. Uygun oldugunuzda alabilirsiniz. - ${sube ? sube.ad : ''}`;
+  const mesaj = `Sayın ${musteri.ad_soyad}, istediğiniz ${ist.urun_adi} eczanemize gelmiştir. Uygun olduğunuzda alabilirsiniz. - ${sube ? sube.ad : ''}`;
   const bildirim = await bildirimGonder(musteri, kanal, mesaj);
   db.prepare("UPDATE istekler SET durum = 'haber_verildi', guncelleme = datetime('now') WHERE id = ?").run(ist.id);
   res.json({ bildirim, istek: istekGetir(ist.id, req.user.sube_id) });
