@@ -99,6 +99,7 @@
     'Bugünün özeti': "Today's summary", 'Stoğu bitiyor': 'Running out', 'SKT için öneri': 'Expiry suggestions', 'Ölü stok': 'Dead stock', 'Stoklar rahat görünüyor 👍': 'Stock levels look comfortable 👍',
     'Yaklaşan riskli parti yok': 'No risky batches coming up', 'Kampanya aktif': 'Campaign active', 'Kampanya başlatıldı': 'Campaign started', 'Bitti': 'Sold out', 'Yarın biter': 'Ends tomorrow', 'Süresi geçti': 'Expired', 'En çok satan:': 'Top seller:',
     // Gorevler, kasa, hedef
+    'Satış hızı': 'Sales pace', 'Haftalık satış': 'Weekly sales', 'Son 4 hafta (eskiden yeniye)': 'Last 4 weeks (oldest to newest)', 'Sepete ekle': 'Add to cart',
     'İade': 'Refund', 'Satıştan iade al': 'Refund a sale', 'Son 7 günün satışları. İade edilecek satışı seçin.': "Sales from the last 7 days. Pick the sale to refund.", 'Son 7 günde satış yok': 'No sales in the last 7 days',
     'Karma': 'Mixed', 'Tamamı iade edilmiş': 'Fully refunded', 'Ürünleri stoğa geri al': 'Return items to stock', 'İade nedeni (isteğe bağlı)': 'Reason for refund (optional)', 'İade nedeni': 'Reason for refund',
     'İade tutarı': 'Refund amount', 'İadeyi tamamla': 'Complete refund',
@@ -142,6 +143,9 @@
     [/^Mal kabul #(\d+) kaydedildi\. (\d+) adet stoğa eklendi\.$/, (m) => `Goods receipt #${m[1]} saved. ${m[2]} pcs added to stock.`],
     [/^Stoğa gir \((\d+) ürün · (\d+) adet\)$/, (m) => `Add to stock (${m[1]} ${m[1] === '1' ? 'product' : 'products'} · ${m[2]} pcs)`],
     [/^Fiş no #(\d+)$/, (m) => `Receipt #${m[1]}`],
+    [/^Son 30 günde (\d+) adet$/, (m) => `${m[1]} pcs in the last 30 days`],
+    [/^günde ~([\d.,]+) adet(?: · stok ~(\d+) gün yeter| · satış yok)?$/, (m) => `~${m[1]}/day${m[2] ? ` · stock lasts ~${m[2]} days` : ' · no sales'}`],
+    [/^(.+) eklendi · sepette (\d+) ürün$/, (m) => `${m[1]} added · ${m[2]} in cart`],
     [/^Satış #(\d+) iadesi$/, (m) => `Refund for sale #${m[1]}`],
     [/^(.+) × (\d+) iade edilebilir$/, (m) => `${m[1]} × ${m[2]} refundable`],
     [/^İade tamamlandı: (.+)$/, (m) => `Refund completed: ${m[1]}`],
