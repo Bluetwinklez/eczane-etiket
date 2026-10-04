@@ -21,7 +21,7 @@ Yayın adımlarının tamamı: **[docs/APP_STORE_RELEASE.md](../docs/APP_STORE_R
 Notlar:
 - Kullanıcı agent'ı `EczanemApp/1.0` içerir; mobil arayüz bunu görünce Profil'de "Sunucuyu değiştir" düğmesini gösterir.
 - Internet adresleri HTTPS gerektirir; yalnızca yerel ağ adresleri (localhost, 10.x, 192.168.x, 172.16–31.x, *.local) HTTP ile açılabilir.
-- Bu proje Linux'ta üretildi; Xcode'da henüz derlenmedi; GitHub Actions "iOS derleme kontrolü" ilk gerçek sınav olacak.
+- Bu proje Linux'ta üretildi; imzasız derleme GitHub Actions macOS çalıştırıcısında başarılı (BUILD SUCCEEDED). İmzalama, TestFlight ve gerçek cihaz denemesi henüz yapılmadı.
 
 ## GitHub Actions
 

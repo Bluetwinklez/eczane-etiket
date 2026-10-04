@@ -4,7 +4,8 @@ Mağaza metinleri: [`STORE_LISTING.md`](STORE_LISTING.md) · Gizlilik politikas�
 
 > **Dürüst durum özeti**
 > - Hazır: iOS kabuğu (Capacitor + Swift Package Manager), ikon, açılış ekranı, izin metinleri (tr + en), GitHub Actions iş akışları, imzalama betikleri, mağaza metinleri, ekran görüntüleri, gizlilik politikası.
-> - **Xcode projesi henüz bir Mac'te / macOS çalıştırıcısında derlenmedi ve gerçek iPhone'da denenmedi.** Bu depo Linux'ta hazırlandı. İlk `iOS derleme kontrolü` ve ilk TestFlight çalıştırması küçük düzeltmeler isteyebilir. Betikler ve ayarlar Linux'ta test edildi (kabuk testleri, Python araç testleri, Xcode projesinin `xcodeproj` ile ayrıştırılması); `xcodebuild`, imzalama ve yükleme adımları **doğrulanmadı**.
+> - **Doğrulandı:** GitHub'daki macOS çalıştırıcısında imzasız iOS cihaz derlemesi (`iOS derleme kontrolü`) **BUILD SUCCEEDED** verdi; yani Xcode projesi ve Swift Paketleri derleniyor.
+> - **Henüz doğrulanmadı:** imzalama, arşivleme, TestFlight yüklemesi (`Eczam iPhone TestFlight` hiç çalıştırılmadı) ve uygulamanın gerçek iPhone'da çalışması (kamera izni, `capacitor://` ↔ uzak sunucu geçişi). İlk çalıştırmada küçük düzeltmeler çıkabilir.
 > - Uygulama arayüzü **yalnızca Türkçe**; App Store sayfası da Türkçe (bkz. STORE_LISTING.md).
 > - Yalnızca **iPhone** (iPad ve Android yok).
 
