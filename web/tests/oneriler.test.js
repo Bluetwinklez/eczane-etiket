@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const { sunucuBaslat, girisliIstemci } = require('./helpers');
 const { db } = require('../server/db');
 const { indirimYuzdesi } = require('../server/oneriler');
+const { yerelSimdi } = require('../server/zaman');
 
 let sunucu;
 let kasiyer;
@@ -13,7 +14,12 @@ before(async () => {
 });
 after(() => sunucu.kapat());
 
-const gunOnce = (n) => db.prepare("SELECT date('now', ?) AS d").get(`${n >= 0 ? '+' : ''}${n} days`).d;
+// Uygulama "bugün"ü yerel (Türkiye) takvimine göre sayar; test de aynı takvimi kullanmalı (UTC'ye göre değil)
+const gunOnce = (n) => {
+  const d = yerelSimdi();
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+};
 
 test('akıllı uyarılar oturum ister; boş veride mantıklı varsayılanlar döner', async () => {
   assert.equal((await fetch(sunucu.base + '/api/oneriler')).status, 401);

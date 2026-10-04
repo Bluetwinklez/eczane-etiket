@@ -51,7 +51,7 @@ TK_DENEME_SAYISI = 5
 TK_BEKLEME_SN = 0.5
 
 
-_GECICI_TK_HATALARI = ("init.tcl", "tk.tcl", "couldn't read file", "wasn't installed properly")
+_GECICI_TK_HATALARI = ("init.tcl", "tk.tcl", "couldn't read file", "wasn't installed properly", "tcl_findLibrary")
 
 
 def tk_gecici_hata_mi(exc):
