@@ -21,7 +21,7 @@ router.get('/', (req, res) => {
     aciklama: 'Elde stoğu olan, son kullanma tarihi geçmiş partiler; imha veya iade edin',
     sayi: sayi("SELECT COUNT(*) AS c FROM ilac_partileri WHERE sube_id = ? AND miktar > 0 AND skt < date('now')", sube),
     seviye: 'danger',
-    link: '#stok'
+    link: yonetici ? '#kalite' : '#stok'
   });
   ekle({
     kod: 'kritik_stok',
@@ -45,6 +45,27 @@ router.get('/', (req, res) => {
     ),
     seviye: 'warn',
     link: '#stok'
+  });
+
+  ekle({
+    kod: 'sicaklik_aralik_disi',
+    baslik: 'Soğuk zincir aralık dışı',
+    aciklama: 'Son 24 saatte 2-8 °C dışında ölçülen dolap sıcaklığı',
+    sayi: sayi("SELECT COUNT(*) AS c FROM sicaklik_kayitlari WHERE sube_id = ? AND aralik_disi = 1 AND tarih >= datetime('now', '-1 day')", sube),
+    seviye: 'danger',
+    link: '#kalite'
+  });
+  ekle({
+    kod: 'sicaklik_olcum_yok',
+    baslik: 'Bugün sıcaklık ölçülmedi',
+    aciklama: 'Soğuk zincir dolabı için bugün kayıt girilmedi',
+    sayi:
+      db.prepare('SELECT 1 FROM sicaklik_kayitlari WHERE sube_id = ? LIMIT 1').get(sube) &&
+      !db.prepare("SELECT 1 FROM sicaklik_kayitlari WHERE sube_id = ? AND date(tarih) = date('now')").get(sube)
+        ? 1
+        : 0,
+    seviye: 'info',
+    link: '#kalite'
   });
 
   const bitenler = bitisTahminleri(sube).filter((r) => r.kalan_gun <= 3 && r.kalan_gun >= -30 && !r.hatirlatildi);
