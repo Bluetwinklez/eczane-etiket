@@ -103,3 +103,17 @@ test('gizlilik politikası: kamera ve veri sorumlusu bilgisi var, iletişim yap�
   assert.ok(!html.includes('<script>alert'), 'geçersiz e-posta HTML enjekte edemez');
   delete process.env.ECZANEM_GIZLILIK_EPOSTA;
 });
+
+test('mobil işlem ekranları: eklenti dosyası mobil.js’ten önce yüklenir ve çevrimdışı önbelleğe girer', () => {
+  const kok = path.join(__dirname, '..', 'public', 'mobil');
+  const html = fs.readFileSync(path.join(kok, 'index.html'), 'utf8');
+  assert.ok(html.indexOf('mobil-islemler.js') > -1 && html.indexOf('mobil-islemler.js') < html.indexOf('src="mobil.js"'));
+  const sw = fs.readFileSync(path.join(kok, 'sw.js'), 'utf8');
+  assert.match(sw.match(/const KABUK = \[([\s\S]*?)\];/)[1], /\/mobil\/mobil-islemler\.js/);
+  const eklenti = fs.readFileSync(path.join(kok, 'mobil-islemler.js'), 'utf8');
+  for (const ekran of ['oneri', "'hizli-satis'", 'musteriler', 'siparisler', "'mal-kabul'"]) assert.ok(eklenti.includes(ekran), ekran);
+  // Cekirdek hala ekranlari yonlendiriyor
+  const cekirdek = fs.readFileSync(path.join(kok, 'mobil.js'), 'utf8');
+  assert.match(cekirdek, /window\.EczamEklenti/);
+  for (const yol of ['#/hizli-satis', '#/musteriler', '#/mal-kabul', '#/siparisler', '#/oneri']) assert.ok(cekirdek.includes(yol), yol);
+});

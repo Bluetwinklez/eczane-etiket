@@ -192,3 +192,39 @@ def test_reorder_batch_items_with_shortcuts(app):
 
     app.batch_mode.set(False)
     app._on_mode_change()
+
+
+def test_dashboard_ongoru_ve_kart_metinleri(app, monkeypatch):
+    bugun = _dt.date.today()
+    dun = bugun - _dt.timedelta(days=1)
+    kayitlar = [
+        {"timestamp": f"{bugun.isoformat()}T14:10:00", "drug_name": "PAROL", "patient_name": "A", "staff_name": "X", "price": 150.0},
+        {"timestamp": f"{bugun.isoformat()}T14:40:00", "drug_name": "PAROL", "patient_name": "B", "staff_name": "X", "price": 150.0},
+        {"timestamp": f"{dun.isoformat()}T09:00:00", "drug_name": "APRANAX", "patient_name": "C", "staff_name": "X", "price": 100.0},
+    ]
+    monkeypatch.setattr(stats, "load_history", lambda: kayitlar)
+    dash = dashboard.DashboardView(app, padding=8)
+    dash.pack(fill="both", expand=True)
+    app.update()
+
+    # Öngörü paneli: en az bir satır, yoğun saat ve ciro kıyası metni içerir
+    metinler = []
+    for satir in dash.insights_frame.winfo_children():
+        for parca in satir.winfo_children():
+            metinler.append(str(parca.cget("text")))
+    birlesik = " ".join(metinler)
+    assert dash.insights_frame.winfo_children(), "öngörü satırları çizilmeli"
+    assert "14:00–15:00" in birlesik
+
+    # En çok basılan ilaçlar: PAROL (2) ilk sırada
+    ilk_satir = dash.top_drugs_frame.winfo_children()[0]
+    etiketler = [str(w.cget("text")) for w in ilk_satir.winfo_children() if w.winfo_class() == "TLabel"]
+    assert any("PAROL" in e for e in etiketler)
+
+    # Ciro kartı: dünle kıyas oku (bugün 300 / dün 100 -> ▲ %200)
+    assert "▲ %200" in dash.card_data_holders[0]["sub"].cget("text")
+
+    # Saf metin yardımcıları
+    assert dashboard.DashboardView._delta_text(None) == ""
+    assert dashboard.DashboardView._delta_text(-12.4) == "▼ %12"
+    dash.destroy()

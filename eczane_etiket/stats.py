@@ -128,9 +128,127 @@ def recent_transactions(limit: int = 15, records: Optional[list] = None) -> list
     return result
 
 
+def _parse_day(record: dict) -> str:
+    return (record.get("timestamp") or "")[:10]
+
+
+def _pct_change(now: float, before: float) -> Optional[float]:
+    """Yüzde değişim; önceki dönem sıfırsa karşılaştırma anlamsız olduğundan None döner."""
+    if not before:
+        return None
+    return round((now - before) / before * 100, 1)
+
+
+def period_comparison(days: int = DEFAULT_DAYS, records: Optional[list] = None,
+                      today: Optional[_dt.date] = None) -> dict:
+    """Son `days` günü hemen öncesindeki `days` günle kıyaslar (etiket sayısı ve ciro)."""
+    records = records if records is not None else load_history()
+    today = today or _dt.date.today()
+    current = {(today - _dt.timedelta(days=i)).isoformat() for i in range(days)}
+    previous = {(today - _dt.timedelta(days=i)).isoformat() for i in range(days, days * 2)}
+    count = prev_count = 0
+    turnover = prev_turnover = 0.0
+    for r in records:
+        day = _parse_day(r)
+        if day in current:
+            count += 1
+            turnover += _get_record_price(r)
+        elif day in previous:
+            prev_count += 1
+            prev_turnover += _get_record_price(r)
+    return {
+        "days": days,
+        "count": count,
+        "prev_count": prev_count,
+        "count_change_pct": _pct_change(count, prev_count),
+        "turnover": round(turnover, 2),
+        "prev_turnover": round(prev_turnover, 2),
+        "turnover_change_pct": _pct_change(turnover, prev_turnover),
+    }
+
+
+def hourly_distribution(days: int = 30, records: Optional[list] = None,
+                        today: Optional[_dt.date] = None) -> list:
+    """Son `days` gün için saat saat (0-23) işlem sayısı."""
+    records = records if records is not None else load_history()
+    today = today or _dt.date.today()
+    window = {(today - _dt.timedelta(days=i)).isoformat() for i in range(days)}
+    hours = [0] * 24
+    for r in records:
+        ts = r.get("timestamp") or ""
+        if ts[:10] in window and len(ts) >= 13 and ts[11:13].isdigit():
+            hour = int(ts[11:13])
+            if 0 <= hour <= 23:
+                hours[hour] += 1
+    return hours
+
+
+def busiest_hour(days: int = 30, records: Optional[list] = None,
+                 today: Optional[_dt.date] = None) -> Optional[dict]:
+    """En yoğun saat ve toplam içindeki payı; hiç işlem yoksa None."""
+    hours = hourly_distribution(days, records, today)
+    total = sum(hours)
+    if not total:
+        return None
+    peak = max(range(24), key=lambda h: (hours[h], -h))
+    return {"hour": peak, "count": hours[peak], "share_pct": round(hours[peak] / total * 100, 1)}
+
+
+def _fmt_pct(value: float) -> str:
+    return f"%{abs(value):.0f}".replace(".0", "")
+
+
+def build_insights(data: dict) -> list:
+    """Özet verisinden okunabilir öngörü cümleleri üretir: [{"level": good|warn|info, "text": ...}].
+
+    level: good = olumlu, warn = dikkat gerektirir, info = bilgi.
+    """
+    out = []
+    alerts = data.get("stock_alerts") or {}
+    expired = alerts.get("expired_count", 0)
+    low = alerts.get("low_stock_count", 0)
+    soon = alerts.get("expiring_soon_count", 0)
+    if expired:
+        out.append({"level": "warn", "text": f"{expired} kalemin son kullanma tarihi geçmiş: imha veya iade edin."})
+    if low:
+        out.append({"level": "warn", "text": f"{low} kalem kritik stok seviyesinde: sipariş vermeyi düşünün."})
+    if soon:
+        out.append({"level": "info", "text": f"{soon} kalemin SKT'si yaklaşıyor: önce bunları kullanın/satın."})
+
+    cmp_ = data.get("comparison") or {}
+    change = cmp_.get("turnover_change_pct")
+    days = cmp_.get("days", DEFAULT_DAYS)
+    if change is not None:
+        if change >= 5:
+            out.append({"level": "good", "text": f"Son {days} günün cirosu öncekine göre {_fmt_pct(change)} arttı."})
+        elif change <= -5:
+            out.append({"level": "warn", "text": f"Son {days} günün cirosu öncekine göre {_fmt_pct(change)} azaldı."})
+        else:
+            out.append({"level": "info", "text": f"Son {days} günün cirosu öncekiyle hemen hemen aynı."})
+    elif cmp_.get("turnover", 0) > 0:
+        out.append({"level": "info", "text": f"Son {days} günde {cmp_['turnover']:,.2f} ₺ ciro var; öncesi için kayıt bulunmuyor."})
+
+    peak = data.get("busiest_hour")
+    if peak:
+        out.append({
+            "level": "info",
+            "text": f"En yoğun saat {peak['hour']:02d}:00–{(peak['hour'] + 1) % 24:02d}:00 (işlemlerin {_fmt_pct(peak['share_pct'])}'i). Bu saatte ek personel planlayın.",
+        })
+
+    yesterday = data.get("yesterday_turnover")
+    today = data.get("today_turnover", 0.0)
+    if yesterday and today and today >= yesterday:
+        out.append({"level": "good", "text": "Bugünkü ciro dünün toplamını geçti."})
+
+    if not out:
+        out.append({"level": "good", "text": "Her şey yolunda görünüyor; bekleyen uyarı yok."})
+    return out
+
+
 def summary(days: int = DEFAULT_DAYS) -> dict:
     records = load_history()
-    return {
+    today = _dt.date.today()
+    data = {
         "total": total_labels(records),
         "today_count": today_label_count(records),
         "today_turnover": daily_turnover(records=records),
@@ -140,4 +258,9 @@ def summary(days: int = DEFAULT_DAYS) -> dict:
         "by_day": counts_by_day(days, records),
         "stock_alerts": stock_alerts_summary(),
         "recent_transactions": recent_transactions(15, records),
+        "comparison": period_comparison(days, records, today),
+        "busiest_hour": busiest_hour(30, records, today),
+        "yesterday_turnover": daily_turnover((today - _dt.timedelta(days=1)).isoformat(), records),
     }
+    data["insights"] = build_insights(data)
+    return data

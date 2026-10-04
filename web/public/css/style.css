@@ -644,6 +644,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-sp
 .p-bekleyen { grid-column: span 4; }
 .p-trend { grid-column: span 5; }
 .p-promo { grid-column: span 3; }
+.p-oneri { grid-column: 1 / -1; }
 
 .kart-bas { display: flex; align-items: center; gap: 10px; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; }
 .kart-bas h3 { margin: 0; }
@@ -876,3 +877,28 @@ kbd {
   background: var(--surface-2); border: 1px solid var(--border); border-bottom-width: 2px; color: var(--text);
 }
 @media (prefers-reduced-motion: reduce) { .baglanti-bandi .nokta { animation: none; } }
+
+/* ---- Akilli oneriler ---- */
+.oneri-ozet { font-size: 12.5px; font-weight: 800; padding: 4px 12px; border-radius: var(--radius-pill); background: var(--surface-2); color: var(--text-muted); }
+.oneri-ozet.iyi { background: var(--lime); color: var(--on-lime); }
+.oneri-sutunlar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.oneri-sutunlar h4 { margin: 0 0 8px; font-size: 14px; }
+.oneri-sutunlar h4 small { font-weight: 600; color: var(--text-muted); }
+.oneri-liste { list-style: none; margin: 0 0 10px; padding: 0; }
+.oneri-liste li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px dashed var(--border-soft); }
+.oneri-liste li:last-child { border-bottom: 0; }
+.oneri-liste .islem-metin { min-width: 0; }
+.oneri-bos { color: var(--text-muted); font-weight: 600; justify-content: flex-start !important; }
+.oneri-etiket { flex: none; font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: var(--radius-pill); background: var(--surface-2); white-space: nowrap; }
+.oneri-etiket.tehlike { background: color-mix(in srgb, var(--danger) 16%, transparent); color: var(--danger); }
+.oneri-etiket.uyari { background: color-mix(in srgb, var(--warning) 20%, transparent); color: var(--warning); }
+.gun-sonu { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 10px; margin-bottom: 10px; }
+.gun-sonu > div { min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: var(--radius); background: var(--surface-2); }
+.gun-sonu span { font-size: 12px; font-weight: 700; color: var(--text-muted); }
+.gun-sonu b { font-family: var(--font-baslik); font-size: 18px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.gun-sonu small { font-size: 11.5px; font-weight: 700; }
+.gun-sonu .artis { color: var(--success); }
+.gun-sonu .dusus { color: var(--danger); }
+.oneri-not { margin: 6px 0 0; font-size: 13px; color: var(--text-muted); }
+@media (max-width: 1100px) { .oneri-sutunlar { grid-template-columns: 1fr; gap: 16px; } }
+@media (max-width: 760px) { .gun-sonu b { font-size: 16px; } .p-oneri { min-width: 0; overflow: hidden; } }

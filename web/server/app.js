@@ -18,6 +18,7 @@ const kaliteRoutes = require('./routes/kalite');
 const ayarlarRoutes = require('./routes/ayarlar');
 const sistemRoutes = require('./routes/sistem');
 const mobilRoutes = require('./routes/mobil');
+const onerilerRoutes = require('./routes/oneriler');
 const kullanicilarRoutes = require('./routes/kullanicilar');
 const subelerRoutes = require('./routes/subeler');
 const bildirimlerRoutes = require('./routes/bildirimler');
@@ -112,6 +113,7 @@ app.use('/api/kalite', requireLogin, kaliteRoutes);
 app.use('/api/ayarlar', requireLogin, ayarlarRoutes);
 app.use('/api/sistem', requireLogin, sistemRoutes);
 app.use('/api/mobil', requireLogin, mobilRoutes);
+app.use('/api/oneriler', requireLogin, onerilerRoutes);
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
