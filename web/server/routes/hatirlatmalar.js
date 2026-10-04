@@ -127,3 +127,4 @@ router.post('/ilac-bitis/gonder', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.bitisTahminleri = bitisTahminleri;

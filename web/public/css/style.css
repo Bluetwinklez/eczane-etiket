@@ -170,7 +170,7 @@ label { font-size: 13px; color: var(--text-muted); display: block; margin-bottom
 .sidebar nav { flex: 1; overflow-y: auto; padding: 4px 10px; display: flex; flex-direction: column; gap: 2px; }
 .sidebar a {
   display: block;
-  padding: 10px 14px;
+  padding: 7px 14px;
   color: rgba(255,255,255,0.78);
   text-decoration: none;
   font-size: 14px;
@@ -178,6 +178,7 @@ label { font-size: 13px; color: var(--text-muted); display: block; margin-bottom
   transition: background var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard);
 }
 .sidebar a:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.nav-grup { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: rgba(255,255,255,.55); padding: 12px 12px 4px; font-weight: 600; }
 .sidebar a.active { background: #fff; color: var(--primary-dark); font-weight: 600; box-shadow: var(--shadow-sm); }
 .sidebar .user-box { padding: 14px 16px; border-top: 1px solid rgba(255,255,255,0.15); font-size: 13px; }
 .sidebar .user-box .rol { opacity: 0.7; text-transform: capitalize; }
@@ -266,6 +267,7 @@ td.num, th.num { text-align: right; }
   .sidebar { width: 100%; }
   .sidebar nav { flex-direction: row; overflow-x: auto; padding: 8px 10px; }
   .sidebar a { white-space: nowrap; }
+  .nav-grup { display: none; }
   .pos-layout { grid-template-columns: 1fr; }
   .content { padding: 14px; }
 }
@@ -405,3 +407,21 @@ td.num, th.num { text-align: right; }
 .devir-notlari { list-style: none; padding: 0; margin: 0; }
 .devir-notlari li { padding: 6px 0; border-bottom: 1px solid var(--border-soft); }
 .devir-notlari li.tamam label { text-decoration: line-through; color: var(--text-muted); }
+
+/* ---- Bildirim merkezi (zil) ---- */
+.zil-kutu { position: relative; }
+.zil-btn { position: relative; font-size: 18px; padding: 6px 10px; line-height: 1; }
+.zil-sayi { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+  background: var(--primary); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.zil-sayi.onemli { background: var(--danger); }
+.zil-panel { position: absolute; right: 0; top: calc(100% + 8px); width: 360px; max-width: calc(100vw - 32px); max-height: 70vh; overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); z-index: 800; padding: 6px; }
+.zil-baslik { font-weight: 700; font-size: 13px; padding: 8px 10px; border-bottom: 1px solid var(--border-soft); margin-bottom: 4px; }
+.zil-oge { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius-sm); text-decoration: none; color: var(--text); }
+.zil-oge:hover { background: var(--bg); }
+.zil-metin { flex: 1; display: flex; flex-direction: column; font-size: 13px; }
+.zil-metin small { color: var(--text-muted); font-size: 11.5px; }
+.zil-adet { font-weight: 700; font-size: 13px; min-width: 26px; text-align: center; border-radius: 999px; padding: 2px 8px; background: var(--bg); }
+.zil-oge.seviye-danger .zil-adet { background: var(--danger-soft); color: var(--danger); }
+.zil-oge.seviye-warn .zil-adet { background: var(--warning-soft); color: var(--warning); }
+.zil-oge.seviye-ok .zil-adet { background: var(--accent-mint-bg); color: var(--accent-mint-fg); }
