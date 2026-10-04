@@ -99,6 +99,8 @@
     'Bugünün özeti': "Today's summary", 'Stoğu bitiyor': 'Running out', 'SKT için öneri': 'Expiry suggestions', 'Ölü stok': 'Dead stock', 'Stoklar rahat görünüyor 👍': 'Stock levels look comfortable 👍',
     'Yaklaşan riskli parti yok': 'No risky batches coming up', 'Kampanya aktif': 'Campaign active', 'Kampanya başlatıldı': 'Campaign started', 'Bitti': 'Sold out', 'Yarın biter': 'Ends tomorrow', 'Süresi geçti': 'Expired', 'En çok satan:': 'Top seller:',
     // Gorevler, kasa, hedef
+    '+ Yeni': '+ New', '+ Yeni müşteri': '+ New customer', 'Yeni müşteri': 'New customer', 'Ad soyad': 'Full name', 'Telefon': 'Phone', 'Müşteri eklendi': 'Customer added',
+    'Kampanya ve hatırlatma iletileri gönderilebilir': 'Campaign and reminder messages may be sent', 'Müşteri onay verdiyse işaretleyin': 'Tick if the customer has given consent',
     'Sipariş taslağı': 'Draft order', 'Önce bir tedarikçi tanımlayın (bilgisayardan)': 'Add a supplier first (from the computer)', 'Akıllı öneriden oluşturuldu': 'Created from smart suggestions',
     'Satış hızı': 'Sales pace', 'Haftalık satış': 'Weekly sales', 'Son 4 hafta (eskiden yeniye)': 'Last 4 weeks (oldest to newest)', 'Sepete ekle': 'Add to cart',
     'İade': 'Refund', 'Satıştan iade al': 'Refund a sale', 'Son 7 günün satışları. İade edilecek satışı seçin.': "Sales from the last 7 days. Pick the sale to refund.", 'Son 7 günde satış yok': 'No sales in the last 7 days',
