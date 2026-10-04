@@ -3,8 +3,7 @@
 Sınırlar: ad ≤ 30, alt başlık ≤ 30, anahtar kelimeler ≤ 100, tanıtım metni ≤ 170, açıklama ≤ 4000 karakter.
 `mobil-uygulama/tests/kabuk.test.js` bu sınırları otomatik denetler; metni değiştirince `cd mobil-uygulama && npm test` çalıştırın.
 
-> **Dil durumu:** Uygulama arayüzü şu an yalnızca **Türkçe**. App Store sayfası da Türkçe (ana dil) yayınlanır.
-> Aşağıdaki İngilizce bölüm, arayüz İngilizceye çevrildiğinde kullanılmak üzere hazır bekler; **şimdilik App Store Connect'e eklemeyin** (Türkçe arayüzlü bir uygulamayı İngilizce tanıtmak yanıltıcı olur ve inceleme sorunu çıkarabilir).
+> **Dil durumu:** Uygulama arayüzü **Türkçe ve İngilizce** (cihaz diline göre açılır; Profil'den değiştirilir). Sunucudan gelen içerik (ürün/müşteri adları) çevrilmez. App Store sayfası Türkçe (ana dil) + İngilizce yayınlanabilir; Türkçe ekran görüntüleri `docs/magaza/`, İngilizce olanlar `docs/magaza/en/` içinde.
 
 ## Türkçe (tr) — ana dil
 
@@ -34,7 +33,7 @@ Gizlilik: reklam, takip veya analiz yoktur.
 Bu uygulama tıbbi tavsiye vermez ve tanı koymaz.
 ```
 
-## English (en) — arayüz çevrilince kullanılacak, şimdilik EKLEMEYİN
+## English (en)
 
 - **Name:** Eczam
 - **Subtitle:** Pharmacy stats, stock & scan

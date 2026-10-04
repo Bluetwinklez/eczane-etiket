@@ -2,40 +2,14 @@ const express = require('express');
 const { db } = require('../db');
 const { partiGiris } = require('../partiler');
 const { sendPdf } = require('../export');
+const { stokYeterlilik } = require('../stokAnaliz');
 
 const router = express.Router();
 
 // Akilli siparis onerisi: son 30 gunun net satis hizina (iadeler dusulur) gore
-// stogun kac gun yetecegi hesaplanir. Kritik stok altinda olan ya da temin
-// suresinden (varsayilan 7 gun) once bitecek urunler onerilir; onerilen adet
-// stogu hedef gun sayisina (varsayilan 30) tamamlar.
-const ANALIZ_GUN = 30;
-
-function stokYeterlilik(subeId) {
-  return db
-    .prepare(
-      `SELECT i.id AS ilac_id, i.ad, i.barkod, i.kritik_stok, i.alis_fiyati, COALESCE(s.stok, 0) AS stok,
-              COALESCE((SELECT SUM(sk.adet) FROM satis_kalemleri sk JOIN satislar sa ON sa.id = sk.satis_id
-                         WHERE sk.ilac_id = i.id AND sa.sube_id = ? AND sa.tarih >= datetime('now', '-${ANALIZ_GUN} days')), 0)
-            - COALESCE((SELECT SUM(ik.adet) FROM iade_kalemleri ik JOIN iadeler ia ON ia.id = ik.iade_id
-                         WHERE ik.ilac_id = i.id AND ia.sube_id = ? AND ia.stoga_alindi = 1
-                           AND ia.tarih >= datetime('now', '-${ANALIZ_GUN} days')), 0) AS son_satis
-       FROM ilaclar i
-       LEFT JOIN ilac_stok s ON s.ilac_id = i.id AND s.sube_id = ?
-       ORDER BY i.ad`
-    )
-    .all(subeId, subeId, subeId)
-    .map((r) => {
-      const gunluk = Math.max(0, r.son_satis) / ANALIZ_GUN;
-      return {
-        ...r,
-        son_satis: Math.max(0, r.son_satis),
-        gunluk_ortalama: Math.round(gunluk * 100) / 100,
-        yetecek_gun: gunluk > 0 ? Math.floor(r.stok / gunluk) : null
-      };
-    });
-}
-
+// stogun kac gun yetecegi hesaplanir (bkz. ../stokAnaliz.js). Kritik stok altinda
+// olan ya da temin suresinden (varsayilan 7 gun) once bitecek urunler onerilir;
+// onerilen adet stogu hedef gun sayisina (varsayilan 30) tamamlar.
 router.get('/oneriler', (req, res) => {
   const hedefGun = Math.min(120, Math.max(7, Number(req.query.hedef_gun) || 30));
   const teminGun = Math.min(60, Math.max(1, Number(req.query.temin_gun) || 7));
