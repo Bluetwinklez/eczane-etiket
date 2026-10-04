@@ -346,6 +346,54 @@ sutunEkleGerekirse('ilaclar', 'recete_turu', 'TEXT');
 sutunEkleGerekirse('satis_kalemleri', 'kullanim', 'TEXT');
 // Ticari elektronik ileti onayi (IYS): toplu kampanya mesajlari yalnizca onayli musterilere
 sutunEkleGerekirse('musteriler', 'ileti_izni', 'INTEGER NOT NULL DEFAULT 0');
+// Kalite: geri cagirma, imha tutanagi, soguk zincir sicaklik defteri
+db.exec(`
+  CREATE TABLE IF NOT EXISTS geri_cagirmalar (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    ilac_id INTEGER NOT NULL REFERENCES ilaclar(id),
+    parti_no TEXT NOT NULL,
+    aciklama TEXT,
+    stoktan_cekilen INTEGER NOT NULL DEFAULT 0,
+    etkilenen_satis INTEGER NOT NULL DEFAULT 0,
+    kullanici_id INTEGER REFERENCES kullanicilar(id),
+    tarih TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE TABLE IF NOT EXISTS imhalar (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    yontem TEXT NOT NULL,
+    tanik TEXT,
+    aciklama TEXT,
+    toplam_adet INTEGER NOT NULL DEFAULT 0,
+    toplam_maliyet REAL NOT NULL DEFAULT 0,
+    kullanici_id INTEGER REFERENCES kullanicilar(id),
+    tarih TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE TABLE IF NOT EXISTS imha_kalemleri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    imha_id INTEGER NOT NULL REFERENCES imhalar(id) ON DELETE CASCADE,
+    ilac_id INTEGER NOT NULL REFERENCES ilaclar(id),
+    ilac_adi TEXT NOT NULL,
+    parti_id INTEGER REFERENCES ilac_partileri(id) ON DELETE SET NULL,
+    parti_no TEXT,
+    skt TEXT,
+    adet INTEGER NOT NULL,
+    birim_maliyet REAL NOT NULL DEFAULT 0
+  );
+  CREATE TABLE IF NOT EXISTS sicaklik_kayitlari (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    dolap TEXT NOT NULL DEFAULT 'Buzdolabı',
+    sicaklik REAL NOT NULL,
+    aralik_disi INTEGER NOT NULL DEFAULT 0,
+    notlar TEXT,
+    kullanici_id INTEGER REFERENCES kullanicilar(id),
+    tarih TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_sicaklik_sube_tarih ON sicaklik_kayitlari (sube_id, tarih);
+`);
+
 // Hasta guvenligi: gebelik/emzirme ve yas uyarilari, raf konumu
 sutunEkleGerekirse('musteriler', 'dogum_tarihi', 'TEXT');
 sutunEkleGerekirse('musteriler', 'gebelik_durumu', 'TEXT');

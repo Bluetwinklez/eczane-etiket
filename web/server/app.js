@@ -14,6 +14,7 @@ const satislarRoutes = require('./routes/satislar');
 const musterilerRoutes = require('./routes/musteriler');
 const tedarikcilerRoutes = require('./routes/tedarikciler');
 const raporlarRoutes = require('./routes/raporlar');
+const kaliteRoutes = require('./routes/kalite');
 const kullanicilarRoutes = require('./routes/kullanicilar');
 const subelerRoutes = require('./routes/subeler');
 const bildirimlerRoutes = require('./routes/bildirimler');
@@ -103,6 +104,8 @@ app.use('/api/siparisler', requireLogin, requireRole('admin', 'eczaci'), siparis
 app.use('/api/gorevler', requireLogin, gorevlerRoutes);
 app.use('/api/nobetler', requireLogin, nobetlerRoutes);
 app.use('/api/islem-kayitlari', requireLogin, requireRole('admin'), islemKayitlariRoutes);
+
+app.use('/api/kalite', requireLogin, kaliteRoutes);
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 

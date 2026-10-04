@@ -31,6 +31,7 @@ const Ikon = (() => {
     subeler: '<path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/><path d="M16 9h2a2 2 0 0 1 2 2v10"/><path d="M2 21h20"/><path d="M8 7h4M8 11h4M8 15h4"/>',
     yedekleme: '<path d="M7 18a5 5 0 1 1 .9-9.9A6 6 0 0 1 19.5 10 4 4 0 0 1 18 18Z"/>',
     'islem-kaydi': '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>',
+    kalite: '<path d="M12 3v18M5.6 6.6l12.8 10.8M18.4 6.6 5.6 17.4"/><path d="m9 4 3 2 3-2M9 20l3-2 3 2"/>',
     zil: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10.3 21a2 2 0 0 0 3.4 0"/>',
     ara: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
     ay: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>',
