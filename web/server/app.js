@@ -14,6 +14,9 @@ const satislarRoutes = require('./routes/satislar');
 const musterilerRoutes = require('./routes/musteriler');
 const tedarikcilerRoutes = require('./routes/tedarikciler');
 const raporlarRoutes = require('./routes/raporlar');
+const kaliteRoutes = require('./routes/kalite');
+const ayarlarRoutes = require('./routes/ayarlar');
+const sistemRoutes = require('./routes/sistem');
 const kullanicilarRoutes = require('./routes/kullanicilar');
 const subelerRoutes = require('./routes/subeler');
 const bildirimlerRoutes = require('./routes/bildirimler');
@@ -104,12 +107,16 @@ app.use('/api/gorevler', requireLogin, gorevlerRoutes);
 app.use('/api/nobetler', requireLogin, nobetlerRoutes);
 app.use('/api/islem-kayitlari', requireLogin, requireRole('admin'), islemKayitlariRoutes);
 
+app.use('/api/kalite', requireLogin, kaliteRoutes);
+app.use('/api/ayarlar', requireLogin, ayarlarRoutes);
+app.use('/api/sistem', requireLogin, sistemRoutes);
+
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.use('/api', requireLogin, (req, res) => {
-  res.status(404).json({ error: 'Bulunamadi' });
+  res.status(404).json({ error: 'Bulunamadı' });
 });
 
 module.exports = app;

@@ -106,7 +106,7 @@
       </table>
       ${teslimAlinabilir ? '<p class="form-ipucu">Parti No ve SKT boş bırakılırsa ilacın varsayılan SKT\'si kullanılır.</p>' : ''}
       <div class="cart-total"><span>Tahmini Toplam</span><span>${UI.tl(toplam)}</span></div>
-      <div class="modal-actions">${aksiyonlar.join('')}<button class="secondary" data-action="kapat">Kapat</button></div>
+      <div class="modal-actions"><a class="hap-link" href="/api/siparisler/${detay.id}/form" target="_blank" rel="noopener">Sipariş Formu (PDF) ${Ikon.svg('ok')}</a>${aksiyonlar.join('')}<button class="secondary" data-action="kapat">Kapat</button></div>
     `);
 
     modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));

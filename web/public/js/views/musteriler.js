@@ -12,6 +12,15 @@
           <div><label>E-posta</label><input name="email" type="email" value="${UI.esc(x.email || '')}" /></div>
           <div><label>TC No</label><input name="tc_no" value="${UI.esc(x.tc_no || '')}" /></div>
           <div><label>Veresiye Limiti (TL)</label><input name="veresiye_limiti" type="number" step="0.01" min="0" placeholder="Boş = limitsiz" value="${x.veresiye_limiti ?? ''}" /></div>
+          <div><label>Doğum Tarihi</label><input name="dogum_tarihi" type="date" value="${x.dogum_tarihi || ''}" title="Yaşa bağlı ilaç uyarıları ve doğum günü listesi için" /></div>
+          <div>
+            <label>Gebelik / Emzirme</label>
+            <select name="gebelik_durumu" title="Kasada gebelikte riskli ilaçlar için uyarı verilir">
+              <option value="">Yok</option>
+              <option value="gebe" ${x.gebelik_durumu === 'gebe' ? 'selected' : ''}>Gebe</option>
+              <option value="emziren" ${x.gebelik_durumu === 'emziren' ? 'selected' : ''}>Emziriyor</option>
+            </select>
+          </div>
         </div>
         <div><label>Adres</label><textarea name="adres" rows="2">${UI.esc(x.adres || '')}</textarea></div>
         <div>
@@ -40,7 +49,9 @@
         adres: fd.get('adres') || null,
         saglik_notu: fd.get('saglik_notu') || null,
         veresiye_limiti: fd.get('veresiye_limiti') === '' ? null : Number(fd.get('veresiye_limiti')),
-        ileti_izni: e.target.querySelector('[name="ileti_izni"]').checked
+        ileti_izni: e.target.querySelector('[name="ileti_izni"]').checked,
+        dogum_tarihi: fd.get('dogum_tarihi') || null,
+        gebelik_durumu: fd.get('gebelik_durumu') || null
       };
       try {
         if (musteri) {
@@ -116,24 +127,82 @@
           <input id="musteri-ara" placeholder="Müşteri ara..." style="max-width:320px" />
           <div class="spacer"></div>
           ${ctx && ctx.user.rol === 'admin' ? '<button class="secondary" id="sadakat-ayar-btn">Puan Ayarları</button>' : ''}
+          ${ctx && ['admin', 'eczaci'].includes(ctx.user.rol) ? '<a class="hap-link ikincil-link" href="/api/musteriler/disa-aktar" download>CSV Dışa Aktar</a>' : ''}
           <button id="yeni-musteri-btn">+ Yeni Müşteri</button>
+        </div>
+        <div class="musteri-ust">
+          <div class="card" id="segment-kart"></div>
+          <div class="card" id="dogum-kart"></div>
         </div>
         <div class="card">
           <table>
-            <thead><tr><th>Ad Soyad</th><th>Telefon</th><th>E-posta</th><th class="num">Puan</th><th></th></tr></thead>
+            <thead><tr><th>Ad Soyad</th><th>Segment</th><th>Telefon</th><th>E-posta</th><th class="num">Puan</th><th></th></tr></thead>
             <tbody id="musteri-tbody"></tbody>
           </table>
         </div>
       `;
 
+      // Segmentler: hangi musteri sadik, hangisi kaybedilmek uzere; tiklayinca liste filtrelenir
+      const SEGMENT_RENK = { sadik: 'ok', yeni: 'ok', risk: 'warn', kayip: 'danger', ara: 'muted', hic: 'muted' };
+      let segmentler = { ozet: {}, musteriler: [] };
+      let segmentFiltre = null;
+      const segmentHaritasi = () => Object.fromEntries(segmentler.musteriler.map((m) => [m.id, m]));
+      const segmentleriYukle = async () => {
+        segmentler = await Api.get('/api/musteriler/segmentler');
+        document.getElementById('segment-kart').innerHTML = `
+          <div class="kart-bas"><h3>Müşteri Segmentleri</h3>${segmentFiltre ? '<button type="button" class="secondary" data-segment="">Filtreyi kaldır</button>' : ''}</div>
+          <div class="segment-cipler">${Object.entries(segmentler.ozet)
+            .filter(([, v]) => v.sayi > 0)
+            .map(([k, v]) => `<button type="button" class="segment-cip ${segmentFiltre === k ? 'aktif' : ''}" data-segment="${k}"><span class="badge ${SEGMENT_RENK[k]}">${v.sayi}</span> ${v.ad}</button>`)
+            .join('')}</div>
+          <p class="form-ipucu" style="margin-bottom:0">Sadık: son 45 günde alışveriş ve 6 ayda 4+ alım · Kaybedilmek üzere: 45-120 gündür gelmeyen · Kayıp: 120+ gün.</p>`;
+      };
+      const dogumGunleriniYukle = async () => {
+        const liste = await Api.get('/api/musteriler/dogum-gunleri?gun=7');
+        document.getElementById('dogum-kart').innerHTML = `
+          <h3>🎂 Yaklaşan Doğum Günleri</h3>
+          ${
+            liste.length
+              ? `<ul class="dogum-liste">${liste
+                  .map(
+                    (m) => `<li><span><b>${UI.esc(m.ad_soyad)}</b> <small>${m.kalan_gun === 0 ? 'bugün' : m.kalan_gun + ' gün sonra'} · ${m.yeni_yas} yaş</small></span>
+                      ${m.ileti_izni && m.telefon ? `<button type="button" class="secondary" data-kutla="${m.id}">Kutla (SMS)</button>` : '<small class="form-ipucu">ileti izni yok</small>'}</li>`
+                  )
+                  .join('')}</ul>`
+              : '<p class="form-ipucu" style="margin:0">Önümüzdeki 7 günde doğum günü yok. Müşteri kartına doğum tarihi ekleyebilirsiniz.</p>'
+          }`;
+      };
+      container.addEventListener('click', async (e) => {
+        const seg = e.target.closest('[data-segment]');
+        if (seg) {
+          segmentFiltre = seg.dataset.segment || null;
+          await segmentleriYukle();
+          yenile(document.getElementById('musteri-ara').value);
+          return;
+        }
+        const kutla = e.target.closest('[data-kutla]');
+        if (kutla) {
+          try {
+            const b = await Api.post(`/api/musteriler/${kutla.dataset.kutla}/dogum-gunu-mesaji`, {});
+            UI.toast(b.durum === 'simule' ? 'Kutlama mesajı kaydedildi (SMS simülasyonu)' : 'Kutlama mesajı gönderildi', 'success');
+            kutla.disabled = true;
+          } catch (err) {
+            UI.toast(err.message, 'error');
+          }
+        }
+      });
+
       const yenile = async (q) => {
         liste = await Api.get('/api/musteriler' + (q ? '?q=' + encodeURIComponent(q) : ''));
+        const seg = segmentHaritasi();
+        if (segmentFiltre) liste = liste.filter((m) => seg[m.id] && seg[m.id].segment === segmentFiltre);
         const tbody = document.getElementById('musteri-tbody');
         tbody.innerHTML = liste.length
           ? liste
               .map(
                 (m) => `<tr>
                   <td>${UI.esc(m.ad_soyad)} ${m.saglik_notu ? '<span class="badge danger" title="' + UI.esc(m.saglik_notu) + '">⚕ Sağlık Notu</span>' : ''}</td>
+                  <td>${seg[m.id] ? `<span class="badge ${SEGMENT_RENK[seg[m.id].segment]}" title="${seg[m.id].son_alim ? 'Son alım: ' + UI.esc(seg[m.id].son_alim.slice(0, 10)) : ''}">${seg[m.id].segment_adi}</span>` : '-'}</td>
                   <td>${UI.esc(m.telefon || '-')}</td>
                   <td>${UI.esc(m.email || '-')}</td>
                   <td class="num">${m.puan ? `<span class="badge ok">${m.puan}</span>` : '-'}</td>
@@ -146,7 +215,7 @@
                 </tr>`
               )
               .join('')
-          : '<tr><td colspan="5" class="empty-state">Kayıt bulunamadı</td></tr>';
+          : '<tr><td colspan="6" class="empty-state">Kayıt bulunamadı</td></tr>';
       };
 
       let timer;
@@ -216,6 +285,7 @@
 
       const seed = UI.aramaSeedOku();
       if (seed) document.getElementById('musteri-ara').value = seed;
+      await Promise.all([segmentleriYukle(), dogumGunleriniYukle()]).catch(() => {});
       await yenile(seed);
     }
   };

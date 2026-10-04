@@ -102,4 +102,43 @@ function alerjiKontrol(saglikNotu, urunler) {
   return uyarilar;
 }
 
-module.exports = { etkilesimleriBul, alerjiKontrol, maddeleriAyir, ciftAnahtari, normallestir };
+function yasHesapla(dogumTarihi, bugun = new Date()) {
+  if (!dogumTarihi) return null;
+  const d = new Date(dogumTarihi + 'T00:00:00');
+  if (Number.isNaN(d.getTime())) return null;
+  let yas = bugun.getFullYear() - d.getFullYear();
+  const ayFarki = bugun.getMonth() - d.getMonth();
+  if (ayFarki < 0 || (ayFarki === 0 && bugun.getDate() < d.getDate())) yas -= 1;
+  return yas;
+}
+
+const YASLI_ESIGI = 65;
+// Musterinin gebelik/emzirme durumu ve yasina gore sepetteki urunler icin uyarilar.
+// urunler: [{ ad, gebelik_uyari, min_yas, yasli_uyari }]
+function hastaUyarilari(musteri, urunler, bugun = new Date()) {
+  if (!musteri) return [];
+  const yas = yasHesapla(musteri.dogum_tarihi, bugun);
+  const durumAdi = { gebe: 'gebe', emziren: 'emziren' }[musteri.gebelik_durumu];
+  const uyarilar = [];
+  for (const u of urunler) {
+    if (durumAdi && u.gebelik_uyari) {
+      uyarilar.push({
+        tur: 'gebelik',
+        seviye: u.gebelik_uyari === 'kontrendike' ? 'ciddi' : 'orta',
+        urun: u.ad,
+        mesaj: u.gebelik_uyari === 'kontrendike'
+          ? `Müşteri ${durumAdi}; bu ürün gebelik/emzirme döneminde kontrendike.`
+          : `Müşteri ${durumAdi}; bu ürün gebelik/emzirme döneminde dikkatle kullanılmalı.`
+      });
+    }
+    if (yas !== null && u.min_yas && yas < u.min_yas) {
+      uyarilar.push({ tur: 'yas', seviye: 'ciddi', urun: u.ad, mesaj: `Müşteri ${yas} yaşında; ürün ${u.min_yas} yaş altı için önerilmez.` });
+    }
+    if (yas !== null && yas >= YASLI_ESIGI && u.yasli_uyari) {
+      uyarilar.push({ tur: 'yasli', seviye: 'orta', urun: u.ad, mesaj: `Müşteri ${yas} yaşında; ürün ileri yaşta dikkat gerektirir (doz/yan etki).` });
+    }
+  }
+  return uyarilar.sort((a, b) => SEVIYE_SIRASI[a.seviye] - SEVIYE_SIRASI[b.seviye]);
+}
+
+module.exports = { etkilesimleriBul, alerjiKontrol, hastaUyarilari, yasHesapla, maddeleriAyir, ciftAnahtari, normallestir };

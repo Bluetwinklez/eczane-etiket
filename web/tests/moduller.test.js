@@ -29,7 +29,7 @@ test('raporlar CSV olarak indirilebilir', async () => {
   const res = await admin.get('/api/raporlar/satis?format=csv');
   assert.equal(res.status, 200);
   assert.match(res.headers.get('content-type'), /text\/csv/);
-  assert.match(res.data, /Donem;Satis Adedi/);
+  assert.match(res.data, /Dönem;Satış Adedi/);
 });
 
 test('ayni gun icin kasa iki kez kapatilamaz', async () => {

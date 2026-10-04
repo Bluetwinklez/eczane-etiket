@@ -14,6 +14,7 @@ const NAV = [
   { key: 'sayim', label: 'Stok Sayımı', grup: 'Stok', roles: ['admin', 'eczaci'] },
   { key: 'transferler', label: 'Şube Transferleri', grup: 'Stok', roles: ['admin', 'eczaci'] },
   { key: 'etiketler', label: 'Raf Etiketleri', grup: 'Stok' },
+  { key: 'kalite', label: 'Kalite & Soğuk Zincir', grup: 'Stok' },
   { key: 'musteriler', label: 'Müşteriler', grup: 'Müşteri & Eczacılık' },
   { key: 'hatirlatmalar', label: 'İlaç Hatırlatmaları', grup: 'Müşteri & Eczacılık' },
   { key: 'istekler', label: 'İstek / Eksik Defteri', grup: 'Müşteri & Eczacılık' },
@@ -29,7 +30,8 @@ const NAV = [
   { key: 'kullanicilar', label: 'Kullanıcılar', grup: 'Yönetim', roles: ['admin'] },
   { key: 'subeler', label: 'Şubeler', grup: 'Yönetim', roles: ['admin'] },
   { key: 'yedekleme', label: 'Yedekleme', grup: 'Yönetim', roles: ['admin'] },
-  { key: 'islem-kaydi', label: 'İşlem Kaydı', grup: 'Yönetim', roles: ['admin'] }
+  { key: 'islem-kaydi', label: 'İşlem Kaydı', grup: 'Yönetim', roles: ['admin'] },
+  { key: 'sistem', label: 'Sistem Durumu', grup: 'Yönetim', roles: ['admin'] }
 ];
 
 const TITLES = {
@@ -39,6 +41,7 @@ const TITLES = {
   sayim: 'Stok Sayımı',
   transferler: 'Şubeler Arası Transfer',
   etiketler: 'Raf / Fiyat Etiketleri',
+  kalite: 'Kalite: Soğuk Zincir, Geri Çağırma, İmha',
   satis: 'Satış (POS)',
   iadeler: 'Satış İadeleri',
   musteriler: 'Müşteriler',
@@ -62,7 +65,8 @@ const TITLES = {
   kullanicilar: 'Kullanıcılar',
   subeler: 'Şubeler',
   yedekleme: 'Yedekleme',
-  'islem-kaydi': 'İşlem Kaydı'
+  'islem-kaydi': 'İşlem Kaydı',
+  sistem: 'Sistem Durumu'
 };
 
 let CURRENT_USER = null;
@@ -83,10 +87,81 @@ function navOlustur() {
     .join('');
 }
 
+// Telefondaki alt sekme cubugu: en sik kullanilan sayfalar + tum menuyu acan dugme
+const ALT_CUBUK = ['anasayfa', 'satis', 'ilaclar', 'musteriler'];
+function altCubukOlustur() {
+  const cubuk = document.getElementById('alt-cubuk');
+  cubuk.innerHTML =
+    ALT_CUBUK.map((k) => NAV.find((n) => n.key === k))
+      .filter((n) => n && menuIcinRolUygunMu(n))
+      .map((n) => `<a href="#${n.key}" data-key="${n.key}" aria-label="${n.label}">${Ikon.svg(n.key)}<span>${n.label}</span></a>`)
+      .join('') +
+    `<button type="button" class="alt-menu" id="alt-menu-btn" aria-label="Tüm menü">${Ikon.svg('menu')}</button>`;
+  document.getElementById('alt-menu-btn').addEventListener('click', () => cekmeceAc(true));
+}
+
+function cekmeceAc(acik) {
+  document.body.classList.toggle('cekmece-acik', acik);
+  document.getElementById('menu-ac-btn').setAttribute('aria-expanded', String(acik));
+}
+
 function aktifLinkiGuncelle(key) {
+  document.querySelectorAll('#alt-cubuk a').forEach((a) => a.classList.toggle('aktif', a.dataset.key === key));
+  let hedef = null;
   document.querySelectorAll('#nav a').forEach((a) => {
-    a.classList.toggle('active', a.dataset.key === key);
+    const aktif = a.dataset.key === key;
+    if (aktif && !a.classList.contains('active')) {
+      // Ikon "ziplama" animasyonu yalnizca yeni secilen ogede bir kez oynar
+      a.classList.remove('yeni-aktif');
+      void a.offsetWidth;
+      a.classList.add('yeni-aktif');
+    }
+    a.classList.toggle('active', aktif);
+    if (aktif) hedef = a;
   });
+  if (hedef) gostergeyiTasi(hedef, true);
+}
+
+// Secili ogeyi isaretleyen hapi tasir: once eski ve yeni ogeyi kapsayacak
+// kadar uzar ("uzat"), sonra yeni ogenin ustune yaylanarak oturur ("otur").
+let gostergeZamanlayici = null;
+function gostergeyiTasi(hedef, animasyonlu) {
+  const nav = document.getElementById('nav');
+  let gosterge = nav.querySelector('.nav-gosterge');
+  if (!gosterge) {
+    gosterge = document.createElement('div');
+    gosterge.className = 'nav-gosterge';
+    gosterge.setAttribute('aria-hidden', 'true');
+    nav.prepend(gosterge);
+  }
+  if (getComputedStyle(gosterge).display === 'none') return; // mobil yerlesim
+  const ust = hedef.offsetTop, boy = hedef.offsetHeight;
+  const eskiUst = parseFloat(gosterge.style.top), eskiBoy = parseFloat(gosterge.style.height);
+  clearTimeout(gostergeZamanlayici);
+
+  if (!animasyonlu || !eskiBoy || eskiUst === ust) {
+    delete gosterge.dataset.faz;
+    gosterge.style.top = ust + 'px';
+    gosterge.style.height = boy + 'px';
+  } else {
+    const bas = Math.min(eskiUst, ust);
+    const son = Math.max(eskiUst + eskiBoy, ust + boy);
+    gosterge.dataset.faz = 'uzat';
+    gosterge.style.top = bas + 'px';
+    gosterge.style.height = son - bas + 'px';
+    gostergeZamanlayici = setTimeout(() => {
+      gosterge.dataset.faz = 'otur';
+      gosterge.style.top = ust + 'px';
+      gosterge.style.height = boy + 'px';
+    }, 150);
+  }
+  const navKutu = nav.getBoundingClientRect(), ogeKutu = hedef.getBoundingClientRect();
+  if (ogeKutu.top < navKutu.top || ogeKutu.bottom > navKutu.bottom) hedef.scrollIntoView({ block: 'nearest' });
+}
+
+function gostergeyiYenile() {
+  const aktif = document.querySelector('#nav a.active');
+  if (aktif) gostergeyiTasi(aktif, false);
 }
 
 const VIEW_MAP = {
@@ -96,6 +171,7 @@ const VIEW_MAP = {
   sayim: () => Views.sayim,
   transferler: () => Views.transferler,
   etiketler: () => Views.etiketler,
+  kalite: () => Views.kalite,
   satis: () => Views.satis,
   iadeler: () => Views.iadeler,
   musteriler: () => Views.musteriler,
@@ -119,7 +195,8 @@ const VIEW_MAP = {
   kullanicilar: () => Views.kullanicilar,
   subeler: () => Views.subeler,
   yedekleme: () => Views.yedekleme,
-  'islem-kaydi': () => Views.islemKaydi
+  'islem-kaydi': () => Views.islemKaydi,
+  sistem: () => Views.sistem
 };
 
 async function rotayiRenderEt() {
@@ -132,7 +209,14 @@ async function rotayiRenderEt() {
   aktifLinkiGuncelle(key);
   document.getElementById('page-title').textContent = TITLES[key] || '';
 
-  const content = document.getElementById('content');
+  // Icerik alani her sayfa gecisinde yenisiyle degistirilir: gorunumlerin
+  // container'a ekledigi olay dinleyicileri sayfalar arasi birikmesin
+  // (aksi halde bir sayfadaki 'Sil' dugmesi onceki sayfanin kodunu da tetikler)
+  // Onceki sayfada acik kalan pencereler yeni sayfanin ustunde kalmasin
+  document.querySelectorAll('.modal-backdrop').forEach((m) => m.remove());
+  const eskiContent = document.getElementById('content');
+  const content = eskiContent.cloneNode(false);
+  eskiContent.replaceWith(content);
   const view = typeof VIEW_MAP[key] === 'function' ? VIEW_MAP[key]() : VIEW_MAP[key];
   if (!view) {
     content.innerHTML = '<div class="empty-state">Bu sayfa henüz hazır değil.</div>';
@@ -164,6 +248,13 @@ async function init() {
   document.getElementById('cp-ikon').innerHTML = Ikon.svg('ara');
   document.getElementById('zil-ikon').innerHTML = Ikon.svg('zil');
   navOlustur();
+  altCubukOlustur();
+  const menuAcBtn = document.getElementById('menu-ac-btn');
+  menuAcBtn.innerHTML = Ikon.svg('menu');
+  menuAcBtn.addEventListener('click', () => cekmeceAc(!document.body.classList.contains('cekmece-acik')));
+  document.getElementById('cekmece-perde').addEventListener('click', () => cekmeceAc(false));
+  window.addEventListener('hashchange', () => cekmeceAc(false));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') cekmeceAc(false); });
 
   // Kullanici menusu (tema, sifre, cikis): disari tiklayinca ve sayfa degisince kapanir
   const kullaniciBtn = document.getElementById('kullanici-btn');
@@ -192,6 +283,22 @@ async function init() {
     temaButonMetniGuncelle();
   });
   document.getElementById('sifre-btn').insertAdjacentHTML('afterbegin', Ikon.svg('anahtar') + ' ');
+  document.getElementById('gorunum-btn').insertAdjacentHTML('afterbegin', Ikon.svg('gorunum') + ' ');
+  document.getElementById('kisayol-btn').insertAdjacentHTML('afterbegin', Ikon.svg('klavye') + ' ');
+  document.getElementById('kilitle-btn').insertAdjacentHTML('afterbegin', Ikon.svg('kilit') + ' ');
+  document.getElementById('gorunum-btn').addEventListener('click', () => {
+    menuKapat();
+    SistemAraclari.gorunumAc();
+  });
+  document.getElementById('kisayol-btn').addEventListener('click', () => {
+    menuKapat();
+    SistemAraclari.kisayollariGoster();
+  });
+  document.getElementById('kilitle-btn').addEventListener('click', () => {
+    menuKapat();
+    SistemAraclari.kilitle();
+  });
+  window.addEventListener('eczanem:tema', temaButonMetniGuncelle);
   document.getElementById('logout-btn').insertAdjacentHTML('afterbegin', Ikon.svg('cikis') + ' ');
 
   document.getElementById('cp-ac-btn').addEventListener('click', () => CommandPalette.ac());
@@ -235,7 +342,11 @@ async function init() {
   });
 
   window.addEventListener('hashchange', rotayiRenderEt);
+  // Yazi tipi yuklenince veya pencere boyutu degisince oge yukseklikleri degisebilir
+  window.addEventListener('resize', gostergeyiYenile);
+  if (document.fonts) document.fonts.ready.then(gostergeyiYenile);
   BildirimMerkezi.baslat();
+  SistemAraclari.baslat(CURRENT_USER);
   rotayiRenderEt();
 }
 

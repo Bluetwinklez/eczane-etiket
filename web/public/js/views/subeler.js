@@ -74,7 +74,7 @@
 
       document.getElementById('yeni-sube-btn').addEventListener('click', () => {
         const modal = UI.openModal(formHtml(null));
-        formuBagla(modal, null, () => view.render(container));
+        formuBagla(modal, null, () => rotayiRenderEt());
       });
 
       container.addEventListener('click', async (e) => {
@@ -85,13 +85,13 @@
 
         if (btn.dataset.action === 'duzenle') {
           const modal = UI.openModal(formHtml(s));
-          formuBagla(modal, s, () => view.render(container));
+          formuBagla(modal, s, () => rotayiRenderEt());
         } else if (btn.dataset.action === 'sil') {
           if (!(await UI.confirmSil(`"${s.ad}" şubesi silinsin mi?`))) return;
           try {
             await Api.del(`/api/subeler/${id}`);
             UI.toast('Şube silindi', 'success');
-            view.render(container);
+            rotayiRenderEt();
           } catch (err) {
             UI.toast(err.message, 'error');
           }
