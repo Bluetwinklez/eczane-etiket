@@ -246,14 +246,15 @@ const AnaSayfaView = (() => {
     const buAy = new Date().toISOString().slice(0, 7);
     const yoneticiMi = CURRENT_USER.rol === 'admin' || CURRENT_USER.rol === 'eczaci';
 
-    const [ozet, uyarilar, gorevler, nobetler, siparisler, hedef, ekip] = await Promise.all([
+    const [ozet, uyarilar, gorevler, nobetler, siparisler, hedef, ekip, duyurular] = await Promise.all([
       Api.get('/api/satislar/panel-ozet'),
       Api.get('/api/ilaclar/uyarilar'),
       Api.get('/api/gorevler?durum=bekliyor'),
       Api.get('/api/nobetler?ay=' + buAy),
       yoneticiMi ? Api.get('/api/siparisler?durum=beklemede') : Promise.resolve([]),
       Api.get('/api/hedefler/aktif').catch(() => null),
-      Api.get('/api/vardiyalar/bugun').catch(() => [])
+      Api.get('/api/vardiyalar/bugun').catch(() => []),
+      Api.get('/api/sistem/duyurular').catch(() => [])
     ]);
 
     const g = ozet.gunluk;
@@ -299,7 +300,26 @@ const AnaSayfaView = (() => {
         : [])
     ];
 
+    const duyuruHtml =
+      duyurular.length || yoneticiMi
+        ? `<section class="duyuru-pano" aria-label="Duyurular">
+            <div class="duyuru-bas">${Ikon.svg('duyuru')}<b>Duyurular</b>${yoneticiMi ? '<button type="button" class="secondary" id="duyuru-ekle">+ Duyuru</button>' : ''}</div>
+            ${
+              duyurular.length
+                ? `<ul>${duyurular
+                    .map(
+                      (d) => `<li class="${d.onemli ? 'onemli' : ''}"><div><b>${UI.esc(d.baslik)}</b>${d.metin ? `<span>${UI.esc(d.metin)}</span>` : ''}
+                        <small>${UI.esc(d.yazan || '')} · ${UI.tarih(d.tarih).slice(0, 10)}${d.sube_id === null ? ' · tüm şubeler' : ''}${d.bitis ? ` · ${d.bitis} tarihine kadar` : ''}</small></div>
+                        ${yoneticiMi ? `<button type="button" class="secondary" data-duyuru-sil="${d.id}" aria-label="Duyuruyu sil">Sil</button>` : ''}</li>`
+                    )
+                    .join('')}</ul>`
+                : '<p class="form-ipucu" style="margin:0">Ekibe duyuru yok. "+ Duyuru" ile ekleyebilirsiniz.</p>'
+            }
+          </section>`
+        : '';
+
     container.innerHTML = `
+      ${duyuruHtml}
       <div class="panel-grid">
         <div class="kpi kpi-vurgu">
           <span class="kpi-etiket">Bugünkü Ciro</span>
@@ -378,6 +398,54 @@ const AnaSayfaView = (() => {
         </section>
       </div>
     `;
+
+    const duyuruEkle = container.querySelector('#duyuru-ekle');
+    if (duyuruEkle) {
+      duyuruEkle.addEventListener('click', () => {
+        const modal = UI.openModal(`
+          <h3>Yeni Duyuru</h3>
+          <form id="duyuru-form">
+            <div><label>Başlık</label><input name="baslik" required maxlength="120" /></div>
+            <div style="margin-top:10px"><label>Açıklama</label><textarea name="metin" rows="3" maxlength="1000"></textarea></div>
+            <div class="form-grid" style="margin-top:10px">
+              <div><label>Bitiş tarihi (opsiyonel)</label><input name="bitis" type="date" /></div>
+            </div>
+            <div><label><input type="checkbox" name="onemli" style="width:auto" /> Önemli (üstte ve vurgulu)</label></div>
+            ${CURRENT_USER.rol === 'admin' ? '<div><label><input type="checkbox" name="tum_subeler" style="width:auto" /> Tüm şubelere</label></div>' : ''}
+            <div class="modal-actions"><button type="button" class="secondary" data-action="kapat">Vazgeç</button><button type="submit">Yayınla</button></div>
+          </form>`);
+        modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));
+        modal.querySelector('#duyuru-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const f = e.target;
+          try {
+            await Api.post('/api/sistem/duyurular', {
+              baslik: f.baslik.value,
+              metin: f.metin.value,
+              bitis: f.bitis.value || null,
+              onemli: f.onemli.checked,
+              tum_subeler: f.tum_subeler ? f.tum_subeler.checked : false
+            });
+            UI.closeModal(modal);
+            UI.toast('Duyuru yayınlandı', 'success');
+            render(container);
+          } catch (err) {
+            UI.toast(err.message, 'error');
+          }
+        });
+      });
+    }
+    container.querySelectorAll('[data-duyuru-sil]').forEach((b) =>
+      b.addEventListener('click', async () => {
+        if (!window.confirm('Duyuru silinsin mi?')) return;
+        try {
+          await Api.del('/api/sistem/duyurular/' + b.dataset.duyuruSil);
+          render(container);
+        } catch (err) {
+          UI.toast(err.message, 'error');
+        }
+      })
+    );
 
     trendEtkilesimi(container, g);
     radarEtkilesimi(container, ozet.kategoriler);

@@ -31,6 +31,13 @@ const Ikon = (() => {
     subeler: '<path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/><path d="M16 9h2a2 2 0 0 1 2 2v10"/><path d="M2 21h20"/><path d="M8 7h4M8 11h4M8 15h4"/>',
     yedekleme: '<path d="M7 18a5 5 0 1 1 .9-9.9A6 6 0 0 1 19.5 10 4 4 0 0 1 18 18Z"/>',
     'islem-kaydi': '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>',
+    kalite: '<path d="M12 3v18M5.6 6.6l12.8 10.8M18.4 6.6 5.6 17.4"/><path d="m9 4 3 2 3-2M9 20l3-2 3 2"/>',
+    gorunum: '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18Z" fill="currentColor"/>',
+    klavye: '<rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6.5 10h1M10.5 10h1M14.5 10h1M8 14h8"/>',
+    kilit: '<rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/>',
+    sistem: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/><path d="m7 11 2.5-2.5 2 2L15 7"/>',
+    duyuru: '<path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>',
+    indir: '<path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/>',
     zil: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10.3 21a2 2 0 0 0 3.4 0"/>',
     ara: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
     ay: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>',
@@ -41,7 +48,8 @@ const Ikon = (() => {
     asagi: '<path d="M7 7l10 10"/><path d="M17 8v9H8"/>',
     ok: '<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>',
     arti: '<path d="M12 5v14M5 12h14"/>',
-    asagiOk: '<path d="m6 9 6 6 6-6"/>'
+    asagiOk: '<path d="m6 9 6 6 6-6"/>',
+    menu: '<path d="M4 7h16M4 12h16M4 17h10"/>'
   };
 
   function svg(ad, ekSinif = '') {
@@ -49,13 +57,9 @@ const Ikon = (() => {
     return `<svg class="ikon ${ekSinif}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${govde}</svg>`;
   }
 
-  // Marka logosu: ince halka uzerinde fistik yesili yay
-  function logo(iz = 'rgba(255,255,255,0.22)') {
-    return `<svg class="logo-halka" viewBox="0 0 32 32" aria-hidden="true">
-      <circle cx="16" cy="16" r="12" fill="none" stroke="${iz}" stroke-width="4"/>
-      <circle cx="16" cy="16" r="12" fill="none" stroke="#c6ef4e" stroke-width="4" stroke-linecap="round"
-        stroke-dasharray="56 100" transform="rotate(-90 16 16)"/>
-    </svg>`;
+  // Marka logosu: E + havan-tokmak + arti isareti (img/logo-isaret.svg)
+  function logo() {
+    return '<img class="logo-isaret" src="img/logo-isaret.svg" alt="" width="40" height="34" />';
   }
 
   return { svg, logo };

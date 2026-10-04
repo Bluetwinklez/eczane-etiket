@@ -48,7 +48,8 @@ function istemci(base) {
     post: (url, body = {}) => istek('POST', url, body),
     put: (url, body = {}) => istek('PUT', url, body),
     del: (url) => istek('DELETE', url),
-    girisYap: (kullaniciAdi, sifre) => istek('POST', '/api/auth/login', { kullanici_adi: kullaniciAdi, sifre })
+    girisYap: (kullaniciAdi, sifre) => istek('POST', '/api/auth/login', { kullanici_adi: kullaniciAdi, sifre }),
+    cerez: () => cookie
   };
 }
 

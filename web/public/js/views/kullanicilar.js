@@ -75,7 +75,8 @@
 
   const view = {
     async render(container, ctx) {
-      [liste, subeler] = await Promise.all([Api.get('/api/kullanicilar'), Api.get('/api/subeler')]);
+      let ayarlar;
+      [liste, subeler, ayarlar] = await Promise.all([Api.get('/api/kullanicilar'), Api.get('/api/subeler'), Api.get('/api/ayarlar')]);
 
       container.innerHTML = `
         <div class="toolbar">
@@ -104,11 +105,29 @@
             </tbody>
           </table>
         </div>
+        <div class="card">
+          <h3>Yetki Ayarları</h3>
+          <form id="ayar-form" class="form-grid">
+            <div><label>Kasiyerin uygulayabileceği en yüksek indirim (%)</label><input name="kasiyer_indirim_limiti" type="number" min="0" max="100" step="1" value="${ayarlar.kasiyer_indirim_limiti}" /></div>
+            <div style="align-self:end"><button type="submit">Kaydet</button></div>
+          </form>
+          <p class="form-ipucu">Kampanya indirimleri bu limitten etkilenmez; limit yalnızca kasada elle girilen sepet indirimine uygulanır.</p>
+        </div>
       `;
+
+      document.getElementById('ayar-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+          await Api.put('/api/ayarlar', { kasiyer_indirim_limiti: Number(e.target.kasiyer_indirim_limiti.value) });
+          UI.toast('Ayarlar kaydedildi', 'success');
+        } catch (err) {
+          UI.toast(err.message, 'error');
+        }
+      });
 
       document.getElementById('yeni-kullanici-btn').addEventListener('click', () => {
         const modal = UI.openModal(formHtml(null));
-        formuBagla(modal, null, () => view.render(container, ctx));
+        formuBagla(modal, null, () => rotayiRenderEt());
       });
 
       container.addEventListener('click', async (e) => {
@@ -119,13 +138,13 @@
 
         if (btn.dataset.action === 'duzenle') {
           const modal = UI.openModal(formHtml(k));
-          formuBagla(modal, k, () => view.render(container, ctx));
+          formuBagla(modal, k, () => rotayiRenderEt());
         } else if (btn.dataset.action === 'sil') {
           if (!(await UI.confirmSil(`"${k.ad_soyad}" kullanıcısı silinsin mi?`))) return;
           try {
             await Api.del(`/api/kullanicilar/${id}`);
             UI.toast('Kullanıcı silindi', 'success');
-            view.render(container, ctx);
+            rotayiRenderEt();
           } catch (err) {
             UI.toast(err.message, 'error');
           }

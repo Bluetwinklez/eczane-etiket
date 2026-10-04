@@ -203,8 +203,10 @@ label { font-size: 12.5px; font-weight: 600; color: var(--text-muted); display: 
 .login-error { background: var(--danger-soft); color: var(--danger); padding: 10px 12px; border-radius: var(--radius); font-size: 13px; margin-bottom: 12px; }
 .demo-hints { margin-top: 18px; font-size: 12px; color: var(--text-muted); line-height: 1.6; border-top: 1px solid var(--border); padding-top: 12px; }
 
-/* ---- Logo: yari fistik yesili halka ---- */
-.logo-halka { width: 30px; height: 30px; flex-shrink: 0; }
+/* ---- Logo ---- */
+.logo-isaret { height: 34px; width: auto; flex-shrink: 0; display: block; }
+.sidebar-marka .logo-isaret { height: 36px; }
+.login-marka .logo-isaret { height: 46px; }
 
 /* ---- App shell ---- */
 .app-shell { display: flex; min-height: 100vh; }
@@ -220,7 +222,8 @@ label { font-size: 12.5px; font-weight: 600; color: var(--text-muted); display: 
   height: 100vh;
 }
 .sidebar-marka { display: flex; align-items: center; gap: 10px; padding: 22px 20px 16px; }
-.sidebar-marka h2 { font-size: 17px; margin: 0; color: #fff; }
+.sidebar-marka h2 { font-size: 17px; margin: 0; color: #fff; line-height: 1.1; }
+.sidebar-marka h2 small { display: block; font-family: var(--font-govde); font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.5); margin-top: 3px; }
 .cp-ac {
   margin: 0 14px 10px; display: flex; align-items: center; gap: 8px; text-align: left;
   background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.7);
@@ -246,6 +249,40 @@ label { font-size: 12.5px; font-weight: 600; color: var(--text-muted); display: 
 .nav-grup { font-size: 10.5px; text-transform: uppercase; letter-spacing: .1em; color: rgba(255,255,255,.4); padding: 14px 14px 4px; font-weight: 700; }
 .sidebar a.active { background: var(--ink-2); color: #fff; font-weight: 700; }
 .sidebar a.active svg { color: var(--lime); opacity: 1; }
+
+/* Masaustu: secili oge, siyah menunun icinde kayan fistik yesili bir "hap"
+   (.nav-gosterge) ile gosterilir. Oge degisince hap once hedefe dogru sivi gibi
+   uzar, sonra yaylanarak oturur (app.js: gostergeyiTasi). */
+.nav-gosterge { display: none; }
+@media (min-width: 801px) {
+  .sidebar nav { position: relative; }
+  .sidebar nav a { position: relative; z-index: 1; }
+  .nav-gosterge {
+    display: block; position: absolute; left: 12px; right: 12px; top: 0; height: 0; z-index: 0;
+    border-radius: var(--radius-pill); pointer-events: none;
+    background: linear-gradient(120deg, #d9f75e 0%, #c6ef4e 45%, #8fdc6a 100%);
+    box-shadow: 0 6px 22px rgba(198, 239, 78, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  }
+  /* Hapin ustunde kayan ince isik yansimasi */
+  .nav-gosterge::after {
+    content: ''; position: absolute; inset: 3px 40% auto 14px; height: 35%; border-radius: var(--radius-pill);
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0));
+  }
+  .nav-gosterge[data-faz="uzat"] { transition: top 150ms cubic-bezier(0.4, 0, 1, 1), height 150ms cubic-bezier(0.4, 0, 1, 1); }
+  .nav-gosterge[data-faz="otur"] { transition: top 420ms cubic-bezier(0.34, 1.3, 0.64, 1), height 420ms cubic-bezier(0.34, 1.3, 0.64, 1); }
+  .sidebar a.active, .sidebar a.active:hover { background: transparent; color: var(--on-lime); }
+  .sidebar a.active svg { color: var(--on-lime); }
+  .sidebar a.active.yeni-aktif svg { animation: ikon-zipla 520ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+}
+@keyframes ikon-zipla {
+  0% { transform: scale(0.6) rotate(-12deg); }
+  55% { transform: scale(1.18) rotate(6deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-gosterge[data-faz] { transition: none !important; }
+  .sidebar a.active.yeni-aktif svg { animation: none; }
+}
 
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--bg); }
 .topbar {
@@ -371,18 +408,47 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-sp
 .modal .tablo-kaydir { overflow-x: auto; }
 .modal .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 
+/* Telefon: kenar menu soldan kayan bir cekmeceye, ana gezinme alta sabit
+   hap seklinde bir sekme cubuguna donusur. */
+.menu-ac, .alt-cubuk, .cekmece-perde { display: none; }
 @media (max-width: 800px) {
-  .app-shell { flex-direction: column; }
-  .sidebar { width: 100%; position: static; height: auto; }
-  .sidebar-marka { padding: 14px 16px 8px; }
-  .sidebar nav { flex-direction: row; overflow-x: auto; padding: 8px 10px; }
-  .sidebar a { white-space: nowrap; }
-  .topbar { padding: 12px 16px; position: static; }
-  .topbar h1 { font-size: 21px; }
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0; width: min(300px, 86vw); height: auto; z-index: 1200;
+    transform: translateX(-105%); transition: transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-shadow: 0 0 0 100vmax transparent;
+  }
+  body.cekmece-acik .sidebar { transform: none; }
+  .cekmece-perde { display: block; position: fixed; inset: 0; background: rgba(10, 11, 8, 0.5); z-index: 1150; opacity: 0; pointer-events: none; transition: opacity 200ms; }
+  body.cekmece-acik .cekmece-perde { opacity: 1; pointer-events: auto; }
+  .sidebar-marka { padding: 18px 18px 12px; }
+  .menu-ac { display: inline-flex; }
+  .topbar { padding: 10px 14px; position: sticky; gap: 10px; }
+  .topbar h1 { font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topbar .ikon-btn { width: 40px; height: 40px; }
+  .kullanici-cip { padding: 2px; }
   .kullanici-cip .kc-metin { display: none; }
-  .nav-grup { display: none; }
   .pos-layout { grid-template-columns: 1fr; }
-  .content { padding: 16px; }
+  .content { padding: 14px 14px 104px; }
+  .card { padding: 16px; border-radius: var(--radius-md); }
+  /* Genis tablolar kart icinde yatay kaydirilir */
+  .card table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .card table th, .card table td { white-space: nowrap; }
+  .modal { padding: 18px; }
+  .alt-cubuk {
+    display: flex; position: fixed; left: 12px; right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); z-index: 1100;
+    background: var(--ink); border-radius: var(--radius-pill); padding: 6px; gap: 6px; align-items: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  }
+  .alt-cubuk a, .alt-cubuk button {
+    flex: 0 0 auto; width: 48px; height: 48px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+    background: #2a2b27; color: #fff; border: none; padding: 0; text-decoration: none; font-size: 13px; font-weight: 700; gap: 7px;
+    transition: flex-basis 260ms cubic-bezier(0.34, 1.3, 0.64, 1), background 160ms;
+  }
+  .alt-cubuk .ikon { width: 20px; height: 20px; }
+  .alt-cubuk span { display: none; white-space: nowrap; }
+  .alt-cubuk a.aktif { flex: 1 1 auto; width: auto; border-radius: var(--radius-pill); background: var(--lime); color: var(--on-lime); padding: 0 16px; }
+  .alt-cubuk a.aktif span { display: inline; }
+  .alt-cubuk .alt-menu { margin-left: auto; }
 }
 
 @media print {
@@ -394,7 +460,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-sp
   .yazdirilabilir { position: absolute; top: 0; left: 0; width: 100%; }
   #etiket-sayfa { position: absolute; top: 0; left: 0; width: 100%; background: #fff; }
   .raf-etiket { break-inside: avoid; }
-  .modal-actions, .app-shell > .sidebar, .toast-wrap { display: none !important; }
+  .modal-actions, .app-shell > .sidebar, .toast-wrap, .alt-cubuk, .cekmece-perde { display: none !important; }
 }
 
 /* ---- Nobetci eczane takvimi ---- */
@@ -708,3 +774,105 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-sp
 .kisayollar .ikon { width: 20px; height: 20px; }
 .grafik-svg .eksen-yazi { font-size: 12.5px; }
 .grafik-svg .tepe-etiket text { font-size: 12.5px; }
+.muadil-btn { padding: 2px 10px; font-size: 11.5px; margin-left: 4px; }
+
+/* ---- Sekmeler (hap) ---- */
+.sekmeler { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.sekme { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.sekme:hover { background: var(--surface-2); }
+.sekme.aktif { background: var(--btn-bg); color: var(--btn-fg); border-color: transparent; }
+
+/* ---- Soguk zincir grafigi ---- */
+.grafik-svg .sicaklik-bant { fill: var(--lime-soft); }
+.grafik-svg .sicaklik-nokta { fill: var(--seri-1); stroke: var(--surface); stroke-width: 2; }
+.grafik-svg .sicaklik-hata { fill: var(--danger); stroke: var(--surface); stroke-width: 2; }
+
+/* ---- POS hizli tuslar ve hizli musteri ---- */
+.hizli-tuslar { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.hizli-tus {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border-radius: var(--radius);
+  background: var(--surface-2); color: var(--text); border: 1px solid var(--border-soft); padding: 9px 11px; min-height: 56px;
+}
+.hizli-tus:hover { background: var(--lime-soft); border-color: var(--lime-strong); }
+.hizli-tus b { font-size: 12.5px; line-height: 1.2; font-weight: 700; }
+.hizli-tus span { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.musteri-secim { display: flex; gap: 6px; }
+.musteri-secim select { flex: 1; min-width: 0; }
+.musteri-secim button { padding: 0 14px; font-size: 18px; line-height: 1; }
+
+/* ---- Musteri segmentleri ve dogum gunleri ---- */
+.musteri-ust { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; }
+.musteri-ust .card { margin-bottom: 18px; }
+@media (max-width: 900px) { .musteri-ust { grid-template-columns: 1fr; } }
+.segment-cipler { display: flex; flex-wrap: wrap; gap: 8px; }
+.segment-cip { display: inline-flex; align-items: center; gap: 6px; background: var(--surface-2); color: var(--text); border: 1px solid var(--border-soft); }
+.segment-cip.aktif { border-color: var(--text); box-shadow: var(--focus-ring); }
+.dogum-liste { list-style: none; margin: 0; padding: 0; }
+.dogum-liste li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border-soft); }
+.dogum-liste li:last-child { border-bottom: none; }
+.dogum-liste small { color: var(--text-muted); }
+
+/* ---- Ikincil hap baglanti (CSV indir vb.) ---- */
+.hap-link.ikincil-link { background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 8px 16px; font-size: 13.5px; }
+.hap-link.ikincil-link:hover { background: var(--surface-2); }
+
+/* ---- Duyuru panosu ---- */
+.duyuru-pano { background: var(--surface); border: 1px solid var(--border-soft); border-left: 5px solid var(--lime-strong); border-radius: var(--radius-lg); padding: 14px 18px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
+.duyuru-bas { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.duyuru-bas .ikon { width: 19px; height: 19px; color: var(--primary); }
+.duyuru-bas button { margin-left: auto; padding: 5px 12px; font-size: 12.5px; }
+.duyuru-pano ul { list-style: none; margin: 0; padding: 0; }
+.duyuru-pano li { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; padding: 8px 0; border-top: 1px solid var(--border-soft); }
+.duyuru-pano li:first-child { border-top: none; }
+.duyuru-pano li > div { display: flex; flex-direction: column; gap: 2px; }
+.duyuru-pano li span { font-size: 13.5px; color: var(--text); }
+.duyuru-pano li small { font-size: 11.5px; color: var(--text-muted); }
+.duyuru-pano li.onemli b::before { content: '❗ '; }
+.duyuru-pano li button { padding: 4px 10px; font-size: 12px; }
+
+/* ---- Gorunum ayarlari ---- */
+.secim-grup { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.secim-kart { margin: 0; cursor: pointer; }
+.secim-kart input { position: absolute; opacity: 0; pointer-events: none; }
+.secim-kart span {
+  display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 8px; border-radius: var(--radius);
+  border: 1.5px solid var(--border); background: var(--surface-2); color: var(--text); font-weight: 600; font-size: 13.5px;
+}
+.secim-kart input:checked + span { border-color: var(--text); background: var(--lime-soft); box-shadow: var(--focus-ring); }
+.secim-kart input:focus-visible + span { box-shadow: var(--focus-ring); }
+html[data-yazi="buyuk"] .content, html[data-yazi="buyuk"] .modal { zoom: 1.12; }
+html[data-yazi="kucuk"] .content, html[data-yazi="kucuk"] .modal { zoom: 0.92; }
+
+/* ---- Ekran kilidi ---- */
+.ekran-kilidi {
+  position: fixed; inset: 0; z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 16px;
+  background:
+    radial-gradient(circle at 80% 15%, rgba(198, 239, 78, 0.18) 0 160px, transparent 161px),
+    rgba(10, 11, 9, 0.94);
+  backdrop-filter: blur(10px);
+}
+.kilit-kart { width: 100%; max-width: 340px; display: flex; flex-direction: column; align-items: center; gap: 10px; color: #fff; text-align: center; }
+.kilit-kart .logo-isaret { height: 40px; }
+.kilit-kart h2 { margin: 6px 0 0; font-size: 22px; color: #fff; }
+.kilit-kart p { margin: 0 0 6px; color: rgba(255, 255, 255, 0.65); font-size: 13.5px; }
+.kilit-kart input { text-align: center; background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.2); color: #fff; border-radius: var(--radius-pill); padding: 12px 16px; }
+.kilit-kart button { width: 100%; padding: 12px; background: var(--lime); color: var(--on-lime); }
+.kilit-kart .kilit-cikis { background: transparent; color: rgba(255, 255, 255, 0.7); font-weight: 500; }
+.kilit-avatar { width: 64px; height: 64px; font-size: 22px; }
+.kilit-hata { color: #ff9b8b; font-size: 13px; }
+
+/* ---- Baglanti bandi ---- */
+.baglanti-bandi {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 2500; background: var(--danger); color: #fff; text-align: center;
+  padding: 8px 16px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.baglanti-bandi .nokta { width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: nabiz 1.2s ease-in-out infinite; }
+@keyframes nabiz { 50% { opacity: 0.25; } }
+
+/* ---- Klavye kisayollari ---- */
+.kisayol-tablo td:first-child { white-space: nowrap; width: 1%; }
+kbd {
+  display: inline-block; font-family: var(--font-govde); font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 6px;
+  background: var(--surface-2); border: 1px solid var(--border); border-bottom-width: 2px; color: var(--text);
+}
+@media (prefers-reduced-motion: reduce) { .baglanti-bandi .nokta { animation: none; } }

@@ -25,22 +25,22 @@ function login(kullaniciAdi, sifre) {
 
 function sifreKuraliHatasi(sifre) {
   if (typeof sifre !== 'string' || sifre.length < MIN_SIFRE_UZUNLUGU) {
-    return `Sifre en az ${MIN_SIFRE_UZUNLUGU} karakter olmalidir`;
+    return `Şifre en az ${MIN_SIFRE_UZUNLUGU} karakter olmalıdır`;
   }
   if (!/[A-Za-zÇĞİÖŞÜçğıöşü]/.test(sifre) || !/\d/.test(sifre)) {
-    return 'Sifre en az bir harf ve bir rakam icermelidir';
+    return 'Şifre en az bir harf ve bir rakam içermelidir';
   }
   return null;
 }
 
 function oturumKullanicisiniYukle(req, res) {
   if (!req.session || !req.session.userId) {
-    res.status(401).json({ error: 'Oturum acmaniz gerekiyor' });
+    res.status(401).json({ error: 'Oturum açmanız gerekiyor' });
     return null;
   }
   const user = findUserById(req.session.userId);
   if (!user || !user.aktif) {
-    res.status(401).json({ error: 'Oturum gecersiz' });
+    res.status(401).json({ error: 'Oturum geçersiz' });
     return null;
   }
   return user;
@@ -59,7 +59,7 @@ function requireLogin(req, res, next) {
   const user = oturumKullanicisiniYukle(req, res);
   if (!user) return;
   if (user.sifre_degistirilmeli) {
-    return res.status(403).json({ error: 'Devam etmeden once sifrenizi degistirmelisiniz', kod: 'SIFRE_DEGISTIRILMELI' });
+    return res.status(403).json({ error: 'Devam etmeden önce şifrenizi değiştirmelisiniz', kod: 'SIFRE_DEGISTIRILMELI' });
   }
   req.user = user;
   next();
@@ -68,7 +68,7 @@ function requireLogin(req, res, next) {
 function requireRole(...roller) {
   return (req, res, next) => {
     if (!req.user || !roller.includes(req.user.rol)) {
-      return res.status(403).json({ error: 'Bu islem icin yetkiniz yok' });
+      return res.status(403).json({ error: 'Bu işlem için yetkiniz yok' });
     }
     next();
   };
