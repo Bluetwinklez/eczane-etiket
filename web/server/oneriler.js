@@ -34,12 +34,21 @@ function sktIndirim(subeId, bugun, pencere = 90) {
   const hiz = new Map(stokYeterlilik(subeId).map((r) => [r.ilac_id, r.gunluk_ortalama]));
   const partiler = db
     .prepare(
-      `SELECT p.id, p.ilac_id, i.ad, i.alis_fiyati, i.satis_fiyati, p.parti_no, p.skt, p.miktar
+      `SELECT p.id, p.ilac_id, i.ad, i.alis_fiyati, i.satis_fiyati, i.receteli, p.parti_no, p.skt, p.miktar
        FROM ilac_partileri p JOIN ilaclar i ON i.id = p.ilac_id
        WHERE p.sube_id = ? AND p.miktar > 0 AND p.skt IS NOT NULL AND p.skt <= date(?, ?)
        ORDER BY p.skt`
     )
     .all(subeId, bugun, `+${pencere} days`);
+  // Urun icin zaten gecerli (aktif, suresi dolmamis) bir kampanya varsa tekrar onerilmez
+  const kampanyali = new Set(
+    db
+      .prepare(
+        `SELECT hedef_deger FROM kampanyalar WHERE aktif = 1 AND hedef_tip = 'urun' AND (bitis IS NULL OR bitis >= ?)`
+      )
+      .all(bugun)
+      .map((k) => String(k.hedef_deger))
+  );
   const gunFarki = (skt) => Math.round((Date.parse(skt + 'T00:00:00Z') - Date.parse(bugun + 'T00:00:00Z')) / 86400000);
   const sonuc = [];
   for (const p of partiler) {
@@ -61,12 +70,13 @@ function sktIndirim(subeId, bugun, pencere = 90) {
       tahmini_zarar: yuvarla(fazla * p.alis_fiyati)
     });
   }
+  for (const x of sonuc) x.kampanya_var = kampanyali.has(String(x.ilac_id)) ? 1 : 0;
   // Suresi dolmuslar once, sonra en cok zarar riski olanlar
   return sonuc.sort((a, b) => (a.tur === 'dolmus' ? -1 : 0) - (b.tur === 'dolmus' ? -1 : 0) || b.tahmini_zarar - a.tahmini_zarar);
 }
 
 function ozet(p, kalan) {
-  return { parti_id: p.id, ilac_id: p.ilac_id, ad: p.ad, parti_no: p.parti_no, skt: p.skt, kalan_gun: kalan, miktar: p.miktar, satis_fiyati: p.satis_fiyati };
+  return { parti_id: p.id, ilac_id: p.ilac_id, ad: p.ad, parti_no: p.parti_no, skt: p.skt, kalan_gun: kalan, miktar: p.miktar, satis_fiyati: p.satis_fiyati, receteli: p.receteli ? 1 : 0 };
 }
 
 function oluStok(subeId, gun = 90) {
