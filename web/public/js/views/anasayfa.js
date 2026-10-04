@@ -262,7 +262,13 @@ const AnaSayfaView = (() => {
           .map((x) =>
             x.tur === 'dolmus'
               ? `<li><span class="islem-metin"><b>${UI.esc(x.ad)}</b><small>${x.parti_no ? 'Parti ' + UI.esc(x.parti_no) : 'Partisiz'} · ${x.miktar} adet · SKT ${UI.esc(x.skt)}</small></span><span class="oneri-etiket tehlike">Süresi geçti</span></li>`
-              : `<li><span class="islem-metin"><b>${UI.esc(x.ad)}</b><small>${x.fazla} adet SKT'ye (${x.kalan_gun} gün) kadar satılamayabilir · olası zarar ${UI.tl(x.tahmini_zarar)}</small></span><span class="oneri-etiket uyari">%${x.onerilen_indirim} indirim</span></li>`
+              : `<li><span class="islem-metin"><b>${UI.esc(x.ad)}</b><small>${x.fazla} adet SKT'ye (${x.kalan_gun} gün) kadar satılamayabilir · olası zarar ${UI.tl(x.tahmini_zarar)}</small></span>${
+                  x.kampanya_var
+                    ? '<span class="oneri-etiket iyi">Kampanya aktif</span>'
+                    : yoneticiMi && !x.receteli
+                      ? `<a class="oneri-etiket uyari oneri-link" href="#kampanyalar" title="Kampanyalar sayfasında önerilen indirimle başlatın">%${x.onerilen_indirim} indirim · Kampanya aç</a>`
+                      : `<span class="oneri-etiket uyari">%${x.onerilen_indirim} indirim</span>`
+                }</li>`
           )
           .join('')
       : bos('Yaklaşan riskli parti yok');

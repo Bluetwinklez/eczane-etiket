@@ -96,9 +96,17 @@
     'Gelen ürünü barkodla okutun ya da arayın; adet, SKT ve parti girin.': 'Scan or search the incoming product; enter quantity, expiry and batch.', 'Henüz ürün eklenmedi.': 'No products added yet.',
     'Parti no': 'Batch no.', 'Son kullanma tarihi': 'Expiry date', 'Fatura no (isteğe bağlı)': 'Invoice no. (optional)', 'Vazgeç': 'Cancel', 'Stoğa girildi ✓': 'Added to stock ✓', 'Tamam': 'OK',
     'Sipariş': 'Order',
-    // Akilli oneriler
     'Bugünün özeti': "Today's summary", 'Stoğu bitiyor': 'Running out', 'SKT için öneri': 'Expiry suggestions', 'Ölü stok': 'Dead stock', 'Stoklar rahat görünüyor 👍': 'Stock levels look comfortable 👍',
-    'Yaklaşan riskli parti yok': 'No risky batches coming up', 'Bitti': 'Sold out', 'Yarın biter': 'Ends tomorrow', 'Süresi geçti': 'Expired', 'En çok satan:': 'Top seller:'
+    'Yaklaşan riskli parti yok': 'No risky batches coming up', 'Kampanya aktif': 'Campaign active', 'Kampanya başlatıldı': 'Campaign started', 'Bitti': 'Sold out', 'Yarın biter': 'Ends tomorrow', 'Süresi geçti': 'Expired', 'En çok satan:': 'Top seller:',
+    // Gorevler, kasa, hedef
+    'İade': 'Refund', 'Satıştan iade al': 'Refund a sale', 'Son 7 günün satışları. İade edilecek satışı seçin.': "Sales from the last 7 days. Pick the sale to refund.", 'Son 7 günde satış yok': 'No sales in the last 7 days',
+    'Karma': 'Mixed', 'Tamamı iade edilmiş': 'Fully refunded', 'Ürünleri stoğa geri al': 'Return items to stock', 'İade nedeni (isteğe bağlı)': 'Reason for refund (optional)', 'İade nedeni': 'Reason for refund',
+    'İade tutarı': 'Refund amount', 'İadeyi tamamla': 'Complete refund',
+    'Görevler': 'Tasks', 'Yapılacaklar listesi': 'To-do list', 'Günün kasası': "Today's till", 'Günün Kasası': "Today's Till", 'Nakit, kart, veresiye': 'Cash, card, credit',
+    '+ Yeni görev': '+ New task', 'Yeni görev': 'New task', 'Başlık': 'Title', 'Not (isteğe bağlı)': 'Note (optional)', 'Öncelik': 'Priority', 'Yüksek': 'High', 'Orta': 'Medium', 'Düşük': 'Low',
+    'Bekleyen görev yok 🎉': 'No pending tasks 🎉', 'Son tamamlananlar': 'Recently completed', 'Herkes': 'Everyone', 'Görev eklendi': 'Task added', 'Tamamla': 'Complete', 'Geri al': 'Undo',
+    'Günün cirosu': "Today's revenue", 'Kasa kapatıldı ✓': 'Till closed ✓', 'Kasa henüz kapatılmadı': 'Till not closed yet', 'SGK': 'SGK (insurance)', 'Veresiye tahsilatı': 'Credit collections',
+    'Nakit/kart toplamına dahil': 'Included in cash/card totals', 'İadeler': 'Refunds', 'Kasa kapanışı bilgisayardan yapılır.': 'Till closing is done from the computer.', 'Aylık hedef': 'Monthly target'
   };
 
   // Birlesik / degiskenli metinler icin kurallar: [desen, uretici]
@@ -124,6 +132,8 @@
     [/^SKT'ye \((\d+) gün\) kadar satılamayabilir$/, (m) => `may not sell within ${m[1]} days of expiry`],
     [/^(\d+) adet (\d+) gün içinde satılamayabilir$/, (m) => `${m[1]} pcs may not sell within ${m[2]} days`],
     [/^olası zarar (.+)$/, (m) => `possible loss ${m[1]}`],
+    [/^Kampanya başlat · %(\d+)$/, (m) => `Start campaign · ${m[1]}% off`],
+    [/^(.+): %(\d+) indirim kampanyası (.+) tarihine kadar başlatılsın mı\?$/, (m) => `Start a ${m[2]}% discount campaign for ${m[1]} until ${m[3]}?`],
     [/^%(\d+) indirim$/, (m) => `${m[1]}% off`],
     [/^(\d+) ürün (\d+) gündür satılmadı\. Bağlı sermaye: (.+)$/, (m) => `${m[1]} products have not sold for ${m[2]} days. Capital tied up: ${m[3]}`],
     [/^(\d+) gündür bekliyor$/, (m) => `waiting ${m[1]} days`],
@@ -132,6 +142,9 @@
     [/^Mal kabul #(\d+) kaydedildi\. (\d+) adet stoğa eklendi\.$/, (m) => `Goods receipt #${m[1]} saved. ${m[2]} pcs added to stock.`],
     [/^Stoğa gir \((\d+) ürün · (\d+) adet\)$/, (m) => `Add to stock (${m[1]} ${m[1] === '1' ? 'product' : 'products'} · ${m[2]} pcs)`],
     [/^Fiş no #(\d+)$/, (m) => `Receipt #${m[1]}`],
+    [/^Satış #(\d+) iadesi$/, (m) => `Refund for sale #${m[1]}`],
+    [/^(.+) × (\d+) iade edilebilir$/, (m) => `${m[1]} × ${m[2]} refundable`],
+    [/^İade tamamlandı: (.+)$/, (m) => `Refund completed: ${m[1]}`],
     [/^Satış #(\d+)$/, (m) => `Sale #${m[1]}`],
     [/^(.+) eklendi$/, (m) => `${m[1]} added`],
     [/^(.+): stokta yok görünüyor$/, (m) => `${m[1]}: appears to be out of stock`],
@@ -145,6 +158,7 @@
     [/^Kronik: (.+)$/, (m) => `Chronic: ${m[1]}`],
     [/^Alerji: (.+)$/, (m) => `Allergy: ${m[1]}`],
     [/^Kamera açılamadı \((izin verilmedi|.+)\)\. Barkodu elle yazabilirsiniz\.$/, (m) => `Could not open the camera (${m[1] === 'izin verilmedi' ? 'permission denied' : m[1]}). You can type the barcode.`],
+    [/^(.+) \/ (.+?)(?: · günde (.+) gerekli)?$/, (m) => (/₺/.test(m[1]) ? `${m[1]} / ${m[2]}${m[3] ? ` · ${m[3]}/day needed` : ''}` : null)],
     [/^\((\d+) adet\)$/, (m) => `(${m[1]} pcs)`],
     [/^(Pzt|Sal|Çar|Per|Cum|Cmt|Paz): (.+)$/, (m) => `${SOZLUK[m[1]]}: ${m[2]}`]
   ];
