@@ -228,3 +228,26 @@ def test_dashboard_ongoru_ve_kart_metinleri(app, monkeypatch):
     assert dashboard.DashboardView._delta_text(None) == ""
     assert dashboard.DashboardView._delta_text(-12.4) == "▼ %12"
     dash.destroy()
+
+
+def test_dashboard_dikkat_gerektiren_stoklar_tablosu(app, monkeypatch):
+    bugun = _dt.date.today()
+    stok = [
+        {"id": "1", "name": "ESKİ İLAÇ", "quantity": 5, "min_quantity": 0, "expiry_date": (bugun - _dt.timedelta(days=2)).isoformat()},
+        {"id": "2", "name": "AZALAN", "quantity": 1, "min_quantity": 4, "expiry_date": "2035-01-01"},
+    ]
+    monkeypatch.setattr(stats, "load_stock", lambda: stok)
+    monkeypatch.setattr(stats, "get_expiring_items", lambda: {"expired": [stok[0]], "expiring_soon": [], "ok": [stok[1]]})
+    monkeypatch.setattr(stats, "get_low_stock_items", lambda items=None: [stok[1]])
+    dash = dashboard.DashboardView(app, padding=8)
+    dash.pack(fill="both", expand=True)
+    app.update()
+    satirlar = [dash.attention_tree.item(i, "values") for i in dash.attention_tree.get_children()]
+    assert satirlar[0][0] == "SKT geçti" and satirlar[0][1] == "ESKİ İLAÇ"
+    assert satirlar[1][0] == "Düşük stok" and "1 / alt sınır 4" in satirlar[1][2]
+
+    monkeypatch.setattr(stats, "load_stock", lambda: [])
+    dash.refresh()
+    bos = [dash.attention_tree.item(i, "values") for i in dash.attention_tree.get_children()]
+    assert len(bos) == 1 and "yok" in bos[0][1]
+    dash.destroy()

@@ -417,12 +417,25 @@
     const perde = sayfaAc(`<div class="yukleniyor">Yükleniyor…</div>`);
     let partiler = [];
     let muadil = [];
+    let analiz = null;
     try {
-      [partiler, muadil] = await Promise.all([
+      [partiler, muadil, analiz] = await Promise.all([
         get(`/api/ilaclar/${ilac.id}/partiler`, { onbellek: true }).catch(() => []),
-        ilac.etken_madde ? get(`/api/ilaclar/${ilac.id}/muadiller`).catch(() => []) : []
+        ilac.etken_madde ? get(`/api/ilaclar/${ilac.id}/muadiller`).catch(() => []) : [],
+        get(`/api/ilaclar/${ilac.id}/analiz`, { onbellek: true }).catch(() => null)
       ]);
     } catch (e) {}
+    const hizHtml = () => {
+      if (!analiz) return '';
+      const en = Math.max(1, ...analiz.haftalik);
+      const bar = analiz.haftalik
+        .map((h) => `<div title="${h}" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:2px"><small style="font-weight:700">${h}</small><div style="width:100%;height:${Math.max(4, Math.round((h / en) * 44))}px;background:var(--mavi);border:2px solid var(--cizgi);border-radius:8px"></div></div>`)
+        .join('');
+      return `<h3 style="font-family:var(--font-baslik);margin:14px 0 4px">Satış hızı</h3>
+        <div class="satir"><div class="ad">Son 30 günde ${analiz.son_30_gun_satis} adet<small>günde ~${analiz.gunluk_ortalama} adet${analiz.yetecek_gun !== null ? ` · stok ~${analiz.yetecek_gun} gün yeter` : ' · satış yok'}</small></div></div>
+        <div style="display:flex;gap:8px;align-items:flex-end;height:70px;margin:6px 0 2px" aria-label="Haftalık satış">${bar}</div>
+        <small style="color:var(--gri);font-weight:600">Son 4 hafta (eskiden yeniye)</small>`;
+    };
     const stokRenk = ilac.stok <= 0 ? 'kirmizi' : ilac.stok <= ilac.kritik_stok ? 'sari' : 'yesil';
     $('.sayfa', perde).innerHTML = `<div class="tutamak"></div>
       <h2 style="font-family:var(--font-baslik);font-size:26px;margin:0 0 6px;letter-spacing:-.02em">${esc(ilac.ad)}</h2>
@@ -435,6 +448,7 @@
       <div class="satir"><div class="ad">Barkod<small>${esc(ilac.barkod || '—')}</small></div></div>
       ${ilac.receteli ? '<div class="satir"><div class="ad">Reçeteli ilaç</div><span class="rozet sari">Reçete</span></div>' : ''}
       ${ilac.gebelik_uyari ? `<div class="satir"><div class="ad">Gebelik/emzirme<small>${ilac.gebelik_uyari === 'kontrendike' ? 'Kontrendike' : 'Dikkatli kullanılmalı'}</small></div><span class="rozet kirmizi">Uyarı</span></div>` : ''}
+      ${hizHtml()}
       ${
         partiler.length
           ? `<h3 style="font-family:var(--font-baslik);margin:14px 0 4px">Partiler</h3>${partiler
@@ -453,6 +467,7 @@
       }
       <div style="display:grid;gap:10px;margin-top:18px">
         ${sayimId ? `<button class="hap siyah" id="u-say">Sayıma +1 ekle</button>` : ''}
+        ${!sayimId && window.EczamSepet ? '<button class="hap siyah" id="u-sepet">Sepete ekle</button>' : ''}
         <button class="hap" id="u-istek">İstek defterine ekle</button>
         <button class="hap" id="u-kapat">Kapat</button>
       </div>`;
@@ -468,6 +483,12 @@
         toast(e.message);
       }
     };
+    const sepetDugme = $('#u-sepet', perde);
+    if (sepetDugme)
+      sepetDugme.onclick = () => {
+        window.EczamSepet.ekle(ilac);
+        perde.remove();
+      };
     const say = $('#u-say', perde);
     if (say) say.onclick = async () => {
       await sayimaEkle(sayimId, ilac);

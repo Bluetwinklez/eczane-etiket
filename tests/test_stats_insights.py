@@ -80,3 +80,21 @@ def test_summary_yeni_alanlari_icerir(monkeypatch):
     assert s["yesterday_turnover"] == 80.0
     assert s["busiest_hour"]["hour"] == 10
     assert isinstance(s["insights"], list) and s["insights"]
+
+
+def test_attention_items_siralama_ve_ayrintilar():
+    items = [
+        {"name": "Parol", "quantity": 2, "min_quantity": 5, "expiry_date": "2030-01-01"},
+        {"name": "Aspirin", "quantity": 10, "expiry_date": (BUGUN - dt.timedelta(days=3)).isoformat()},
+        {"name": "Majezik", "quantity": 7, "expiry_date": (BUGUN + dt.timedelta(days=10)).isoformat()},
+        {"name": "Sağlam", "quantity": 50, "min_quantity": 5, "expiry_date": "2031-01-01"},
+        {"name": "Bugün", "quantity": 1, "expiry_date": BUGUN.isoformat()},
+    ]
+    r = stats.attention_items(10, items, BUGUN)
+    assert [x["kind"] for x in r] == ["expired", "expiring", "expiring", "low"]
+    assert r[0]["name"] == "Aspirin" and r[0]["detail"] == "SKT 3 gün önce geçti"
+    assert r[1]["name"] == "Bugün" and r[1]["detail"] == "SKT bugün"
+    assert r[2]["detail"] == "SKT'ye 10 gün kaldı"
+    assert r[3]["detail"] == "Stok 2 / alt sınır 5"
+    assert stats.attention_items(2, items, BUGUN)[1]["name"] == "Bugün"
+    assert stats.attention_items(5, [], BUGUN) == []

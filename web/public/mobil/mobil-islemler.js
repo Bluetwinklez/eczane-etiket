@@ -163,6 +163,20 @@ window.EczamEklenti = (M) => {
   const ODEMELER = [['nakit', 'Nakit'], ['kredi_karti', 'Kart'], ['veresiye', 'Veresiye']];
   const sepetToplam = () => [...sepet.values()].reduce((t, k) => t + k.ilac.satis_fiyati * k.adet, 0);
 
+  // Urun kartindan ("Sepete ekle") hizli satis sepetine ekleme
+  window.EczamSepet = {
+    ekle(ilac) {
+      const k = sepet.get(ilac.id);
+      if (k) k.adet += 1;
+      else sepet.set(ilac.id, { ilac, adet: 1 });
+      const sayac = [...sepet.values()].reduce((t, x) => t + x.adet, 0);
+      if (location.hash === '#/hizli-satis') {
+        toast(`${ilac.ad} eklendi`);
+        sepetCiz();
+      } else toast(`${ilac.ad} eklendi · sepette ${sayac} ürün`);
+    }
+  };
+
   function hizliSatisEkrani() {
     cerceve(
       'Hızlı Satış',
