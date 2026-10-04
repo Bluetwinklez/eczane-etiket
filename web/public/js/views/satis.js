@@ -15,7 +15,8 @@
   function indirimYuzdesiOku() {
     const el = document.getElementById('pos-indirim');
     if (!el) return 0;
-    return Math.min(100, Math.max(0, Number(el.value) || 0));
+    const ust = el.max === '' ? 100 : Number(el.max);
+    return Math.min(ust, Math.max(0, Number(el.value) || 0));
   }
 
   function sepetiCiz(container) {
@@ -279,10 +280,13 @@
 
   const view = {
     async render(container) {
-      [musteriler, aktifKampanyalar] = await Promise.all([
+      let ayarlar;
+      [musteriler, aktifKampanyalar, ayarlar] = await Promise.all([
         Api.get('/api/musteriler'),
-        Api.get('/api/kampanyalar/aktif').catch(() => [])
+        Api.get('/api/kampanyalar/aktif').catch(() => []),
+        Api.get('/api/ayarlar').catch(() => ({ kasiyer_indirim_limiti: 100 }))
       ]);
+      const indirimLimiti = CURRENT_USER.rol === 'kasiyer' ? ayarlar.kasiyer_indirim_limiti : 100;
       sepet = [];
 
       container.innerHTML = `
@@ -340,7 +344,7 @@
                 </div>
                 <div>
                   <label>İndirim (%)</label>
-                  <input id="pos-indirim" type="number" min="0" max="100" step="1" value="0" />
+                  <input id="pos-indirim" type="number" min="0" max="${indirimLimiti}" step="1" value="0" title="${indirimLimiti < 100 ? `Kasiyer indirim limiti: %${indirimLimiti}` : ''}" />
                 </div>
               </div>
               <div id="pos-etkilesim"></div>

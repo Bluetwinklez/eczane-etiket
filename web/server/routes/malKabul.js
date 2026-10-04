@@ -127,6 +127,17 @@ router.post('/', (req, res) => {
     if (siparis) {
       db.prepare("UPDATE siparisler SET durum = 'teslim_alindi', teslim_tarihi = datetime('now') WHERE id = ?").run(siparis.id);
     }
+    // Faturali mal kabul tedarikci cari hesabina borc olarak islenir (vade: fatura tarihi + tedarikci vade gunu)
+    const tedarikciId = tedarikci_id || (siparis && siparis.tedarikci_id) || null;
+    const tedarikci = tedarikciId ? db.prepare('SELECT id, vade_gun FROM tedarikciler WHERE id = ?').get(tedarikciId) : null;
+    if (tedarikci && toplam > 0) {
+      const belgeTarihi = fatura_tarihi || new Date().toISOString().slice(0, 10);
+      const vade = new Date(new Date(belgeTarihi + 'T00:00:00Z').getTime() + (tedarikci.vade_gun ?? 30) * 86400000).toISOString().slice(0, 10);
+      db.prepare(
+        `INSERT INTO tedarikci_hareketleri (tedarikci_id, sube_id, tip, tutar, belge_no, belge_tarihi, vade_tarihi, aciklama, mal_kabul_id, kullanici_id)
+         VALUES (?, ?, 'fatura', ?, ?, ?, ?, ?, ?, ?)`
+      ).run(tedarikci.id, subeId, toplam, fatura_no || null, belgeTarihi, vade, `Mal kabul #${kabulId}`, kabulId, req.user.id);
+    }
     db.exec('COMMIT');
     res.status(201).json(kabulGetir(kabulId));
   } catch (err) {
