@@ -329,6 +329,205 @@ db.exec(`
 sutunEkleGerekirse('satis_kalemi_partileri', 'iade_edilen', 'INTEGER NOT NULL DEFAULT 0');
 sutunEkleGerekirse('kasa_kapanislari', 'iade_sistem', 'REAL NOT NULL DEFAULT 0');
 sutunEkleGerekirse('ilaclar', 'etken_madde', 'TEXT');
+// Bir kutunun kac gun yettigi (kronik ilaclar icin bitis hatirlatmasi); bos = takip edilmez
+sutunEkleGerekirse('ilaclar', 'kutu_gun', 'INTEGER');
+sutunEkleGerekirse('satislar', 'puan_indirimi', 'REAL NOT NULL DEFAULT 0');
+sutunEkleGerekirse('satislar', 'kullanilan_puan', 'INTEGER NOT NULL DEFAULT 0');
+sutunEkleGerekirse('satislar', 'kazanilan_puan', 'INTEGER NOT NULL DEFAULT 0');
+// Recete bilgisi (satisa bagli) ve ilacin gerektirdigi recete turu
+sutunEkleGerekirse('satislar', 'recete_no', 'TEXT');
+sutunEkleGerekirse('satislar', 'recete_turu', 'TEXT');
+sutunEkleGerekirse('satislar', 'recete_tarihi', 'TEXT');
+sutunEkleGerekirse('satislar', 'doktor_adi', 'TEXT');
+sutunEkleGerekirse('satislar', 'hasta_tc', 'TEXT');
+// null: normal; 'kirmizi' / 'yesil': kontrollu (defter tutulur); 'mor' / 'turuncu': ozel receteli
+sutunEkleGerekirse('ilaclar', 'recete_turu', 'TEXT');
+// Satista girilen kullanim talimati (orn. 'Gunde 2x1 tok') - hasta kullanim karti icin
+sutunEkleGerekirse('satis_kalemleri', 'kullanim', 'TEXT');
+// Ticari elektronik ileti onayi (IYS): toplu kampanya mesajlari yalnizca onayli musterilere
+sutunEkleGerekirse('musteriler', 'ileti_izni', 'INTEGER NOT NULL DEFAULT 0');
+
+// Ayni ilac bitis donemi icin musteriye tekrar tekrar hatirlatma gitmesin
+db.exec(`
+  CREATE TABLE IF NOT EXISTS ilac_hatirlatmalari (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    musteri_id INTEGER NOT NULL REFERENCES musteriler(id) ON DELETE CASCADE,
+    ilac_id INTEGER NOT NULL REFERENCES ilaclar(id) ON DELETE CASCADE,
+    bitis_tarihi TEXT NOT NULL,
+    bildirim_id INTEGER REFERENCES bildirimler(id) ON DELETE SET NULL,
+    kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    tarih TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (musteri_id, ilac_id, bitis_tarihi)
+  );
+
+  -- Stok sayimi: sayilan adetler girilir, tamamlaninca farklar stoga islenir
+  CREATE TABLE IF NOT EXISTS sayimlar (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    durum TEXT NOT NULL DEFAULT 'acik' CHECK (durum IN ('acik', 'tamamlandi', 'iptal')),
+    kapsam TEXT,
+    aciklama TEXT,
+    baslangic TEXT NOT NULL DEFAULT (datetime('now')),
+    bitis TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS sayim_kalemleri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sayim_id INTEGER NOT NULL REFERENCES sayimlar(id) ON DELETE CASCADE,
+    ilac_id INTEGER NOT NULL REFERENCES ilaclar(id) ON DELETE CASCADE,
+    sayilan INTEGER NOT NULL,
+    sistem_stok INTEGER,
+    fark INTEGER,
+    UNIQUE (sayim_id, ilac_id)
+  );
+
+  -- Subeler arasi transfer: gonderimde kaynaktan duser, teslimde hedefe ayni
+  -- parti/SKT ile girer
+  CREATE TABLE IF NOT EXISTS transferler (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kaynak_sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    hedef_sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    gonderen_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    teslim_alan_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    durum TEXT NOT NULL DEFAULT 'yolda' CHECK (durum IN ('yolda', 'teslim_alindi', 'iptal')),
+    aciklama TEXT,
+    tarih TEXT NOT NULL DEFAULT (datetime('now')),
+    teslim_tarihi TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS transfer_kalemleri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    transfer_id INTEGER NOT NULL REFERENCES transferler(id) ON DELETE CASCADE,
+    ilac_id INTEGER NOT NULL REFERENCES ilaclar(id),
+    adet INTEGER NOT NULL,
+    parti_no TEXT,
+    skt TEXT
+  );
+
+  -- Mal kabul (irsaliye/fatura girisi). mf: mal fazlasi (bedelsiz gelen adet);
+  -- gercek birim maliyet = alis_fiyati * adet / (adet + mf)
+  CREATE TABLE IF NOT EXISTS mal_kabulleri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    tedarikci_id INTEGER REFERENCES tedarikciler(id) ON DELETE SET NULL,
+    siparis_id INTEGER REFERENCES siparisler(id) ON DELETE SET NULL,
+    fatura_no TEXT,
+    fatura_tarihi TEXT,
+    toplam_tutar REAL NOT NULL DEFAULT 0,
+    kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    tarih TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS mal_kabul_kalemleri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    mal_kabul_id INTEGER NOT NULL REFERENCES mal_kabulleri(id) ON DELETE CASCADE,
+    ilac_id INTEGER NOT NULL REFERENCES ilaclar(id),
+    adet INTEGER NOT NULL,
+    mf INTEGER NOT NULL DEFAULT 0,
+    alis_fiyati REAL NOT NULL,
+    birim_maliyet REAL NOT NULL,
+    parti_no TEXT,
+    skt TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_mal_kabul_kalemleri_ilac ON mal_kabul_kalemleri (ilac_id);
+
+  -- Bolunmus (karma) odemeli satislarin odeme kirilimi
+  CREATE TABLE IF NOT EXISTS satis_odemeleri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    satis_id INTEGER NOT NULL REFERENCES satislar(id) ON DELETE CASCADE,
+    odeme_tipi TEXT NOT NULL CHECK (odeme_tipi IN ('nakit', 'kredi_karti')),
+    tutar REAL NOT NULL CHECK (tutar > 0)
+  );
+  CREATE INDEX IF NOT EXISTS idx_satis_odemeleri_satis ON satis_odemeleri (satis_id);
+
+  -- Sadakat puani hareketleri (+ kazanim / - kullanim, iadede ters kayit)
+  CREATE TABLE IF NOT EXISTS puan_hareketleri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    musteri_id INTEGER NOT NULL REFERENCES musteriler(id) ON DELETE CASCADE,
+    satis_id INTEGER REFERENCES satislar(id) ON DELETE SET NULL,
+    iade_id INTEGER REFERENCES iadeler(id) ON DELETE SET NULL,
+    puan INTEGER NOT NULL,
+    aciklama TEXT,
+    tarih TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_puan_hareketleri_musteri ON puan_hareketleri (musteri_id);
+
+  -- Eksik / istek defteri: stokta olmayan ama musterinin istedigi urunler
+  CREATE TABLE IF NOT EXISTS istekler (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    musteri_id INTEGER REFERENCES musteriler(id) ON DELETE SET NULL,
+    musteri_adi TEXT,
+    telefon TEXT,
+    ilac_id INTEGER REFERENCES ilaclar(id) ON DELETE SET NULL,
+    urun_adi TEXT NOT NULL,
+    adet INTEGER NOT NULL DEFAULT 1,
+    durum TEXT NOT NULL DEFAULT 'bekliyor' CHECK (durum IN ('bekliyor', 'haber_verildi', 'teslim_edildi', 'iptal')),
+    notlar TEXT,
+    kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    tarih TEXT NOT NULL DEFAULT (datetime('now')),
+    guncelleme TEXT
+  );
+
+  -- Emanet ilac defteri: baska eczaneden alinan / baska eczaneye verilen ilaclar
+  CREATE TABLE IF NOT EXISTS emanetler (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    yon TEXT NOT NULL CHECK (yon IN ('alinan', 'verilen')),
+    karsi_eczane TEXT NOT NULL,
+    telefon TEXT,
+    ilac_id INTEGER NOT NULL REFERENCES ilaclar(id),
+    adet INTEGER NOT NULL CHECK (adet > 0),
+    durum TEXT NOT NULL DEFAULT 'acik' CHECK (durum IN ('acik', 'kapandi')),
+    kapanis_sekli TEXT,
+    notlar TEXT,
+    kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    tarih TEXT NOT NULL DEFAULT (datetime('now')),
+    kapanis_tarihi TEXT
+  );
+
+  -- Personel vardiya cizelgesi: kisi basina gunde bir kayit
+  CREATE TABLE IF NOT EXISTS vardiyalar (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    kullanici_id INTEGER NOT NULL REFERENCES kullanicilar(id) ON DELETE CASCADE,
+    tarih TEXT NOT NULL,
+    tip TEXT NOT NULL DEFAULT 'calisma' CHECK (tip IN ('calisma', 'izin', 'rapor')),
+    baslangic TEXT,
+    bitis TEXT,
+    notlar TEXT,
+    UNIQUE (kullanici_id, tarih)
+  );
+
+  -- Vardiya devir notlari (bir sonraki vardiyaya aktarilacaklar)
+  CREATE TABLE IF NOT EXISTS vardiya_notlari (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    metin TEXT NOT NULL,
+    tamamlandi INTEGER NOT NULL DEFAULT 0,
+    tarih TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  -- Aylik satis hedefleri (sube bazinda)
+  CREATE TABLE IF NOT EXISTS satis_hedefleri (
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    ay TEXT NOT NULL,
+    hedef_tutar REAL NOT NULL CHECK (hedef_tutar > 0),
+    PRIMARY KEY (sube_id, ay)
+  );
+
+  -- POS'ta bekletilen (park edilen) sepetler
+  CREATE TABLE IF NOT EXISTS bekleyen_sepetler (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    etiket TEXT,
+    veri TEXT NOT NULL,
+    tarih TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`);
 
 // Etken madde ciftleri arasindaki bilinen etkilesimler (madde_a < madde_b sirali saklanir)
 db.exec(`
@@ -355,6 +554,26 @@ const ORNEK_ETKEN_MADDELER = {
   '8699504010098': 'hidrotalsit',
   '8699504010104': 'metoprolol'
 };
+// Ornek katalogdaki kronik kullanim ilaclari: bir kutu kac gun yeter
+const ORNEK_KUTU_GUNLERI = {
+  '8699504010029': 30,
+  '8699504010050': 28,
+  '8699504010074': 30,
+  '8699504010104': 28,
+  '8699546352071': 30,
+  '8681234560017': 60
+};
+
+// Ornek katalog: Xanax (alprazolam) Turkiye'de yesil receteyle satilir
+function ornekReceteTurleriniDoldur() {
+  db.prepare("UPDATE ilaclar SET recete_turu = 'yesil' WHERE barkod = '8699504010081' AND recete_turu IS NULL").run();
+}
+
+function ornekKutuGunleriniDoldur() {
+  const guncelle = db.prepare('UPDATE ilaclar SET kutu_gun = ? WHERE barkod = ? AND kutu_gun IS NULL');
+  for (const [barkod, gun] of Object.entries(ORNEK_KUTU_GUNLERI)) guncelle.run(gun, barkod);
+}
+
 function ornekEtkenMaddeleriDoldur() {
   const guncelle = db.prepare('UPDATE ilaclar SET etken_madde = ? WHERE barkod = ? AND etken_madde IS NULL');
   for (const [barkod, madde] of Object.entries(ORNEK_ETKEN_MADDELER)) guncelle.run(madde, barkod);
@@ -508,5 +727,7 @@ function seedIfEmpty() {
 
 seedIfEmpty();
 ornekEtkenMaddeleriDoldur();
+ornekKutuGunleriniDoldur();
+ornekReceteTurleriniDoldur();
 
 module.exports = { db, hashPassword, verifyPassword, ayarOku, ayarYaz };

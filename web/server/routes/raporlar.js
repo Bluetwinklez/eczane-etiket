@@ -1,7 +1,8 @@
 const express = require('express');
 const { db } = require('../db');
 const { sendCsv, sendPdf } = require('../export');
-const { URUN_TIPLERI } = require('../sabitler');
+const { URUN_TIPLERI, RECETE_TURLERI, KONTROLLU_TURLER } = require('../sabitler');
+const { sqlSaatFarki } = require('../zaman');
 
 const router = express.Router();
 
@@ -211,10 +212,11 @@ router.get('/recete-sgk', (req, res) => {
   const { kosul, params } = tarihFiltresi(req.query.baslangic, req.query.bitis);
 
   let sql = `
-    SELECT sa.id, sa.tarih, sa.toplam_tutar, sa.odeme_tipi, m.ad_soyad AS musteri_adi
+    SELECT sa.id, sa.tarih, sa.toplam_tutar, sa.odeme_tipi, m.ad_soyad AS musteri_adi,
+           sa.recete_no, sa.recete_turu, sa.doktor_adi
     FROM satislar sa
     LEFT JOIN musteriler m ON m.id = sa.musteri_id
-    WHERE sa.sgk_recete = 1 ${kosul}
+    WHERE (sa.sgk_recete = 1 OR sa.recete_no IS NOT NULL) ${kosul}
   `;
   if (subeId) {
     sql += ' AND sa.sube_id = ?';
@@ -227,7 +229,77 @@ router.get('/recete-sgk', (req, res) => {
     { alan: 'id', baslik: 'Satis No' },
     { alan: 'tarih', baslik: 'Tarih' },
     { alan: 'musteri_adi', baslik: 'Musteri' },
+    { alan: 'recete_no', baslik: 'Recete No' },
+    { alan: 'recete_turu', baslik: 'Recete Turu' },
+    { alan: 'doktor_adi', baslik: 'Doktor' },
     { alan: 'toplam_tutar', baslik: 'Tutar (TL)' }
+  ]);
+});
+
+// Kontrollu ilac defteri: kirmizi/yesil receteli ilaclarin tum stok giris-cikislari,
+// satislarda recete no, doktor ve hasta bilgisi, ilac bazinda yuruyen bakiye
+router.get('/kontrollu-ilac', (req, res) => {
+  const subeId = resolveSubeId(req, req.query.sube_id) || req.user.sube_id;
+  const yer = KONTROLLU_TURLER.map(() => '?').join(',');
+  let sql = `
+    SELECT h.id, h.tarih, h.ilac_id, i.ad AS ilac_adi, i.recete_turu AS ilac_recete, h.tip, h.adet, h.aciklama,
+           CAST(substr(h.aciklama, 8) AS INTEGER) AS satis_no
+    FROM stok_hareketleri h JOIN ilaclar i ON i.id = h.ilac_id
+    WHERE h.sube_id = ? AND i.recete_turu IN (${yer})`;
+  const params = [subeId, ...KONTROLLU_TURLER];
+  if (req.query.baslangic) {
+    sql += ' AND h.tarih >= ?';
+    params.push(req.query.baslangic);
+  }
+  if (req.query.bitis) {
+    sql += ' AND h.tarih <= ?';
+    params.push(req.query.bitis + ' 23:59:59');
+  }
+  sql += ' ORDER BY i.ad, h.tarih, h.id';
+  const hareketler = db.prepare(sql).all(...params);
+
+  const satisBilgisi = db.prepare(
+    `SELECT sa.recete_no, sa.recete_turu, sa.doktor_adi, sa.hasta_tc, m.ad_soyad AS hasta
+     FROM satislar sa LEFT JOIN musteriler m ON m.id = sa.musteri_id WHERE sa.id = ?`
+  );
+  // Donem oncesi bakiye: mevcut stoktan donem icindeki net hareket cikarilir
+  const mevcut = db.prepare('SELECT stok FROM ilac_stok WHERE ilac_id = ? AND sube_id = ?');
+  const netDonem = {};
+  for (const h of hareketler) netDonem[h.ilac_id] = (netDonem[h.ilac_id] || 0) + (h.tip === 'giris' ? h.adet : -h.adet);
+  const bakiye = {};
+
+  const rows = hareketler.map((h) => {
+    if (bakiye[h.ilac_id] === undefined) {
+      bakiye[h.ilac_id] = ((mevcut.get(h.ilac_id, subeId) || { stok: 0 }).stok) - netDonem[h.ilac_id];
+    }
+    bakiye[h.ilac_id] += h.tip === 'giris' ? h.adet : -h.adet;
+    const satis = h.tip === 'cikis' && /^Satis #\d+$/.test(h.aciklama || '') ? satisBilgisi.get(h.satis_no) : null;
+    return {
+      tarih: h.tarih,
+      ilac_adi: h.ilac_adi,
+      recete_rengi: RECETE_TURLERI[h.ilac_recete],
+      giris: h.tip === 'giris' ? h.adet : '',
+      cikis: h.tip === 'cikis' ? h.adet : '',
+      bakiye: bakiye[h.ilac_id],
+      aciklama: h.aciklama || '',
+      recete_no: satis ? satis.recete_no : '',
+      doktor: satis ? satis.doktor_adi : '',
+      hasta: satis ? satis.hasta || '' : '',
+      hasta_tc: satis ? satis.hasta_tc || '' : ''
+    };
+  });
+  cikisYap(req, res, 'kontrollu-ilac-defteri', 'Kontrollu Ilac Defteri', rows, [
+    { alan: 'tarih', baslik: 'Tarih' },
+    { alan: 'ilac_adi', baslik: 'Ilac' },
+    { alan: 'recete_rengi', baslik: 'Recete' },
+    { alan: 'giris', baslik: 'Giris' },
+    { alan: 'cikis', baslik: 'Cikis' },
+    { alan: 'bakiye', baslik: 'Bakiye' },
+    { alan: 'recete_no', baslik: 'Recete No' },
+    { alan: 'doktor', baslik: 'Doktor' },
+    { alan: 'hasta', baslik: 'Hasta' },
+    { alan: 'hasta_tc', baslik: 'Hasta TC' },
+    { alan: 'aciklama', baslik: 'Aciklama' }
   ]);
 });
 
@@ -369,6 +441,157 @@ router.get('/kampanya-performansi', (req, res) => {
     { alan: 'net_ciro', baslik: 'Net Ciro (TL)' },
     { alan: 'brut_kar', baslik: 'Brut Kar (TL)' }
   ]);
+});
+
+// Olu stok: elde stogu olup son `gun` gun (varsayilan 90) hic satilmayan urunler
+// ve bunlara bagli sermaye (alis fiyatiyla)
+router.get('/olu-stok', (req, res) => {
+  const subeId = resolveSubeId(req, req.query.sube_id) || req.user.sube_id;
+  const gun = Math.min(730, Math.max(7, Number(req.query.gun) || 90));
+  const rows = db
+    .prepare(
+      `SELECT i.id, i.ad, i.kategori, i.urun_tipi, s.stok, i.alis_fiyati,
+              ROUND(s.stok * i.alis_fiyati, 2) AS bagli_sermaye,
+              (SELECT MAX(date(sa.tarih)) FROM satis_kalemleri sk JOIN satislar sa ON sa.id = sk.satis_id
+                WHERE sk.ilac_id = i.id AND sa.sube_id = s.sube_id) AS son_satis,
+              (SELECT MIN(p.skt) FROM ilac_partileri p WHERE p.ilac_id = i.id AND p.sube_id = s.sube_id AND p.miktar > 0) AS en_yakin_skt
+       FROM ilac_stok s
+       JOIN ilaclar i ON i.id = s.ilac_id
+       WHERE s.sube_id = ? AND s.stok > 0
+         AND NOT EXISTS (SELECT 1 FROM satis_kalemleri sk JOIN satislar sa ON sa.id = sk.satis_id
+                          WHERE sk.ilac_id = i.id AND sa.sube_id = s.sube_id AND sa.tarih >= datetime('now', ?))
+       ORDER BY bagli_sermaye DESC`
+    )
+    .all(subeId, `-${gun} days`)
+    .map((r) => ({ ...r, son_satis: r.son_satis || 'Hic satilmadi', en_yakin_skt: r.en_yakin_skt || '-' }));
+
+  cikisYap(req, res, 'olu-stok-raporu', `Olu Stok (${gun} gundur satilmayan)`, rows, [
+    { alan: 'ad', baslik: 'Urun' },
+    { alan: 'kategori', baslik: 'Kategori' },
+    { alan: 'stok', baslik: 'Stok' },
+    { alan: 'son_satis', baslik: 'Son Satis' },
+    { alan: 'en_yakin_skt', baslik: 'En Yakin SKT' },
+    { alan: 'bagli_sermaye', baslik: 'Bagli Sermaye (TL)' }
+  ]);
+});
+
+// ABC analizi: urunler ciro payina gore siralanir; kumulatif %80'e kadar A,
+// %95'e kadar B, kalani C (varsayilan son 90 gun)
+router.get('/abc', (req, res) => {
+  const subeId = resolveSubeId(req, req.query.sube_id);
+  const baslangic = req.query.baslangic || new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
+  const { kosul, params } = tarihFiltresi(baslangic, req.query.bitis);
+  let sql = `
+    SELECT sk.ilac_id, i.ad, SUM(sk.adet) AS adet, SUM(sk.ara_toplam) AS ciro,
+           SUM(sk.ara_toplam - sk.alis_fiyati * sk.adet) AS brut_kar
+    FROM satis_kalemleri sk
+    JOIN satislar sa ON sa.id = sk.satis_id
+    JOIN ilaclar i ON i.id = sk.ilac_id
+    WHERE 1=1 ${kosul}`;
+  if (subeId) {
+    sql += ' AND sa.sube_id = ?';
+    params.push(subeId);
+  }
+  sql += ' GROUP BY sk.ilac_id ORDER BY ciro DESC';
+  const satirlar = db.prepare(sql).all(...params);
+  const toplam = satirlar.reduce((t, r) => t + r.ciro, 0);
+  let kumulatif = 0;
+  const rows = satirlar.map((r) => {
+    const pay = toplam ? (r.ciro / toplam) * 100 : 0;
+    // Sinif, urunun kumulatife eklenmeden onceki konumuna gore verilir:
+    // tek basina %80'i asan ilk urun de A olur
+    const sinif = kumulatif < 80 ? 'A' : kumulatif < 95 ? 'B' : 'C';
+    kumulatif += pay;
+    return {
+      ...r,
+      ciro: Math.round(r.ciro * 100) / 100,
+      brut_kar: Math.round(r.brut_kar * 100) / 100,
+      pay: Math.round(pay * 10) / 10,
+      kumulatif_pay: Math.round(kumulatif * 10) / 10,
+      sinif
+    };
+  });
+  cikisYap(req, res, 'abc-analizi', 'ABC Analizi', rows, [
+    { alan: 'sinif', baslik: 'Sinif' },
+    { alan: 'ad', baslik: 'Urun' },
+    { alan: 'adet', baslik: 'Adet' },
+    { alan: 'ciro', baslik: 'Ciro (TL)' },
+    { alan: 'pay', baslik: 'Pay (%)' },
+    { alan: 'kumulatif_pay', baslik: 'Kumulatif (%)' },
+    { alan: 'brut_kar', baslik: 'Brut Kar (TL)' }
+  ]);
+});
+
+// Tedarikci fiyat karsilastirma: mal kabullerdeki gercek birim maliyetler (MF dahil)
+router.get('/tedarikci-fiyat', (req, res) => {
+  const satirlar = db
+    .prepare(
+      `SELECT mkk.ilac_id, i.ad AS ilac_adi, mk.tedarikci_id, t.firma_adi AS tedarikci,
+              COUNT(*) AS alim_sayisi, SUM(mkk.adet + mkk.mf) AS toplam_adet,
+              ROUND(AVG(mkk.birim_maliyet), 2) AS ortalama_maliyet,
+              MAX(mk.tarih) AS son_alim,
+              (SELECT x.birim_maliyet FROM mal_kabul_kalemleri x JOIN mal_kabulleri y ON y.id = x.mal_kabul_id
+                WHERE x.ilac_id = mkk.ilac_id AND y.tedarikci_id IS mk.tedarikci_id ORDER BY y.tarih DESC, x.id DESC LIMIT 1) AS son_maliyet
+       FROM mal_kabul_kalemleri mkk
+       JOIN mal_kabulleri mk ON mk.id = mkk.mal_kabul_id
+       JOIN ilaclar i ON i.id = mkk.ilac_id
+       LEFT JOIN tedarikciler t ON t.id = mk.tedarikci_id
+       GROUP BY mkk.ilac_id, mk.tedarikci_id
+       ORDER BY i.ad, son_maliyet`
+    )
+    .all();
+  const enUcuz = new Map();
+  for (const r of satirlar) {
+    if (!enUcuz.has(r.ilac_id) || r.son_maliyet < enUcuz.get(r.ilac_id)) enUcuz.set(r.ilac_id, r.son_maliyet);
+  }
+  const rows = satirlar.map((r) => {
+    const min = enUcuz.get(r.ilac_id);
+    return {
+      ...r,
+      tedarikci: r.tedarikci || 'Belirtilmemis',
+      son_alim: String(r.son_alim).slice(0, 10),
+      en_ucuz: r.son_maliyet === min ? 'Evet' : '',
+      fark_yuzde: min ? Math.round(((r.son_maliyet - min) / min) * 1000) / 10 : 0
+    };
+  });
+  cikisYap(req, res, 'tedarikci-fiyat-karsilastirma', 'Tedarikci Fiyat Karsilastirma', rows, [
+    { alan: 'ilac_adi', baslik: 'Urun' },
+    { alan: 'tedarikci', baslik: 'Tedarikci' },
+    { alan: 'son_maliyet', baslik: 'Son Birim Maliyet (TL)' },
+    { alan: 'ortalama_maliyet', baslik: 'Ortalama (TL)' },
+    { alan: 'fark_yuzde', baslik: 'En Ucuzdan Fark (%)' },
+    { alan: 'en_ucuz', baslik: 'En Ucuz' },
+    { alan: 'alim_sayisi', baslik: 'Alim Sayisi' },
+    { alan: 'son_alim', baslik: 'Son Alim' }
+  ]);
+});
+
+// Saatlik yogunluk: haftanin gunu x saat (yerel saat) satis adedi ve cirosu
+router.get('/yogunluk', (req, res) => {
+  const subeId = resolveSubeId(req, req.query.sube_id);
+  const gun = Math.min(365, Math.max(7, Number(req.query.gun) || 30));
+  const fark = sqlSaatFarki();
+  let sql = `
+    SELECT CAST(strftime('%w', sa.tarih, ?) AS INTEGER) AS haftagunu,
+           CAST(strftime('%H', sa.tarih, ?) AS INTEGER) AS saat,
+           COUNT(*) AS adet, SUM(sa.toplam_tutar) AS ciro
+    FROM satislar sa
+    WHERE sa.tarih >= datetime('now', ?)`;
+  const params = [fark, fark, `-${gun} days`];
+  if (subeId) {
+    sql += ' AND sa.sube_id = ?';
+    params.push(subeId);
+  }
+  sql += ' GROUP BY haftagunu, saat';
+  // Pazartesi ilk satir: SQLite %w pazar=0 verir
+  const matris = Array.from({ length: 7 }, () => Array.from({ length: 24 }, () => ({ adet: 0, ciro: 0 })));
+  let enYogun = null;
+  for (const r of db.prepare(sql).all(...params)) {
+    const satir = (r.haftagunu + 6) % 7;
+    matris[satir][r.saat] = { adet: r.adet, ciro: Math.round(r.ciro * 100) / 100 };
+    if (!enYogun || r.adet > enYogun.adet) enYogun = { gun: satir, saat: r.saat, adet: r.adet };
+  }
+  res.json({ gun, saat_farki: fark, matris, en_yogun: enYogun });
 });
 
 // Iade raporu

@@ -29,7 +29,7 @@
 
     return `
       <tr>
-        <td>${UI.esc(ilac.ad)}${ilac.etken_madde ? `<br /><small class="etken-madde">${UI.esc(ilac.etken_madde)}</small>` : ''} ${ilac.urun_tipi && ilac.urun_tipi !== 'ilac' ? `<span class="badge tip-${ilac.urun_tipi}">${UI.URUN_TIPLERI[ilac.urun_tipi] || ilac.urun_tipi}</span>` : ''} ${ilac.receteli ? '<span class="badge muted">Reçeteli</span>' : ''} ${sktRozeti(ilac.en_yakin_skt)}</td>
+        <td>${UI.esc(ilac.ad)}${ilac.etken_madde ? `<br /><small class="etken-madde">${UI.esc(ilac.etken_madde)}</small>` : ''} ${ilac.urun_tipi && ilac.urun_tipi !== 'ilac' ? `<span class="badge tip-${ilac.urun_tipi}">${UI.URUN_TIPLERI[ilac.urun_tipi] || ilac.urun_tipi}</span>` : ''} ${ilac.recete_turu ? `<span class="badge recete-${ilac.recete_turu}">${UI.RECETE_TURLERI[ilac.recete_turu]} reçete</span>` : ilac.receteli ? '<span class="badge muted">Reçeteli</span>' : ''} ${sktRozeti(ilac.en_yakin_skt)}</td>
         <td>${UI.esc(ilac.barkod || '-')}</td>
         <td>${UI.esc(ilac.kategori || '-')}</td>
         <td class="num">${ilac.stok} ${stokRozeti}</td>
@@ -55,6 +55,14 @@
             </select>
           </div>
           <div><label>Kategori</label><input name="kategori" value="${UI.esc(i.kategori || '')}" /></div>
+          <div>
+            <label>Reçete Türü</label>
+            <select name="recete_turu" title="Kırmızı/yeşil reçeteli ilaçlar kontrollü ilaç defterine girer">
+              <option value="">Normal (beyaz / reçetesiz)</option>
+              ${['kirmizi', 'yesil', 'mor', 'turuncu'].map((t) => `<option value="${t}" ${i.recete_turu === t ? 'selected' : ''}>${UI.RECETE_TURLERI[t]} reçete</option>`).join('')}
+            </select>
+          </div>
+          <div><label>Bir Kutu Kaç Gün Yeter?</label><input name="kutu_gun" type="number" min="1" max="365" value="${i.kutu_gun ?? ''}" placeholder="Kronik ilaçlar için (boş = takip yok)" title="Bitiş hatırlatması için" /></div>
           <div><label>Etken Madde</label><input name="etken_madde" value="${UI.esc(i.etken_madde || '')}" placeholder="örn. amoksisilin, klavulanik asit" title="Etkileşim kontrolü için; birden fazlaysa virgülle ayırın" /></div>
           <div><label>Üretici</label><input name="uretici" value="${UI.esc(i.uretici || '')}" /></div>
           <div><label>Alış Fiyatı</label><input name="alis_fiyati" type="number" step="0.01" min="0" value="${i.alis_fiyati ?? ''}" /></div>
@@ -87,7 +95,9 @@
       parti_no: fd.has('parti_no') ? fd.get('parti_no') || null : undefined,
       receteli: form.querySelector('[name="receteli"]').checked,
       urun_tipi: fd.get('urun_tipi'),
-      etken_madde: fd.get('etken_madde') || null
+      etken_madde: fd.get('etken_madde') || null,
+      kutu_gun: fd.get('kutu_gun') === '' ? null : Number(fd.get('kutu_gun')),
+      recete_turu: fd.get('recete_turu') || null
     };
   }
 
@@ -192,6 +202,142 @@
     });
   }
 
+  const ISLEM_ROZETI = {
+    yeni: '<span class="badge ok">Yeni</span>',
+    guncelle: '<span class="badge warn">Güncellenecek</span>',
+    ayni: '<span class="badge muted">Değişiklik yok</span>',
+    hata: '<span class="badge danger">Hata</span>'
+  };
+
+  function iceAktarModali(onUygulandi) {
+    let csv = '';
+    const modal = UI.openModal(`
+      <h3 class="modal-genis">CSV ile Ürün İçe Aktar</h3>
+      <p class="form-ipucu">Excel'de listeyi "CSV (noktalı virgülle ayrılmış)" olarak kaydedip seçin. Barkodu kayıtlı ürünler güncellenir (boş hücreler mevcut değeri silmez), diğerleri yeni ürün olarak eklenir. Stok miktarı içe aktarılmaz; stok girişi Mal Kabul ile yapılır.
+        <a href="/api/ilaclar/ice-aktar/sablon" download>Örnek şablonu indir</a></p>
+      <input type="file" id="ia-dosya" accept=".csv,text/csv,.txt" />
+      <div id="ia-sonuc" style="margin-top:10px"></div>
+      <div class="modal-actions">
+        <button class="secondary" data-action="kapat">Vazgeç</button>
+        <button data-action="uygula" disabled>İçe Aktar</button>
+      </div>
+    `);
+    const uygulaBtn = modal.querySelector('[data-action="uygula"]');
+    modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));
+    modal.querySelector('#ia-dosya').addEventListener('change', async (e) => {
+      const dosya = e.target.files[0];
+      if (!dosya) return;
+      // Excel bazen Windows-1254 kaydeder; UTF-8 bozuksa Turkce kodlamayla tekrar oku
+      const tampon = await dosya.arrayBuffer();
+      csv = new TextDecoder('utf-8').decode(tampon);
+      if (csv.includes('�')) csv = new TextDecoder('windows-1254').decode(tampon);
+      try {
+        const r = await Api.post('/api/ilaclar/ice-aktar', { csv, onizleme: true });
+        const o = r.ozet;
+        modal.querySelector('#ia-sonuc').innerHTML = `
+          <p><b>${o.yeni}</b> yeni · <b>${o.guncelle}</b> güncellenecek · ${o.ayni} değişiklik yok · <b style="color:var(--danger)">${o.hata}</b> hatalı satır</p>
+          <p class="form-ipucu">Tanınan sütunlar: ${r.taninan_sutunlar.join(', ')}</p>
+          <div class="tablo-kaydir" style="max-height:320px;overflow-y:auto">
+            <table><thead><tr><th>Satır</th><th>İşlem</th><th>Ürün</th><th>Barkod</th><th>Ayrıntı</th></tr></thead>
+            <tbody>${r.satirlar
+              .map(
+                (s) => `<tr><td>${s.satir}</td><td>${ISLEM_ROZETI[s.islem]}</td><td>${UI.esc(s.ad)}</td><td>${UI.esc(s.barkod || '-')}</td>
+                  <td>${s.hatalar.length ? `<span style="color:var(--danger)">${UI.esc(s.hatalar.join('; '))}</span>` : UI.esc(s.degisen.join(', '))}</td></tr>`
+              )
+              .join('')}</tbody></table>
+          </div>`;
+        uygulaBtn.disabled = o.hata > 0 || o.yeni + o.guncelle === 0;
+        if (o.hata) UI.toast('Hatalı satırları düzeltip dosyayı tekrar seçin', 'error');
+      } catch (err) {
+        UI.toast(err.message, 'error');
+      }
+    });
+    uygulaBtn.addEventListener('click', async () => {
+      try {
+        const r = await Api.post('/api/ilaclar/ice-aktar', { csv });
+        UI.toast(`${r.ozet.yeni} ürün eklendi, ${r.ozet.guncelle} ürün güncellendi`, 'success');
+        UI.closeModal(modal);
+        onUygulandi();
+      } catch (err) {
+        UI.toast(err.message, 'error');
+      }
+    });
+  }
+
+  function topluFiyatModali(onUygulandi) {
+    const kategoriler = [...new Set(mevcutListe.map((i) => i.kategori).filter(Boolean))].sort();
+    const modal = UI.openModal(`
+      <h3 class="modal-genis">Toplu Fiyat Güncelleme</h3>
+      <form id="tf-form" class="form-grid">
+        <div>
+          <label>Hangi Ürünler</label>
+          <select name="hedef">
+            <option value="tumu|">Tüm ürünler</option>
+            <option value="receteli|">Reçeteli ilaçlar</option>
+            <option value="recetesiz|">Reçetesiz ürünler</option>
+            <optgroup label="Ürün tipi">${Object.entries(UI.URUN_TIPLERI).map(([v, l]) => `<option value="urun_tipi|${v}">${l}</option>`).join('')}</optgroup>
+            <optgroup label="Kategori">${kategoriler.map((k) => `<option value="kategori|${UI.esc(k)}">${UI.esc(k)}</option>`).join('')}</optgroup>
+          </select>
+        </div>
+        <div><label>Değişim (%)</label><input name="yuzde" type="number" step="0.1" value="10" title="Zam için pozitif, indirim için negatif" /></div>
+        <div>
+          <label>Hangi Fiyat</label>
+          <select name="alan"><option value="satis">Satış fiyatı</option><option value="alis">Alış fiyatı</option><option value="ikisi">İkisi birden</option></select>
+        </div>
+        <div>
+          <label>Satış Fiyatı Yuvarlama</label>
+          <select name="yuvarlama"><option value="kurus">Kuruş (12,34)</option><option value="yarim">0,50'ye (12,50)</option><option value="lira">Tam lira (12,00)</option><option value="doksan">,90 ile biten (11,90)</option></select>
+        </div>
+      </form>
+      <div id="tf-onizleme"></div>
+      <div class="modal-actions">
+        <button class="secondary" data-action="kapat">Vazgeç</button>
+        <button class="secondary" data-action="onizle">Önizle</button>
+        <button data-action="uygula" disabled>Uygula</button>
+      </div>
+    `);
+    const form = modal.querySelector('#tf-form');
+    const govde = (onizleme) => {
+      const [tip, deger] = form.hedef.value.split('|');
+      return { hedef: { tip, deger }, yuzde: Number(form.yuzde.value), alan: form.alan.value, yuvarlama: form.yuvarlama.value, onizleme };
+    };
+    const uygulaBtn = modal.querySelector('[data-action="uygula"]');
+    form.addEventListener('input', () => (uygulaBtn.disabled = true));
+    modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));
+    modal.querySelector('[data-action="onizle"]').addEventListener('click', async () => {
+      try {
+        const r = await Api.post('/api/ilaclar/toplu-fiyat', govde(true));
+        const zararina = r.degisiklikler.filter((d) => d.zararina).length;
+        modal.querySelector('#tf-onizleme').innerHTML = `
+          <p class="form-ipucu">${r.urun_sayisi} ürün güncellenecek.${zararina ? ` <b style="color:var(--danger)">${zararina} üründe satış fiyatı alışın altına düşüyor!</b>` : ''}</p>
+          <div class="tablo-kaydir" style="max-height:320px;overflow-y:auto">
+            <table><thead><tr><th>Ürün</th><th class="num">Satış (eski → yeni)</th><th class="num">Alış (eski → yeni)</th></tr></thead>
+            <tbody>${r.degisiklikler
+              .map(
+                (d) => `<tr${d.zararina ? ' style="color:var(--danger)"' : ''}><td>${UI.esc(d.ad)}</td>
+                  <td class="num">${UI.tl(d.eski_satis)} → <b>${UI.tl(d.yeni_satis)}</b></td>
+                  <td class="num">${UI.tl(d.eski_alis)} → ${UI.tl(d.yeni_alis)}</td></tr>`
+              )
+              .join('')}</tbody></table>
+          </div>`;
+        uygulaBtn.disabled = r.urun_sayisi === 0;
+      } catch (err) {
+        UI.toast(err.message, 'error');
+      }
+    });
+    uygulaBtn.addEventListener('click', async () => {
+      if (!window.confirm('Fiyatlar güncellenecek. Emin misiniz?')) return;
+      try {
+        const r = await Api.post('/api/ilaclar/toplu-fiyat', govde(false));
+        UI.toast(`${r.urun_sayisi} ürünün fiyatı güncellendi`, 'success');
+        UI.closeModal(modal);
+        onUygulandi();
+      } catch (err) {
+        UI.toast(err.message, 'error');
+      }
+    });
+  }
+
   const HAREKET_ROZETI = {
     giris: '<span class="badge ok">Giriş</span>',
     cikis: '<span class="badge danger">Çıkış</span>'
@@ -227,7 +373,7 @@
             ${Object.entries(UI.URUN_TIPLERI).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}
           </select>
           <div class="spacer"></div>
-          ${yazmaYetkisiVar(ctx) ? '<button id="yeni-ilac-btn">+ Yeni İlaç</button>' : ''}
+          ${yazmaYetkisiVar(ctx) ? '<button class="secondary" id="ice-aktar-btn">CSV İçe Aktar</button><button class="secondary" id="toplu-fiyat-btn">Toplu Fiyat</button><button id="yeni-ilac-btn">+ Yeni İlaç</button>' : ''}
         </div>
         <div class="card">
           <table>
@@ -265,6 +411,12 @@
       });
 
       if (yazmaYetkisiVar(ctx)) {
+        document.getElementById('ice-aktar-btn').addEventListener('click', () =>
+          iceAktarModali(() => yenile(document.getElementById('ilac-ara').value))
+        );
+        document.getElementById('toplu-fiyat-btn').addEventListener('click', () =>
+          topluFiyatModali(() => yenile(document.getElementById('ilac-ara').value))
+        );
         document.getElementById('yeni-ilac-btn').addEventListener('click', () => {
           const modal = UI.openModal(formHtml(null));
           formuBagla(modal, null, () => yenile(document.getElementById('ilac-ara').value));

@@ -25,7 +25,8 @@
           .map(
             (k, idx) => `
         <div class="cart-item">
-          <div class="name">${UI.esc(k.ad)}<br /><small>${UI.tl(k.satis_fiyati)} / adet</small><div class="kampanya-etiketi" data-ilac="${k.ilac_id}"></div></div>
+          <div class="name">${UI.esc(k.ad)}<br /><small>${UI.tl(k.satis_fiyati)} / adet</small><div class="kampanya-etiketi" data-ilac="${k.ilac_id}"></div>
+            ${['ilac', 'takviye'].includes(k.urun_tipi || 'ilac') ? `<input class="sepet-kullanim" data-idx="${idx}" placeholder="Kullanım (örn. Günde 2x1 tok)" value="${UI.esc(k.kullanim || '')}" />` : ''}</div>
           <input type="number" min="1" max="${k.mevcutStok}" value="${k.adet}" data-idx="${idx}" class="sepet-adet" />
           <button class="secondary" data-action="cikar" data-idx="${idx}">Sil</button>
         </div>`
@@ -37,6 +38,7 @@
     const yuzde = indirimYuzdesiOku();
     const indirimTutari = Math.round(araToplam * (yuzde / 100) * 100) / 100;
     toplamlariYaz({ ara_toplam: araToplam, kampanya_indirimi: 0, indirim_tutari: indirimTutari, toplam_tutar: araToplam - indirimTutari });
+    recetePaneliniGuncelle();
     onizlemeGuncelle();
     etkilesimKontrolEt();
   }
@@ -84,12 +86,60 @@
     }
   }
 
+  let sonToplam = 0;
+
+  // Sepette receteli urun varsa recete paneli acilir; ozel receteli (kirmizi/yesil/mor/turuncu)
+  // urun varsa recete turu ona gore secilir ve kontrollu ilaclar icin uyari gosterilir
+  function recetePaneliniGuncelle() {
+    const panel = document.getElementById('pos-recete-panel');
+    if (!panel) return;
+    const receteli = sepet.some((k) => k.receteli);
+    const ozel = sepet.find((k) => k.recete_turu);
+    panel.hidden = !(receteli || document.getElementById('pos-recete').checked);
+    const turSel = document.getElementById('pos-recete-turu');
+    if (ozel && turSel.dataset.otomatik !== ozel.recete_turu) {
+      turSel.value = ozel.recete_turu;
+      turSel.dataset.otomatik = ozel.recete_turu;
+    }
+    const kontrollu = sepet.filter((k) => ['kirmizi', 'yesil'].includes(k.recete_turu));
+    document.getElementById('pos-recete-uyari').innerHTML = kontrollu.length
+      ? `<b style="color:var(--danger)">Kontrollü ilaç: ${kontrollu.map((k) => UI.esc(k.ad)).join(', ')}</b> — reçete no, doktor ve hasta TC zorunlu.`
+      : 'Reçete bilgisi isteğe bağlıdır; reçete raporuna yansır.';
+  }
+
+  function karmaGuncelle() {
+    const kutu = document.getElementById('pos-karma');
+    if (!kutu) return;
+    kutu.hidden = document.getElementById('pos-odeme').value !== 'karma';
+    const nakit = Number(document.getElementById('pos-karma-nakit').value) || 0;
+    const kart = Math.round((sonToplam - nakit) * 100) / 100;
+    const el = document.getElementById('pos-karma-kart');
+    el.textContent = UI.tl(Math.max(0, kart));
+    el.style.color = kart < 0 ? 'var(--danger)' : '';
+  }
+
   function toplamlariYaz(h) {
+    sonToplam = h.toplam_tutar;
+    karmaGuncelle();
     document.getElementById('pos-ara-toplam').textContent = UI.tl(h.ara_toplam);
     const kampanyaSatiri = document.getElementById('pos-kampanya-satiri');
     kampanyaSatiri.hidden = !(h.kampanya_indirimi > 0);
     document.getElementById('pos-kampanya-tutari').textContent = '-' + UI.tl(h.kampanya_indirimi);
     document.getElementById('pos-indirim-tutari').textContent = '-' + UI.tl(h.indirim_tutari);
+    const puanSatiri = document.getElementById('pos-puan-satiri');
+    puanSatiri.hidden = !(h.puan_indirimi > 0);
+    document.getElementById('pos-puan-tutari').textContent = '-' + UI.tl(h.puan_indirimi || 0);
+    const kazan = document.getElementById('pos-kazanilacak');
+    kazan.hidden = !(h.kazanilacak_puan > 0);
+    kazan.textContent = `Bu alışverişte kazanılacak puan: ${h.kazanilacak_puan || 0}`;
+    const puanKutu = document.getElementById('pos-puan');
+    if (h.puan_bakiyesi != null) {
+      puanKutu.hidden = false;
+      document.getElementById('pos-puan-bakiye').textContent = `(bakiye ${h.puan_bakiyesi})`;
+      document.getElementById('pos-puan-kullan').max = h.puan_bakiyesi;
+    } else {
+      puanKutu.hidden = true;
+    }
     document.getElementById('sepet-toplam').textContent = UI.tl(h.toplam_tutar);
   }
 
@@ -100,8 +150,13 @@
     try {
       const h = await Api.post('/api/satislar/onizleme', {
         kalemler: sepet.map((k) => ({ ilac_id: k.ilac_id, adet: k.adet })),
-        indirim_yuzdesi: indirimYuzdesiOku()
+        indirim_yuzdesi: indirimYuzdesiOku(),
+        musteri_id: document.getElementById('pos-musteri').value || null,
+        puan_kullan: Number(document.getElementById('pos-puan-kullan').value) || 0,
+        odeme_tipi: document.getElementById('pos-odeme').value,
+        sgk_recete: document.getElementById('pos-recete').checked
       });
+      if (h.puan_hatasi) UI.toast(h.puan_hatasi, 'error');
       if (sayac !== onizlemeSayaci || !document.getElementById('sepet-toplam')) return;
       h.kalemler.forEach((k) => {
         const el = document.querySelector(`.kampanya-etiketi[data-ilac="${k.ilac_id}"]`);
@@ -126,7 +181,17 @@
         UI.toast('Bu ilacın stoğu yok', 'error');
         return;
       }
-      sepet.push({ ilac_id: ilac.id, ad: ilac.ad, satis_fiyati: ilac.satis_fiyati, adet: 1, mevcutStok: ilac.stok });
+      sepet.push({
+        ilac_id: ilac.id,
+        ad: ilac.ad,
+        satis_fiyati: ilac.satis_fiyati,
+        adet: 1,
+        mevcutStok: ilac.stok,
+        receteli: ilac.receteli,
+        recete_turu: ilac.recete_turu || null,
+        urun_tipi: ilac.urun_tipi || 'ilac',
+        kullanim: ''
+      });
     }
     sepetiCiz(container);
   }
@@ -192,7 +257,12 @@
           </div>
           <div>
             <div class="card">
-              <h3>Sepet</h3>
+              <div class="toolbar" style="margin:0 0 6px">
+                <h3 style="margin:0">Sepet</h3>
+                <div class="spacer"></div>
+                <button class="secondary" id="pos-beklet" title="Sepeti beklet (F8)">⏸ Beklet</button>
+                <button class="secondary" id="pos-bekleyenler">Bekleyenler <span class="badge muted" id="pos-bekleyen-sayi">0</span></button>
+              </div>
               ${
                 aktifKampanyalar.length
                   ? `<div class="pos-kampanyalar">🏷️ Aktif kampanyalar: ${aktifKampanyalar.map((k) => UI.esc(k.ad)).join(' · ')}</div>`
@@ -207,6 +277,10 @@
                     ${musteriler.map((m) => `<option value="${m.id}">${UI.esc(m.ad_soyad)}</option>`).join('')}
                   </select>
                   <div id="pos-saglik-uyarisi"></div>
+                  <div id="pos-puan" hidden style="margin-top:6px">
+                    <label>Puan Kullan <span class="form-ipucu" id="pos-puan-bakiye"></span></label>
+                    <div style="display:flex;gap:6px"><input id="pos-puan-kullan" type="number" min="0" step="1" value="0" /><button type="button" class="secondary" id="pos-puan-tumu">Tümü</button></div>
+                  </div>
                 </div>
                 <div>
                   <label>Ödeme Tipi</label>
@@ -215,7 +289,13 @@
                     <option value="kredi_karti">Kredi Kartı</option>
                     <option value="sgk">SGK</option>
                     <option value="veresiye">Veresiye (Cari Hesap)</option>
+                    <option value="karma">Nakit + Kart (bölünmüş)</option>
                   </select>
+                  <div id="pos-karma" hidden style="margin-top:6px">
+                    <label>Nakit Alınan</label>
+                    <input id="pos-karma-nakit" type="number" min="0" step="0.01" placeholder="0,00" />
+                    <p class="form-ipucu" style="margin:4px 0 0">Karttan: <b id="pos-karma-kart">0,00 TL</b></p>
+                  </div>
                 </div>
                 <div>
                   <label>İndirim (%)</label>
@@ -232,11 +312,25 @@
               <div class="cart-total" style="font-size:14px;font-weight:400;padding:0 0 6px;border-top:none;color:var(--danger)">
                 <span>İndirim</span><span id="pos-indirim-tutari">-0,00 TL</span>
               </div>
+              <div class="cart-total" id="pos-puan-satiri" hidden style="font-size:14px;font-weight:400;padding:0 0 6px;border-top:none;color:var(--success)">
+                <span>Puan İndirimi</span><span id="pos-puan-tutari">-0,00 TL</span>
+              </div>
+              <p class="form-ipucu" id="pos-kazanilacak" hidden style="margin:0 0 6px"></p>
               <div class="cart-total"><span>Toplam</span><span id="sepet-toplam">0,00 TL</span></div>
               <label><input type="checkbox" id="pos-recete" style="width:auto" /> Reçeteli / SGK işlemi</label>
+              <div class="recete-panel" id="pos-recete-panel" hidden>
+                <div id="pos-recete-uyari" class="form-ipucu" style="margin-top:0"></div>
+                <div class="form-grid">
+                  <div><label>Reçete No</label><input id="pos-recete-no" /></div>
+                  <div><label>Reçete Türü</label><select id="pos-recete-turu">${Object.entries(UI.RECETE_TURLERI).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></div>
+                  <div><label>Doktor</label><input id="pos-doktor" /></div>
+                  <div><label>Reçete Tarihi</label><input id="pos-recete-tarihi" type="date" /></div>
+                  <div><label>Hasta TC</label><input id="pos-hasta-tc" maxlength="11" placeholder="Müşteri seçiliyse kaydındaki TC" /></div>
+                </div>
+              </div>
               <button id="pos-tamamla" style="width:100%;margin-top:14px;padding:12px">Satışı Tamamla</button>
               <p style="color:var(--text-muted);font-size:11px;margin-top:8px">
-                Kısayollar: <b>F2</b> aramaya odaklan · arama kutusunda <b>Enter</b> ilk sonucu sepete ekler · <b>Ctrl+Enter</b> satışı tamamlar
+                Kısayollar: <b>F2</b> aramaya odaklan · arama kutusunda <b>Enter</b> ilk sonucu sepete ekler · <b>Ctrl+Enter</b> satışı tamamlar · <b>F8</b> sepeti beklet
               </p>
             </div>
           </div>
@@ -277,6 +371,10 @@
       });
 
       document.getElementById('sepet-liste').addEventListener('input', (e) => {
+        if (e.target.classList.contains('sepet-kullanim')) {
+          sepet[Number(e.target.dataset.idx)].kullanim = e.target.value;
+          return;
+        }
         if (!e.target.classList.contains('sepet-adet')) return;
         const idx = Number(e.target.dataset.idx);
         let val = Number(e.target.value) || 1;
@@ -293,8 +391,29 @@
       });
 
       document.getElementById('pos-indirim').addEventListener('input', () => sepetiCiz(container));
+      document.getElementById('pos-odeme').addEventListener('change', () => {
+        karmaGuncelle();
+        onizlemeGuncelle();
+      });
+      document.getElementById('pos-recete').addEventListener('change', () => {
+        recetePaneliniGuncelle();
+        onizlemeGuncelle();
+      });
+      let puanZamanlayici;
+      document.getElementById('pos-puan-kullan').addEventListener('input', () => {
+        clearTimeout(puanZamanlayici);
+        puanZamanlayici = setTimeout(onizlemeGuncelle, 250);
+      });
+      document.getElementById('pos-puan-tumu').addEventListener('click', () => {
+        const inp = document.getElementById('pos-puan-kullan');
+        inp.value = inp.max || 0;
+        onizlemeGuncelle();
+      });
+      document.getElementById('pos-karma-nakit').addEventListener('input', karmaGuncelle);
 
       document.getElementById('pos-musteri').addEventListener('change', async (e) => {
+        document.getElementById('pos-puan-kullan').value = 0;
+        onizlemeGuncelle();
         const uyariDiv = document.getElementById('pos-saglik-uyarisi');
         const musteri = musteriler.find((m) => String(m.id) === e.target.value);
         etkilesimKontrolEt();
@@ -329,6 +448,20 @@
           );
           if (!onay) return;
         }
+        let odemeler;
+        if (odemeTipi === 'karma') {
+          const nakit = Math.round((Number(document.getElementById('pos-karma-nakit').value) || 0) * 100) / 100;
+          const kart = Math.round((sonToplam - nakit) * 100) / 100;
+          if (nakit <= 0 || kart <= 0) {
+            UI.toast('Bölünmüş ödemede nakit tutarı 0 ile toplam arasında olmalı', 'error');
+            document.getElementById('pos-karma-nakit').focus();
+            return;
+          }
+          odemeler = [
+            { odeme_tipi: 'nakit', tutar: nakit },
+            { odeme_tipi: 'kredi_karti', tutar: kart }
+          ];
+        }
         if (odemeTipi === 'veresiye' && !musteriId) {
           UI.toast('Veresiye satış için müşteri seçin', 'error');
           document.getElementById('pos-musteri').focus();
@@ -342,7 +475,18 @@
             odeme_tipi: odemeTipi,
             sgk_recete: sgkRecete,
             indirim_yuzdesi: indirimYuzdesiOku(),
-            kalemler: sepet.map((k) => ({ ilac_id: k.ilac_id, adet: k.adet }))
+            odemeler,
+            puan_kullan: Number(document.getElementById('pos-puan-kullan').value) || 0,
+            ...(document.getElementById('pos-recete-panel').hidden
+              ? {}
+              : {
+                  recete_no: document.getElementById('pos-recete-no').value || null,
+                  recete_turu: document.getElementById('pos-recete-turu').value || null,
+                  doktor_adi: document.getElementById('pos-doktor').value || null,
+                  recete_tarihi: document.getElementById('pos-recete-tarihi').value || null,
+                  hasta_tc: document.getElementById('pos-hasta-tc').value || null
+                }),
+            kalemler: sepet.map((k) => ({ ilac_id: k.ilac_id, adet: k.adet, kullanim: k.kullanim || null }))
           });
 
           const uyariMetni = satis.kritik_stok_uyarisi.length
@@ -352,7 +496,7 @@
             : '';
 
           const indirimSatiri =
-            satis.indirim_tutari > 0 || satis.kampanya_indirimi > 0
+            satis.indirim_tutari > 0 || satis.kampanya_indirimi > 0 || satis.puan_indirimi > 0
               ? `<div class="cart-total" style="font-size:13px;font-weight:400;padding:4px 0;border-top:none">
                    <span>Ara Toplam</span><span>${UI.tl(satis.ara_toplam)}</span>
                  </div>
@@ -367,6 +511,13 @@
                    satis.indirim_tutari > 0
                      ? `<div class="cart-total" style="font-size:13px;font-weight:400;padding:0 0 4px;border-top:none;color:var(--danger)">
                           <span>İndirim</span><span>-${UI.tl(satis.indirim_tutari)}</span>
+                        </div>`
+                     : ''
+                 }
+                 ${
+                   satis.puan_indirimi > 0
+                     ? `<div class="cart-total" style="font-size:13px;font-weight:400;padding:0 0 4px;border-top:none;color:var(--success)">
+                          <span>Puan (${satis.kullanilan_puan})</span><span>-${UI.tl(satis.puan_indirimi)}</span>
                         </div>`
                      : ''
                  }`
@@ -390,6 +541,12 @@
               </table>
               ${indirimSatiri}
               <div class="cart-total"><span>Toplam</span><span>${UI.tl(satis.toplam_tutar)}</span></div>
+              ${
+                satis.odemeler && satis.odemeler.length
+                  ? `<p class="form-ipucu">Ödeme: ${satis.odemeler.map((o) => `${o.odeme_tipi === 'nakit' ? 'Nakit' : 'Kart'} ${UI.tl(o.tutar)}`).join(' + ')}</p>`
+                  : ''
+              }
+              ${satis.kazanilan_puan > 0 ? `<p class="form-ipucu">Kazanılan puan: <b>${satis.kazanilan_puan}</b></p>` : ''}
               ${uyariMetni}
             </div>
             <div class="modal-actions"><button class="secondary" data-action="yazdir">Fiş Yazdır</button><button data-action="kapat">Tamam</button></div>
@@ -404,12 +561,101 @@
         }
       });
 
+      const bekleyenSayisiniGuncelle = async () => {
+        const liste = await Api.get('/api/satislar/bekleyen').catch(() => []);
+        const el = document.getElementById('pos-bekleyen-sayi');
+        if (el) {
+          el.textContent = liste.length;
+          el.className = 'badge ' + (liste.length ? 'warn' : 'muted');
+        }
+        return liste;
+      };
+      bekleyenSayisiniGuncelle();
+
+      const sepetiBeklet = async () => {
+        if (!sepet.length) {
+          UI.toast('Sepet boş', 'error');
+          return;
+        }
+        const musteriSel = document.getElementById('pos-musteri');
+        const musteriAdi = musteriSel.value ? musteriSel.selectedOptions[0].textContent : '';
+        const etiket = window.prompt('Bekleyen sepet için kısa not (örn. müşteri adı):', musteriAdi);
+        if (etiket === null) return;
+        try {
+          await Api.post('/api/satislar/bekleyen', {
+            etiket,
+            veri: {
+              sepet,
+              musteri_id: musteriSel.value || null,
+              odeme_tipi: document.getElementById('pos-odeme').value,
+              indirim_yuzdesi: indirimYuzdesiOku(),
+              sgk_recete: document.getElementById('pos-recete').checked
+            }
+          });
+          UI.toast('Sepet bekletildi', 'success');
+          view.render(container);
+        } catch (err) {
+          UI.toast(err.message, 'error');
+        }
+      };
+
+      document.getElementById('pos-beklet').addEventListener('click', sepetiBeklet);
+      document.getElementById('pos-bekleyenler').addEventListener('click', async () => {
+        const liste = await bekleyenSayisiniGuncelle();
+        const modal = UI.openModal(`
+          <h3>Bekleyen Sepetler</h3>
+          ${
+            liste.length
+              ? `<table><thead><tr><th>Not</th><th>Ürünler</th><th>Kasiyer</th><th>Saat</th><th></th></tr></thead><tbody>${liste
+                  .map(
+                    (b) => `<tr><td>${UI.esc(b.etiket || '-')}</td>
+                      <td>${b.veri.sepet.map((k) => `${UI.esc(k.ad)} ×${k.adet}`).join(', ')}</td>
+                      <td>${UI.esc(b.kullanici_adi || '-')}</td><td>${UI.tarih(b.tarih).slice(11)}</td>
+                      <td class="actions-col"><button data-geri="${b.id}">Geri Al</button><button class="danger secondary" data-sil="${b.id}">Sil</button></td></tr>`
+                  )
+                  .join('')}</tbody></table>`
+              : '<div class="empty-state">Bekleyen sepet yok</div>'
+          }
+          <div class="modal-actions"><button class="secondary" data-action="kapat">Kapat</button></div>`);
+        modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));
+        modal.addEventListener('click', async (e) => {
+          const geri = e.target.closest('[data-geri]');
+          const sil = e.target.closest('[data-sil]');
+          if (geri) {
+            if (sepet.length && !window.confirm('Mevcut sepet silinecek. Devam edilsin mi? (Önce bekletmek için Vazgeç deyin)')) return;
+            try {
+              const veri = await Api.post(`/api/satislar/bekleyen/${geri.dataset.geri}/geri-al`, {});
+              UI.closeModal(modal);
+              sepet = veri.sepet;
+              document.getElementById('pos-musteri').value = veri.musteri_id || '';
+              document.getElementById('pos-musteri').dispatchEvent(new Event('change'));
+              document.getElementById('pos-odeme').value = veri.odeme_tipi || 'nakit';
+              document.getElementById('pos-indirim').value = veri.indirim_yuzdesi || 0;
+              document.getElementById('pos-recete').checked = Boolean(veri.sgk_recete);
+              sepetiCiz(container);
+              bekleyenSayisiniGuncelle();
+              UI.toast('Sepet geri alındı', 'success');
+            } catch (err) {
+              UI.toast(err.message, 'error');
+            }
+          } else if (sil) {
+            if (!window.confirm('Bekleyen sepet silinsin mi?')) return;
+            await Api.del(`/api/satislar/bekleyen/${sil.dataset.sil}`);
+            sil.closest('tr').remove();
+            bekleyenSayisiniGuncelle();
+          }
+        });
+      });
+
       if (genelKisayolDinleyici) document.removeEventListener('keydown', genelKisayolDinleyici);
       genelKisayolDinleyici = (e) => {
         if (location.hash !== '#satis') return;
         if (e.key === 'F2') {
           e.preventDefault();
           document.getElementById('pos-arama')?.focus();
+        } else if (e.key === 'F8') {
+          e.preventDefault();
+          document.getElementById('pos-beklet')?.click();
         } else if (e.key === 'Enter' && e.ctrlKey) {
           e.preventDefault();
           document.getElementById('pos-tamamla')?.click();

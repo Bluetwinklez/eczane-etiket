@@ -2,6 +2,7 @@ const express = require('express');
 const { db } = require('../db');
 const { partiGiris, partiyeGeriEkle } = require('../partiler');
 const { cariHareketEkle, yuvarla } = require('../cari');
+const { puanHareketi } = require('../sadakat');
 
 const router = express.Router();
 
@@ -14,10 +15,12 @@ function resolveSubeId(req, queryValue) {
 
 // Satis geneli yuzde indirim, kampanya sonrasi tutar uzerinden uygulandigi
 // icin her kalemin net tutari bu oranla carpilir.
+// Puanla odenen kisim da para olarak iade edilmez (puan geri yuklenir).
 function genelIndirimCarpani(satis) {
   const kampanyaSonrasi = satis.ara_toplam - (satis.kampanya_indirimi || 0);
-  if (!(kampanyaSonrasi > 0) || !satis.indirim_tutari) return 1;
-  return 1 - satis.indirim_tutari / kampanyaSonrasi;
+  const dusulen = (satis.indirim_tutari || 0) + (satis.puan_indirimi || 0);
+  if (!(kampanyaSonrasi > 0) || !dusulen) return 1;
+  return 1 - dusulen / kampanyaSonrasi;
 }
 
 function iadeEdilebilirKalemler(satis) {
@@ -149,6 +152,13 @@ router.post('/', (req, res) => {
       }
       // Parti kaydi bulunamayan kisim (eski satis veya silinmis parti) yeni bir iade partisi olur
       if (kalan > 0) partiGiris(kalem.ilac_id, satis.sube_id, kalan, { kaynak: `iade #${iadeId}` });
+    }
+
+    // Sadakat puani: kazanilan puan iade oraninda geri alinir, kullanilan puan geri yuklenir
+    if (satis.musteri_id && satis.toplam_tutar > 0) {
+      const oran = toplam / satis.toplam_tutar;
+      puanHareketi(satis.musteri_id, -Math.round((satis.kazanilan_puan || 0) * oran), `Iade #${iadeId} kazanim iptali`, satis.id, iadeId);
+      puanHareketi(satis.musteri_id, Math.round((satis.kullanilan_puan || 0) * oran), `Iade #${iadeId} puan iadesi`, satis.id, iadeId);
     }
 
     // Veresiye satisin iadesi musterinin borcundan dusulur
