@@ -6,6 +6,7 @@ const { musteriBakiyesi, cariHareketEkle } = require('../cari');
 const { puanUygula, puanHareketi } = require('../sadakat');
 const { RECETE_TURLERI, KONTROLLU_TURLER } = require('../sabitler');
 const { sqlSaatFarki, yerelSimdi } = require('../zaman');
+const { isletmeAyarlari } = require('./ayarlar');
 
 const ODEME_TIPLERI = ['nakit', 'kredi_karti', 'sgk', 'veresiye', 'karma'];
 
@@ -21,7 +22,7 @@ function resolveSubeId(req, queryValue) {
 // Sepeti dogrular ve stoklari kontrol eder; hata varsa { hata, kod } doner.
 function sepetiHazirla(kalemler, subeId) {
   if (!Array.isArray(kalemler) || kalemler.length === 0) {
-    return { kod: 400, hata: 'Sepet bos olamaz' };
+    return { kod: 400, hata: 'Sepet boş olamaz' };
   }
 
   // Ayni urun birden fazla satirda gelirse tek satirda birlestir (stok ve kampanya dogru hesaplansin)
@@ -29,7 +30,7 @@ function sepetiHazirla(kalemler, subeId) {
   for (const kalem of kalemler) {
     const adet = Number(kalem.adet);
     if (!kalem.ilac_id || !Number.isInteger(adet) || adet <= 0) {
-      return { kod: 400, hata: 'Gecersiz sepet kalemi' };
+      return { kod: 400, hata: 'Geçersiz sepet kalemi' };
     }
     const id = Number(kalem.ilac_id);
     birlesik.set(id, (birlesik.get(id) || 0) + adet);
@@ -38,7 +39,7 @@ function sepetiHazirla(kalemler, subeId) {
   const hazirlanmis = [];
   for (const [ilacId, adet] of birlesik) {
     const ilac = db.prepare('SELECT * FROM ilaclar WHERE id = ?').get(ilacId);
-    if (!ilac) return { kod: 404, hata: `Ilac bulunamadi: ${ilacId}` };
+    if (!ilac) return { kod: 404, hata: `İlaç bulunamadı: ${ilacId}` };
 
     const stokRow = db.prepare('SELECT stok FROM ilac_stok WHERE ilac_id = ? AND sube_id = ?').get(ilacId, subeId);
     const mevcutStok = stokRow ? stokRow.stok : 0;
@@ -68,9 +69,9 @@ router.get('/bekleyen', (req, res) => {
 
 router.post('/bekleyen', (req, res) => {
   const veri = req.body.veri;
-  if (!veri || !Array.isArray(veri.sepet) || !veri.sepet.length) return res.status(400).json({ error: 'Bos sepet bekletilemez' });
+  if (!veri || !Array.isArray(veri.sepet) || !veri.sepet.length) return res.status(400).json({ error: 'Boş sepet bekletilemez' });
   const metin = JSON.stringify(veri);
-  if (metin.length > 100000) return res.status(400).json({ error: 'Sepet cok buyuk' });
+  if (metin.length > 100000) return res.status(400).json({ error: 'Sepet çok büyük' });
   const sayi = db.prepare('SELECT COUNT(*) AS c FROM bekleyen_sepetler WHERE sube_id = ?').get(req.user.sube_id).c;
   if (sayi >= 20) return res.status(400).json({ error: 'En fazla 20 sepet bekletilebilir' });
   const info = db
@@ -82,14 +83,14 @@ router.post('/bekleyen', (req, res) => {
 // Geri alinan sepet silinir ve icerigi doner
 router.post('/bekleyen/:id/geri-al', (req, res) => {
   const row = db.prepare('SELECT * FROM bekleyen_sepetler WHERE id = ? AND sube_id = ?').get(req.params.id, req.user.sube_id);
-  if (!row) return res.status(404).json({ error: 'Bekleyen sepet bulunamadi' });
+  if (!row) return res.status(404).json({ error: 'Bekleyen sepet bulunamadı' });
   db.prepare('DELETE FROM bekleyen_sepetler WHERE id = ?').run(row.id);
   res.json(JSON.parse(row.veri));
 });
 
 router.delete('/bekleyen/:id', (req, res) => {
   const info = db.prepare('DELETE FROM bekleyen_sepetler WHERE id = ? AND sube_id = ?').run(req.params.id, req.user.sube_id);
-  if (!info.changes) return res.status(404).json({ error: 'Bekleyen sepet bulunamadi' });
+  if (!info.changes) return res.status(404).json({ error: 'Bekleyen sepet bulunamadı' });
   res.status(204).end();
 });
 
@@ -125,15 +126,23 @@ router.post('/', (req, res) => {
   const { hazirlanmis, hata, kod } = sepetiHazirla(kalemler, subeId);
   if (hata) return res.status(kod).json({ error: hata });
 
+  // Kasiyer, yoneticinin belirledigi limitin ustunde sepet indirimi yapamaz
+  if (req.user.rol === 'kasiyer') {
+    const limit = isletmeAyarlari().kasiyer_indirim_limiti;
+    if (indirimYuzdesiOku(indirim_yuzdesi) > limit) {
+      return res.status(403).json({ error: `Kasiyer en fazla %${limit} indirim uygulayabilir; daha fazlası için eczacıya danışın` });
+    }
+  }
+
   const hesap = sepetHesapla(hazirlanmis, indirimYuzdesiOku(indirim_yuzdesi));
 
   const odemeTipi = odeme_tipi || 'nakit';
-  if (!ODEME_TIPLERI.includes(odemeTipi)) return res.status(400).json({ error: 'Gecersiz odeme tipi' });
+  if (!ODEME_TIPLERI.includes(odemeTipi)) return res.status(400).json({ error: 'Geçersiz ödeme tipi' });
 
   let musteri = null;
   if (musteri_id) {
     musteri = db.prepare('SELECT * FROM musteriler WHERE id = ?').get(musteri_id);
-    if (!musteri) return res.status(404).json({ error: 'Musteri bulunamadi' });
+    if (!musteri) return res.status(404).json({ error: 'Müşteri bulunamadı' });
   }
   // Recete bilgisi: kirmizi/yesil receteli ilaclar recete no, dogru recete
   // turu, doktor ve hasta TC olmadan satilamaz (kontrollu ilac defteri icin)
@@ -145,20 +154,20 @@ router.post('/', (req, res) => {
     hasta_tc: req.body.hasta_tc ? String(req.body.hasta_tc).trim() : (musteri && musteri.tc_no) || null
   };
   if (recete.recete_turu && !Object.prototype.hasOwnProperty.call(RECETE_TURLERI, recete.recete_turu)) {
-    return res.status(400).json({ error: 'Gecersiz recete turu' });
+    return res.status(400).json({ error: 'Geçersiz reçete türü' });
   }
   if (recete.recete_tarihi && !/^\d{4}-\d{2}-\d{2}$/.test(recete.recete_tarihi)) {
-    return res.status(400).json({ error: 'Recete tarihi gecersiz' });
+    return res.status(400).json({ error: 'Reçete tarihi geçersiz' });
   }
-  if (recete.hasta_tc && !/^[1-9]\d{10}$/.test(recete.hasta_tc)) return res.status(400).json({ error: 'Hasta TC kimlik no 11 haneli olmali' });
+  if (recete.hasta_tc && !/^[1-9]\d{10}$/.test(recete.hasta_tc)) return res.status(400).json({ error: 'Hasta TC kimlik no 11 haneli olmalı' });
   for (const { ilac } of hazirlanmis) {
     if (!ilac.recete_turu) continue;
     const ad = RECETE_TURLERI[ilac.recete_turu];
     if (recete.recete_turu !== ilac.recete_turu) {
-      return res.status(400).json({ error: `${ilac.ad} ${ad} receteyle satilir; recete turunu secin` });
+      return res.status(400).json({ error: `${ilac.ad} ${ad} reçeteyle satılır; reçete türünü seçin` });
     }
     if (KONTROLLU_TURLER.includes(ilac.recete_turu) && (!recete.recete_no || !recete.doktor_adi || !recete.hasta_tc)) {
-      return res.status(400).json({ error: `${ilac.ad} kontrollu ilactir: recete no, doktor ve hasta TC zorunlu` });
+      return res.status(400).json({ error: `${ilac.ad} kontrollü ilaçtır: reçete no, doktor ve hasta TC zorunlu` });
     }
   }
 
@@ -174,22 +183,22 @@ router.post('/', (req, res) => {
       .map((o) => ({ odeme_tipi: o.odeme_tipi, tutar: Math.round(Number(o.tutar) * 100) / 100 }))
       .filter((o) => o.tutar > 0);
     if (odemeler.some((o) => !['nakit', 'kredi_karti'].includes(o.odeme_tipi) || !Number.isFinite(o.tutar))) {
-      return res.status(400).json({ error: 'Bolunmus odemede yalnizca nakit ve kart kullanilabilir' });
+      return res.status(400).json({ error: 'Bölünmüş ödemede yalnızca nakit ve kart kullanılabilir' });
     }
-    if (odemeler.length < 2) return res.status(400).json({ error: 'Bolunmus odeme en az iki parcadan olusmali' });
+    if (odemeler.length < 2) return res.status(400).json({ error: 'Bölünmüş ödeme en az iki parçadan oluşmalı' });
     const toplam = odemeler.reduce((t, o) => t + o.tutar, 0);
     if (Math.abs(toplam - hesap.toplam_tutar) > 0.009) {
-      return res.status(400).json({ error: `Odemelerin toplami (${toplam.toFixed(2)}) satis tutarina (${hesap.toplam_tutar.toFixed(2)}) esit olmali` });
+      return res.status(400).json({ error: `Ödemelerin toplamı (${toplam.toFixed(2)}) satış tutarına (${hesap.toplam_tutar.toFixed(2)}) eşit olmalı` });
     }
   }
 
   if (odemeTipi === 'veresiye') {
-    if (!musteri) return res.status(400).json({ error: 'Veresiye satis icin musteri secilmelidir' });
+    if (!musteri) return res.status(400).json({ error: 'Veresiye satış için müşteri seçilmelidir' });
     if (musteri.veresiye_limiti != null) {
       const yeniBakiye = musteriBakiyesi(musteri.id) + hesap.toplam_tutar;
       if (yeniBakiye > musteri.veresiye_limiti + 0.001) {
         return res.status(400).json({
-          error: `Veresiye limiti asiliyor (limit: ${musteri.veresiye_limiti.toFixed(2)} TL, mevcut borc: ${musteriBakiyesi(musteri.id).toFixed(2)} TL)`
+          error: `Veresiye limiti aşılıyor (limit: ${musteri.veresiye_limiti.toFixed(2)} TL, mevcut borç: ${musteriBakiyesi(musteri.id).toFixed(2)} TL)`
         });
       }
     }
@@ -258,12 +267,12 @@ router.post('/', (req, res) => {
       for (const d of partiCikis(ilac.id, subeId, adet)) {
         insertKalemParti.run(kalemInfo.lastInsertRowid, d.parti_id, d.adet);
       }
-      insertHareket.run(ilac.id, subeId, adet, `Satis #${satisId}`);
+      insertHareket.run(ilac.id, subeId, adet, `Satış #${satisId}`);
     });
 
     if (musteri) {
-      puanHareketi(musteri.id, -puan.kullanilan_puan, `Satis #${satisId} puan kullanimi`, satisId);
-      puanHareketi(musteri.id, puan.kazanilacak_puan, `Satis #${satisId} kazanim`, satisId);
+      puanHareketi(musteri.id, -puan.kullanilan_puan, `Satış #${satisId} puan kullanımı`, satisId);
+      puanHareketi(musteri.id, puan.kazanilacak_puan, `Satış #${satisId} kazanım`, satisId);
     }
 
     if (odemeler) {
@@ -278,7 +287,7 @@ router.post('/', (req, res) => {
         tip: 'borc',
         tutar: hesap.toplam_tutar,
         satis_id: satisId,
-        aciklama: `Satis #${satisId}`,
+        aciklama: `Satış #${satisId}`,
         kullanici_id: req.user.id
       });
     }
@@ -295,7 +304,7 @@ router.post('/', (req, res) => {
     res.status(201).json({ ...satis, kalemler: items, odemeler: odemeDokumu, kritik_stok_uyarisi: dusukStokUyarisi });
   } catch (err) {
     db.exec('ROLLBACK');
-    res.status(500).json({ error: 'Satis olusturulamadi' });
+    res.status(500).json({ error: 'Satış oluşturulamadı' });
   }
 });
 
@@ -403,7 +412,7 @@ router.get('/panel-ozet', (req, res) => {
 
 router.get('/:id', (req, res) => {
   const satis = db.prepare('SELECT * FROM satislar WHERE id = ?').get(req.params.id);
-  if (!satis) return res.status(404).json({ error: 'Satis bulunamadi' });
+  if (!satis) return res.status(404).json({ error: 'Satış bulunamadı' });
   const kalemler = db.prepare('SELECT * FROM satis_kalemleri WHERE satis_id = ?').all(req.params.id);
   res.json({ ...satis, kalemler });
 });

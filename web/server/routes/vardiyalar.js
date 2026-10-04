@@ -62,11 +62,11 @@ router.put('/', requireRole('admin', 'eczaci'), (req, res) => {
   const { kullanici_id, tarih, baslangic, bitis, notlar } = req.body;
   const tip = req.body.tip || 'calisma';
   const kisi = db.prepare('SELECT id FROM kullanicilar WHERE id = ? AND sube_id = ?').get(kullanici_id, req.user.sube_id);
-  if (!kisi) return res.status(404).json({ error: 'Personel bu subede bulunamadi' });
-  if (!TARIH.test(String(tarih))) return res.status(400).json({ error: 'Tarih gecersiz' });
-  if (!['calisma', 'izin', 'rapor'].includes(tip)) return res.status(400).json({ error: 'Gecersiz vardiya tipi' });
+  if (!kisi) return res.status(404).json({ error: 'Personel bu şubede bulunamadı' });
+  if (!TARIH.test(String(tarih))) return res.status(400).json({ error: 'Tarih geçersiz' });
+  if (!['calisma', 'izin', 'rapor'].includes(tip)) return res.status(400).json({ error: 'Geçersiz vardiya tipi' });
   if (tip === 'calisma' && (!SAAT.test(String(baslangic)) || !SAAT.test(String(bitis)))) {
-    return res.status(400).json({ error: 'Calisma icin baslangic ve bitis saati SS:DD olmali' });
+    return res.status(400).json({ error: 'Çalışma için başlangıç ve bitiş saati SS:DD olmalı' });
   }
   db.prepare(
     `INSERT INTO vardiyalar (sube_id, kullanici_id, tarih, tip, baslangic, bitis, notlar) VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -81,18 +81,18 @@ router.delete('/', requireRole('admin', 'eczaci'), (req, res) => {
   const info = db
     .prepare('DELETE FROM vardiyalar WHERE kullanici_id = ? AND tarih = ? AND sube_id = ?')
     .run(Number(req.query.kullanici_id), String(req.query.tarih), req.user.sube_id);
-  if (!info.changes) return res.status(404).json({ error: 'Vardiya bulunamadi' });
+  if (!info.changes) return res.status(404).json({ error: 'Vardiya bulunamadı' });
   res.status(204).end();
 });
 
 // Bir haftanin cizelgesini baska haftaya kopyalar; hedefte dolu gunlere dokunmaz
 router.post('/kopyala', requireRole('admin', 'eczaci'), (req, res) => {
   if (!TARIH.test(String(req.body.kaynak_hafta)) || !TARIH.test(String(req.body.hedef_hafta))) {
-    return res.status(400).json({ error: 'Hafta tarihleri gecersiz' });
+    return res.status(400).json({ error: 'Hafta tarihleri geçersiz' });
   }
   const kaynak = haftaBasi(req.body.kaynak_hafta);
   const hedef = haftaBasi(req.body.hedef_hafta);
-  if (kaynak === hedef) return res.status(400).json({ error: 'Kaynak ve hedef hafta ayni' });
+  if (kaynak === hedef) return res.status(400).json({ error: 'Kaynak ve hedef hafta aynı' });
   const kayitlar = db
     .prepare('SELECT * FROM vardiyalar WHERE sube_id = ? AND tarih BETWEEN ? AND ?')
     .all(req.user.sube_id, kaynak, gunEkle(kaynak, 6));
@@ -120,7 +120,7 @@ router.get('/notlar', (req, res) => {
 
 router.post('/notlar', (req, res) => {
   const metin = String(req.body.metin || '').trim();
-  if (!metin) return res.status(400).json({ error: 'Not bos olamaz' });
+  if (!metin) return res.status(400).json({ error: 'Not boş olamaz' });
   const info = db
     .prepare('INSERT INTO vardiya_notlari (sube_id, kullanici_id, metin) VALUES (?, ?, ?)')
     .run(req.user.sube_id, req.user.id, metin.slice(0, 1000));
@@ -131,7 +131,7 @@ router.put('/notlar/:id', (req, res) => {
   const info = db
     .prepare('UPDATE vardiya_notlari SET tamamlandi = ? WHERE id = ? AND sube_id = ?')
     .run(req.body.tamamlandi ? 1 : 0, req.params.id, req.user.sube_id);
-  if (!info.changes) return res.status(404).json({ error: 'Not bulunamadi' });
+  if (!info.changes) return res.status(404).json({ error: 'Not bulunamadı' });
   res.json(db.prepare('SELECT * FROM vardiya_notlari WHERE id = ?').get(req.params.id));
 });
 

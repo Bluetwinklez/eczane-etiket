@@ -16,7 +16,7 @@ after(() => sunucu.kapat());
 test('istek: urun stoga girince stokta_var olur, kayitli musteriye haber verilir', async () => {
   const ilac = (await admin.post('/api/ilaclar', { ad: 'Istek Urunu', satis_fiyati: 10 })).data;
   const ist = (await kasiyer.post('/api/istekler', { musteri_id: 1, ilac_id: ilac.id, adet: 2 })).data;
-  assert.equal(ist.musteri_adi, 'Ahmet Yilmaz');
+  assert.equal(ist.musteri_adi, 'Ahmet Yılmaz');
   assert.equal(ist.telefon, '05551112233');
 
   let liste = (await kasiyer.get('/api/istekler?durum=acik')).data;

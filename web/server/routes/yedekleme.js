@@ -25,14 +25,14 @@ router.post('/otomatik/simdi', (req, res) => {
 
 router.get('/otomatik/:dosya', (req, res) => {
   const yol = yedekDosyaYolu(req.params.dosya);
-  if (!yol) return res.status(404).json({ error: 'Yedek bulunamadi' });
+  if (!yol) return res.status(404).json({ error: 'Yedek bulunamadı' });
   res.download(yol, req.params.dosya);
 });
 
 router.post('/import', (req, res) => {
   const { tablolar } = req.body;
   if (!tablolar || typeof tablolar !== 'object') {
-    return res.status(400).json({ error: 'Gecersiz yedek dosyasi' });
+    return res.status(400).json({ error: 'Geçersiz yedek dosyası' });
   }
 
   db.exec('PRAGMA foreign_keys = OFF');
@@ -64,7 +64,7 @@ router.post('/import', (req, res) => {
   } catch (err) {
     db.exec('ROLLBACK');
     db.exec('PRAGMA foreign_keys = ON');
-    res.status(500).json({ error: 'Yedek geri yuklenemedi: ' + err.message });
+    res.status(500).json({ error: 'Yedek geri yüklenemedi: ' + err.message });
   }
 });
 

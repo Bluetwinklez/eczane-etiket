@@ -304,3 +304,28 @@ def test_medula_quick_paste_prompts_to_print(app, monkeypatch):
     # 'Evet' dendiği için _on_print tetiklenmiş olmalı
     assert len(print_called) == 1
 
+
+
+def test_medula_quick_paste_not_reimported_by_clipboard_watcher(app, monkeypatch):
+    """Ctrl+M ile çekilen reçete, arka plandaki pano izleyicisince ikinci kez alınmamalı."""
+    from tkinter import messagebox
+
+    sample_medula = (
+        "Reçete No: 654321\n"
+        "Hasta: Ali Kaya\n"
+        "1- PAROL 500MG 20 TABLET - Günde 3x1 Tok\n"
+    )
+    monkeypatch.setattr(app, "clipboard_get", lambda: sample_medula)
+    ask_called = []
+    monkeypatch.setattr(messagebox, "askyesno", lambda title, message, parent=None: ask_called.append(title) or False)
+    monkeypatch.setattr(app, "after", lambda *a, **k: None)  # izleyiciyi yeniden zamanlama
+
+    app.auto_medula_var.set(True)
+    app._quick_paste_from_clipboard()
+    sorulan = len(ask_called)
+    adet = len(app.batch_entries)
+
+    # Izleyici ayni pano icerigini gorur: tekrar ice almamali, soru sormamali
+    app._poll_clipboard_for_medula()
+    assert len(ask_called) == sorulan
+    assert len(app.batch_entries) == adet

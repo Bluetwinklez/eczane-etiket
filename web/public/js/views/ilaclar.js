@@ -69,9 +69,21 @@
           <div><label>Satış Fiyatı</label><input name="satis_fiyati" type="number" step="0.01" min="0" required value="${i.satis_fiyati ?? ''}" /></div>
           <div><label>Kritik Stok Sınırı</label><input name="kritik_stok" type="number" min="0" value="${i.kritik_stok ?? 10}" /></div>
           <div><label>Varsayılan SKT</label><input name="skt" type="date" value="${i.skt || ''}" title="SKT girilmeyen stok girişlerinde kullanılır" /></div>
+          <div><label>Raf Konumu</label><input name="raf_konumu" value="${UI.esc(i.raf_konumu || '')}" placeholder="örn. A3, Buzdolabı" maxlength="40" /></div>
+          <div>
+            <label>Gebelik / Emzirme</label>
+            <select name="gebelik_uyari">
+              <option value="">Uyarı yok</option>
+              <option value="dikkat" ${i.gebelik_uyari === 'dikkat' ? 'selected' : ''}>Dikkatli kullanılmalı</option>
+              <option value="kontrendike" ${i.gebelik_uyari === 'kontrendike' ? 'selected' : ''}>Kontrendike</option>
+            </select>
+          </div>
+          <div><label>En Küçük Kullanım Yaşı</label><input name="min_yas" type="number" min="0" max="99" value="${i.min_yas ?? ''}" placeholder="Boş = sınır yok" /></div>
           ${!ilac ? '<div><label>Başlangıç Stoku</label><input name="stok" type="number" min="0" value="0" /></div><div><label>Parti / Lot No</label><input name="parti_no" placeholder="opsiyonel" /></div>' : ''}
         </div>
         <div><label><input type="checkbox" name="receteli" style="width:auto" ${i.receteli ? 'checked' : ''} /> Reçeteli ilaç</label></div>
+        <div><label><input type="checkbox" name="yasli_uyari" style="width:auto" ${i.yasli_uyari ? 'checked' : ''} /> 65 yaş üstünde dikkat gerektirir (kasada uyarı)</label></div>
+        <div><label><input type="checkbox" name="hizli_tus" style="width:auto" ${i.hizli_tus ? 'checked' : ''} /> Kasada hızlı tuş olarak göster</label></div>
         <div class="modal-actions">
           <button type="button" class="secondary" data-action="kapat">Vazgeç</button>
           <button type="submit">Kaydet</button>
@@ -97,7 +109,12 @@
       urun_tipi: fd.get('urun_tipi'),
       etken_madde: fd.get('etken_madde') || null,
       kutu_gun: fd.get('kutu_gun') === '' ? null : Number(fd.get('kutu_gun')),
-      recete_turu: fd.get('recete_turu') || null
+      recete_turu: fd.get('recete_turu') || null,
+      raf_konumu: fd.get('raf_konumu') || null,
+      gebelik_uyari: fd.get('gebelik_uyari') || null,
+      min_yas: fd.get('min_yas') === '' ? null : Number(fd.get('min_yas')),
+      yasli_uyari: form.querySelector('[name="yasli_uyari"]').checked,
+      hizli_tus: form.querySelector('[name="hizli_tus"]').checked
     };
   }
 
@@ -373,7 +390,7 @@
             ${Object.entries(UI.URUN_TIPLERI).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}
           </select>
           <div class="spacer"></div>
-          ${yazmaYetkisiVar(ctx) ? '<button class="secondary" id="ice-aktar-btn">CSV İçe Aktar</button><button class="secondary" id="toplu-fiyat-btn">Toplu Fiyat</button><button id="yeni-ilac-btn">+ Yeni İlaç</button>' : ''}
+          ${yazmaYetkisiVar(ctx) ? '<a class="hap-link ikincil-link" href="/api/ilaclar/disa-aktar" download>CSV Dışa Aktar</a><button class="secondary" id="ice-aktar-btn">CSV İçe Aktar</button><button class="secondary" id="toplu-fiyat-btn">Toplu Fiyat</button><button id="yeni-ilac-btn">+ Yeni İlaç</button>' : ''}
         </div>
         <div class="card">
           <table>

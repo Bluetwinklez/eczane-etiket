@@ -105,13 +105,13 @@ function tarihCoz(metin) {
 // Her satiri { alanlar, hatalar } olarak cozer; yalnizca dolu hucreler alana yazilir
 function satirlariCoz(metin) {
   const tablo = csvAyristir(metin);
-  if (tablo.length < 2) return { hata: 'Dosyada baslik satiri ve en az bir urun satiri olmali' };
+  if (tablo.length < 2) return { hata: 'Dosyada baslik satiri ve en az bir ürün satiri olmalı' };
   const sutunlar = tablo[0].map((b) => {
     const a = anahtar(b);
     return Object.keys(BASLIKLAR).find((alan) => BASLIKLAR[alan].includes(a)) || null;
   });
   if (!sutunlar.includes('ad') && !sutunlar.includes('barkod')) {
-    return { hata: 'Baslikta en az "Ad" veya "Barkod" sutunu olmali' };
+    return { hata: 'Baslikta en az "Ad" veya "Barkod" sutunu olmalı' };
   }
 
   const satirlar = tablo.slice(1).map((hucreler, idx) => {
@@ -123,23 +123,23 @@ function satirlariCoz(metin) {
       if (ham === '') return;
       if (['alis_fiyati', 'satis_fiyati'].includes(alan)) {
         const n = sayi(ham);
-        if (Number.isNaN(n) || n < 0) hatalar.push(`${alan} gecersiz: "${ham}"`);
+        if (Number.isNaN(n) || n < 0) hatalar.push(`${alan} geçersiz: "${ham}"`);
         else alanlar[alan] = Math.round(n * 100) / 100;
       } else if (['kritik_stok', 'kutu_gun'].includes(alan)) {
         const n = sayi(ham);
-        if (!Number.isInteger(n) || n < 0 || (alan === 'kutu_gun' && (n < 1 || n > 365))) hatalar.push(`${alan} gecersiz: "${ham}"`);
+        if (!Number.isInteger(n) || n < 0 || (alan === 'kutu_gun' && (n < 1 || n > 365))) hatalar.push(`${alan} geçersiz: "${ham}"`);
         else alanlar[alan] = n;
       } else if (alan === 'receteli') {
         const v = evetHayir(ham);
-        if (v === null) hatalar.push(`receteli gecersiz: "${ham}"`);
+        if (v === null) hatalar.push(`reçeteli geçersiz: "${ham}"`);
         else alanlar.receteli = v;
       } else if (alan === 'urun_tipi') {
         const v = urunTipiCoz(ham);
-        if (!v) hatalar.push(`urun tipi taninmadi: "${ham}"`);
+        if (!v) hatalar.push(`ürün tipi tanınmadı: "${ham}"`);
         else alanlar.urun_tipi = v;
       } else if (alan === 'skt') {
         const v = tarihCoz(ham);
-        if (!v) hatalar.push(`SKT gecersiz: "${ham}"`);
+        if (!v) hatalar.push(`SKT geçersiz: "${ham}"`);
         else alanlar.skt = v;
       } else if (alan === 'etken_madde') {
         alanlar.etken_madde = ham.toLocaleLowerCase('tr-TR').split(/[,+;/]/).map((m) => m.trim()).filter(Boolean).join(', ');

@@ -58,12 +58,12 @@ router.get('/', (req, res) => {
 router.put('/', requireRole('admin', 'eczaci'), (req, res) => {
   const { ay } = req.body;
   const hedef = Number(req.body.hedef_tutar);
-  if (!AY.test(String(ay))) return res.status(400).json({ error: 'Ay YYYY-AA formatinda olmali' });
+  if (!AY.test(String(ay))) return res.status(400).json({ error: 'Ay YYYY-AA formatında olmalı' });
   if (req.body.hedef_tutar === null || req.body.hedef_tutar === '') {
     db.prepare('DELETE FROM satis_hedefleri WHERE sube_id = ? AND ay = ?').run(req.user.sube_id, ay);
     return res.json(hedefDurumu(req.user.sube_id, ay));
   }
-  if (!(hedef > 0)) return res.status(400).json({ error: 'Hedef tutari pozitif olmali' });
+  if (!(hedef > 0)) return res.status(400).json({ error: 'Hedef tutarı pozitif olmalı' });
   db.prepare(
     `INSERT INTO satis_hedefleri (sube_id, ay, hedef_tutar) VALUES (?, ?, ?)
      ON CONFLICT(sube_id, ay) DO UPDATE SET hedef_tutar = excluded.hedef_tutar`

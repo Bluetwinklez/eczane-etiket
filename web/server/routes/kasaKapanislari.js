@@ -1,5 +1,6 @@
 const express = require('express');
 const { db } = require('../db');
+const { sqlSaatFarki } = require('../zaman');
 
 const router = express.Router();
 
@@ -91,6 +92,18 @@ function gununOzeti(subeId, tarih) {
     else if (i.odeme_tipi === 'veresiye') ozet.veresiye -= i.toplam;
   }
   ozet.toplam -= ozet.iade;
+
+  // Gun ici kasa giris/cikislari (bozuk para, avans, fatura odemesi) beklenen nakdi degistirir, ciroyu degil
+  const hareket = db
+    .prepare(
+      `SELECT COALESCE(SUM(CASE WHEN tip = 'giris' THEN tutar END), 0) AS giris,
+              COALESCE(SUM(CASE WHEN tip = 'cikis' THEN tutar END), 0) AS cikis
+       FROM kasa_hareketleri WHERE sube_id = ? AND date(tarih) = ?`
+    )
+    .get(subeId, tarih);
+  ozet.kasa_giris = Math.round(hareket.giris * 100) / 100;
+  ozet.kasa_cikis = Math.round(hareket.cikis * 100) / 100;
+  ozet.nakit += ozet.kasa_giris - ozet.kasa_cikis;
   for (const alan of ['nakit', 'kart', 'sgk', 'veresiye', 'toplam', 'iade']) {
     ozet[alan] = Math.round(ozet[alan] * 100) / 100;
   }
@@ -100,6 +113,79 @@ function gununOzeti(subeId, tarih) {
   ozet.satis_adedi = satisAdedi;
   return ozet;
 }
+
+// ---- Gun ici kasa giris/cikis hareketleri ----
+function bugun() {
+  return new Date().toISOString().slice(0, 10);
+}
+function kasaKapaliMi(subeId, tarih) {
+  return Boolean(db.prepare('SELECT id FROM kasa_kapanislari WHERE sube_id = ? AND tarih = ?').get(subeId, tarih));
+}
+
+router.get('/hareketler', (req, res) => {
+  const tarih = req.query.tarih || bugun();
+  res.json(
+    db
+      .prepare(
+        `SELECT h.*, k.ad_soyad AS kullanici_adi FROM kasa_hareketleri h LEFT JOIN kullanicilar k ON k.id = h.kullanici_id
+         WHERE h.sube_id = ? AND date(h.tarih) = ? ORDER BY h.tarih DESC, h.id DESC`
+      )
+      .all(req.user.sube_id, tarih)
+  );
+});
+
+router.post('/hareketler', (req, res) => {
+  const { tip } = req.body;
+  const tutar = Math.round(Number(req.body.tutar) * 100) / 100;
+  const aciklama = String(req.body.aciklama || '').trim();
+  if (!['giris', 'cikis'].includes(tip)) return res.status(400).json({ error: 'Hareket tipi giriş veya çıkış olmalı' });
+  if (!(tutar > 0)) return res.status(400).json({ error: 'Geçerli bir tutar girin' });
+  if (!aciklama) return res.status(400).json({ error: 'Açıklama zorunludur' });
+  if (kasaKapaliMi(req.user.sube_id, bugun())) return res.status(409).json({ error: 'Bugünün kasası kapatıldı; hareket eklenemez' });
+  const info = db
+    .prepare('INSERT INTO kasa_hareketleri (sube_id, tip, tutar, aciklama, kullanici_id) VALUES (?, ?, ?, ?, ?)')
+    .run(req.user.sube_id, tip, tutar, aciklama.slice(0, 200), req.user.id);
+  res.status(201).json(db.prepare('SELECT * FROM kasa_hareketleri WHERE id = ?').get(info.lastInsertRowid));
+});
+
+router.delete('/hareketler/:id', (req, res) => {
+  const h = db.prepare('SELECT * FROM kasa_hareketleri WHERE id = ? AND sube_id = ?').get(req.params.id, req.user.sube_id);
+  if (!h) return res.status(404).json({ error: 'Kasa hareketi bulunamadı' });
+  const yonetici = req.user.rol === 'admin' || req.user.rol === 'eczaci';
+  if (!yonetici && h.kullanici_id !== req.user.id) return res.status(403).json({ error: 'Yalnızca kendi kaydınızı silebilirsiniz' });
+  if (kasaKapaliMi(h.sube_id, h.tarih.slice(0, 10))) return res.status(409).json({ error: 'Kasası kapatılmış günün hareketi silinemez' });
+  db.prepare('DELETE FROM kasa_hareketleri WHERE id = ?').run(h.id);
+  res.status(204).end();
+});
+
+// X raporu: kasayi kapatmadan gun icindeki ara durum (saatlik ve kasiyer kirilimi)
+router.get('/x-raporu', (req, res) => {
+  const subeId = req.user.sube_id;
+  const tarih = bugun();
+  const saatlik = db
+    .prepare(
+      `SELECT CAST(strftime('%H', tarih, ?) AS INTEGER) AS saat, COUNT(*) AS adet, SUM(toplam_tutar) AS ciro
+       FROM satislar WHERE sube_id = ? AND date(tarih) = ? GROUP BY saat ORDER BY saat`
+    )
+    .all(sqlSaatFarki(), subeId, tarih);
+  const personel = db
+    .prepare(
+      `SELECT k.ad_soyad AS personel, COUNT(*) AS adet, SUM(sa.toplam_tutar) AS ciro
+       FROM satislar sa LEFT JOIN kullanicilar k ON k.id = sa.kullanici_id
+       WHERE sa.sube_id = ? AND date(sa.tarih) = ? GROUP BY sa.kullanici_id ORDER BY ciro DESC`
+    )
+    .all(subeId, tarih);
+  const yuvarla = (r) => ({ ...r, ciro: Math.round((r.ciro || 0) * 100) / 100 });
+  res.json({
+    ...gununOzeti(subeId, tarih),
+    tarih,
+    olusturma: new Date().toISOString(),
+    zaten_kapatildi: kasaKapaliMi(subeId, tarih),
+    saatlik: saatlik.map(yuvarla),
+    personel: personel.map(yuvarla),
+    hareketler: db.prepare('SELECT tip, tutar, aciklama, tarih FROM kasa_hareketleri WHERE sube_id = ? AND date(tarih) = ? ORDER BY tarih').all(subeId, tarih)
+  });
+});
 
 router.get('/ozet', (req, res) => {
   const subeId = req.user.sube_id;
@@ -133,12 +219,12 @@ router.post('/', (req, res) => {
   const tarih = req.body.tarih || new Date().toISOString().slice(0, 10);
   const nakitSayilan = Number(req.body.nakit_sayilan);
   if (!Number.isFinite(nakitSayilan) || nakitSayilan < 0) {
-    return res.status(400).json({ error: 'Gecerli bir sayilan nakit tutari girin' });
+    return res.status(400).json({ error: 'Geçerli bir sayılan nakit tutarı girin' });
   }
 
   const mevcut = db.prepare('SELECT id FROM kasa_kapanislari WHERE sube_id = ? AND tarih = ?').get(subeId, tarih);
   if (mevcut) {
-    return res.status(409).json({ error: `${tarih} tarihi icin kasa zaten kapatilmis` });
+    return res.status(409).json({ error: `${tarih} tarihi için kasa zaten kapatılmış` });
   }
 
   const ozet = gununOzeti(subeId, tarih);
@@ -147,8 +233,9 @@ router.post('/', (req, res) => {
   const info = db
     .prepare(
       `INSERT INTO kasa_kapanislari
-       (sube_id, kullanici_id, tarih, nakit_sistem, kart_sistem, sgk_sistem, veresiye_sistem, tahsilat_sistem, iade_sistem, toplam_sistem, nakit_sayilan, fark, not_metni)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       (sube_id, kullanici_id, tarih, nakit_sistem, kart_sistem, sgk_sistem, veresiye_sistem, tahsilat_sistem, iade_sistem, toplam_sistem, nakit_sayilan, fark, not_metni,
+        kasa_giris_sistem, kasa_cikis_sistem)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       subeId,
@@ -163,7 +250,9 @@ router.post('/', (req, res) => {
       ozet.toplam,
       nakitSayilan,
       fark,
-      req.body.not_metni || null
+      req.body.not_metni || null,
+      ozet.kasa_giris,
+      ozet.kasa_cikis
     );
 
   const kapanis = db.prepare('SELECT * FROM kasa_kapanislari WHERE id = ?').get(info.lastInsertRowid);

@@ -46,9 +46,9 @@ router.get('/satis/:satisId', (req, res) => {
        LEFT JOIN musteriler m ON m.id = sa.musteri_id WHERE sa.id = ?`
     )
     .get(req.params.satisId);
-  if (!satis) return res.status(404).json({ error: 'Satis bulunamadi' });
+  if (!satis) return res.status(404).json({ error: 'Satış bulunamadı' });
   if (req.user.rol !== 'admin' && satis.sube_id !== req.user.sube_id) {
-    return res.status(403).json({ error: 'Baska subenin satisi' });
+    return res.status(403).json({ error: 'Başka şubenin satışı' });
   }
   const iadeler = db.prepare('SELECT * FROM iadeler WHERE satis_id = ? ORDER BY tarih').all(satis.id);
   res.json({ ...satis, kalemler: iadeEdilebilirKalemler(satis), iadeler });
@@ -78,12 +78,12 @@ router.post('/', (req, res) => {
   const stogaAl = req.body.stoga_geri_al !== false;
 
   const satis = db.prepare('SELECT * FROM satislar WHERE id = ?').get(satis_id);
-  if (!satis) return res.status(404).json({ error: 'Satis bulunamadi' });
+  if (!satis) return res.status(404).json({ error: 'Satış bulunamadı' });
   if (req.user.rol !== 'admin' && satis.sube_id !== req.user.sube_id) {
-    return res.status(403).json({ error: 'Baska subenin satisi iade edilemez' });
+    return res.status(403).json({ error: 'Başka şubenin satışı iade edilemez' });
   }
   if (!Array.isArray(kalemler) || kalemler.length === 0) {
-    return res.status(400).json({ error: 'Iade edilecek kalem secin' });
+    return res.status(400).json({ error: 'İade edilecek kalem seçin' });
   }
 
   const mevcutKalemler = iadeEdilebilirKalemler(satis);
@@ -92,7 +92,7 @@ router.post('/', (req, res) => {
     const adet = Number(k.adet);
     if (!Number.isInteger(adet) || adet <= 0) continue;
     const kalem = mevcutKalemler.find((m) => m.id === Number(k.satis_kalem_id));
-    if (!kalem) return res.status(400).json({ error: 'Kalem bu satisa ait degil' });
+    if (!kalem) return res.status(400).json({ error: 'Kalem bu satışa ait değil' });
     if (adet > kalem.iade_edilebilir_adet) {
       return res.status(400).json({ error: `${kalem.ilac_adi}: en fazla ${kalem.iade_edilebilir_adet} adet iade edilebilir` });
     }
@@ -103,7 +103,7 @@ router.post('/', (req, res) => {
         : yuvarla(kalem.birim_iade_tutari * adet);
     secilen.push({ kalem, adet, tutar: Math.max(0, tutar) });
   }
-  if (!secilen.length) return res.status(400).json({ error: 'Iade edilecek kalem secin' });
+  if (!secilen.length) return res.status(400).json({ error: 'İade edilecek kalem seçin' });
 
   const toplam = yuvarla(secilen.reduce((t, s) => t + s.tutar, 0));
 
@@ -133,7 +133,7 @@ router.post('/', (req, res) => {
       ).run(kalem.ilac_id, satis.sube_id, adet);
       db.prepare(
         `INSERT INTO stok_hareketleri (ilac_id, sube_id, tip, adet, aciklama) VALUES (?, ?, 'giris', ?, ?)`
-      ).run(kalem.ilac_id, satis.sube_id, adet, `Iade #${iadeId} (Satis #${satis.id})`);
+      ).run(kalem.ilac_id, satis.sube_id, adet, `İade #${iadeId} (Satış #${satis.id})`);
 
       // Urun satildigi partilere geri doner (son dusulen parti once)
       let kalan = adet;
@@ -157,8 +157,8 @@ router.post('/', (req, res) => {
     // Sadakat puani: kazanilan puan iade oraninda geri alinir, kullanilan puan geri yuklenir
     if (satis.musteri_id && satis.toplam_tutar > 0) {
       const oran = toplam / satis.toplam_tutar;
-      puanHareketi(satis.musteri_id, -Math.round((satis.kazanilan_puan || 0) * oran), `Iade #${iadeId} kazanim iptali`, satis.id, iadeId);
-      puanHareketi(satis.musteri_id, Math.round((satis.kullanilan_puan || 0) * oran), `Iade #${iadeId} puan iadesi`, satis.id, iadeId);
+      puanHareketi(satis.musteri_id, -Math.round((satis.kazanilan_puan || 0) * oran), `İade #${iadeId} kazanım iptali`, satis.id, iadeId);
+      puanHareketi(satis.musteri_id, Math.round((satis.kullanilan_puan || 0) * oran), `İade #${iadeId} puan iadesi`, satis.id, iadeId);
     }
 
     // Veresiye satisin iadesi musterinin borcundan dusulur
@@ -169,7 +169,7 @@ router.post('/', (req, res) => {
         tip: 'iade',
         tutar: toplam,
         satis_id: satis.id,
-        aciklama: `Iade #${iadeId} (Satis #${satis.id})`,
+        aciklama: `İade #${iadeId} (Satış #${satis.id})`,
         kullanici_id: req.user.id
       });
     }
@@ -180,7 +180,7 @@ router.post('/', (req, res) => {
     res.status(201).json({ ...iade, kalemler: iadeKalemleri });
   } catch (err) {
     db.exec('ROLLBACK');
-    res.status(500).json({ error: 'Iade kaydedilemedi' });
+    res.status(500).json({ error: 'İade kaydedilemedi' });
   }
 });
 

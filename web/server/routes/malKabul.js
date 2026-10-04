@@ -50,7 +50,7 @@ router.get('/', (req, res) => {
 router.get('/:id', (req, res) => {
   const k = kabulGetir(req.params.id);
   if (!k || (req.user.rol !== 'admin' && k.sube_id !== req.user.sube_id)) {
-    return res.status(404).json({ error: 'Mal kabul bulunamadi' });
+    return res.status(404).json({ error: 'Mal kabul bulunamadı' });
   }
   res.json(k);
 });
@@ -61,16 +61,16 @@ router.post('/', (req, res) => {
   const subeId = req.user.sube_id;
 
   if (tedarikci_id && !db.prepare('SELECT id FROM tedarikciler WHERE id = ?').get(tedarikci_id)) {
-    return res.status(400).json({ error: 'Tedarikci bulunamadi' });
+    return res.status(400).json({ error: 'Tedarikçi bulunamadı' });
   }
-  if (fatura_tarihi && !TARIH.test(fatura_tarihi)) return res.status(400).json({ error: 'Fatura tarihi gecersiz' });
+  if (fatura_tarihi && !TARIH.test(fatura_tarihi)) return res.status(400).json({ error: 'Fatura tarihi geçersiz' });
 
   let siparis = null;
   if (siparis_id) {
     siparis = db.prepare('SELECT * FROM siparisler WHERE id = ?').get(siparis_id);
-    if (!siparis || siparis.sube_id !== subeId) return res.status(404).json({ error: 'Siparis bulunamadi' });
+    if (!siparis || siparis.sube_id !== subeId) return res.status(404).json({ error: 'Sipariş bulunamadı' });
     if (!['beklemede', 'gonderildi'].includes(siparis.durum)) {
-      return res.status(400).json({ error: 'Siparis zaten sonuclanmis' });
+      return res.status(400).json({ error: 'Sipariş zaten sonuçlanmış' });
     }
   }
 
@@ -79,14 +79,14 @@ router.post('/', (req, res) => {
   const hazir = [];
   for (const k of kalemler) {
     const ilac = db.prepare('SELECT id, ad FROM ilaclar WHERE id = ?').get(Number(k.ilac_id));
-    if (!ilac) return res.status(404).json({ error: `Urun bulunamadi: ${k.ilac_id}` });
+    if (!ilac) return res.status(404).json({ error: `Ürün bulunamadı: ${k.ilac_id}` });
     const adet = Number(k.adet);
     const mf = Number(k.mf || 0);
     const alis = Number(k.alis_fiyati);
-    if (!Number.isInteger(adet) || adet <= 0) return res.status(400).json({ error: `${ilac.ad}: adet gecersiz` });
-    if (!Number.isInteger(mf) || mf < 0) return res.status(400).json({ error: `${ilac.ad}: mal fazlasi gecersiz` });
-    if (!Number.isFinite(alis) || alis < 0) return res.status(400).json({ error: `${ilac.ad}: alis fiyati gecersiz` });
-    if (k.skt && !TARIH.test(k.skt)) return res.status(400).json({ error: `${ilac.ad}: SKT gecersiz` });
+    if (!Number.isInteger(adet) || adet <= 0) return res.status(400).json({ error: `${ilac.ad}: adet geçersiz` });
+    if (!Number.isInteger(mf) || mf < 0) return res.status(400).json({ error: `${ilac.ad}: mal fazlası geçersiz` });
+    if (!Number.isFinite(alis) || alis < 0) return res.status(400).json({ error: `${ilac.ad}: alış fiyatı geçersiz` });
+    if (k.skt && !TARIH.test(k.skt)) return res.status(400).json({ error: `${ilac.ad}: SKT geçersiz` });
     hazir.push({ ilac, adet, mf, alis, birim: yuvarla((alis * adet) / (adet + mf)), parti_no: k.parti_no || null, skt: k.skt || null });
   }
   const toplam = yuvarla(hazir.reduce((t, k) => t + k.alis * k.adet, 0));
@@ -126,6 +126,17 @@ router.post('/', (req, res) => {
     }
     if (siparis) {
       db.prepare("UPDATE siparisler SET durum = 'teslim_alindi', teslim_tarihi = datetime('now') WHERE id = ?").run(siparis.id);
+    }
+    // Faturali mal kabul tedarikci cari hesabina borc olarak islenir (vade: fatura tarihi + tedarikci vade gunu)
+    const tedarikciId = tedarikci_id || (siparis && siparis.tedarikci_id) || null;
+    const tedarikci = tedarikciId ? db.prepare('SELECT id, vade_gun FROM tedarikciler WHERE id = ?').get(tedarikciId) : null;
+    if (tedarikci && toplam > 0) {
+      const belgeTarihi = fatura_tarihi || new Date().toISOString().slice(0, 10);
+      const vade = new Date(new Date(belgeTarihi + 'T00:00:00Z').getTime() + (tedarikci.vade_gun ?? 30) * 86400000).toISOString().slice(0, 10);
+      db.prepare(
+        `INSERT INTO tedarikci_hareketleri (tedarikci_id, sube_id, tip, tutar, belge_no, belge_tarihi, vade_tarihi, aciklama, mal_kabul_id, kullanici_id)
+         VALUES (?, ?, 'fatura', ?, ?, ?, ?, ?, ?, ?)`
+      ).run(tedarikci.id, subeId, toplam, fatura_no || null, belgeTarihi, vade, `Mal kabul #${kabulId}`, kabulId, req.user.id);
     }
     db.exec('COMMIT');
     res.status(201).json(kabulGetir(kabulId));

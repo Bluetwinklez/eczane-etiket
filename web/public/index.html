@@ -4,13 +4,18 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Eczanem Programı</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="stylesheet" href="css/style.css" />
   <script>
     (function () {
       try {
-        if (localStorage.getItem('eczanem-tema') === 'dark') {
+        var tema = localStorage.getItem('eczanem-tema');
+        var sistemKoyu = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (tema === 'dark' || (tema === 'sistem' && sistemKoyu)) {
           document.documentElement.setAttribute('data-theme', 'dark');
         }
+        var yazi = localStorage.getItem('eczanem-yazi');
+        if (yazi === 'kucuk' || yazi === 'buyuk') document.documentElement.setAttribute('data-yazi', yazi);
       } catch (e) {}
     })();
   </script>
@@ -18,12 +23,13 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="sidebar-marka"><span id="logo-yer"></span><h2>Eczanem Programı</h2></div>
+      <div class="sidebar-marka"><span id="logo-yer"></span><h2>Eczanem<small>Programı</small></h2></div>
       <button id="cp-ac-btn" class="cp-ac" type="button"><span id="cp-ikon"></span>Hızlı ara <kbd>Ctrl+K</kbd></button>
       <nav id="nav"></nav>
     </aside>
     <div class="main">
       <div class="topbar">
+        <button class="ikon-btn menu-ac" id="menu-ac-btn" type="button" aria-label="Menüyü aç" aria-controls="nav"></button>
         <h1 id="page-title">Yükleniyor...</h1>
         <div class="topbar-sag">
           <div class="zil-kutu">
@@ -37,6 +43,9 @@
             </button>
             <div class="kullanici-menu" id="kullanici-menu" role="menu" hidden>
               <button id="tema-btn" type="button" role="menuitem">Karanlık Tema</button>
+              <button id="gorunum-btn" type="button" role="menuitem">Görünüm Ayarları</button>
+              <button id="kisayol-btn" type="button" role="menuitem">Klavye Kısayolları</button>
+              <button id="kilitle-btn" type="button" role="menuitem">Ekranı Kilitle</button>
               <button id="sifre-btn" type="button" role="menuitem">Şifremi Değiştir</button>
               <hr />
               <button id="logout-btn" type="button" role="menuitem">Çıkış Yap</button>
@@ -47,6 +56,8 @@
       <div class="content" id="content"></div>
     </div>
   </div>
+  <div class="cekmece-perde" id="cekmece-perde"></div>
+  <nav class="alt-cubuk" id="alt-cubuk" aria-label="Hızlı gezinme"></nav>
   <div class="toast-wrap" id="toast-wrap"></div>
 
   <script src="js/api.js"></script>
@@ -77,6 +88,8 @@
   <script src="js/views/malKabul.js"></script>
   <script src="js/views/istekler.js"></script>
   <script src="js/views/emanetler.js"></script>
+  <script src="js/views/kalite.js"></script>
+  <script src="js/views/sistem.js"></script>
   <script src="js/views/analiz.js"></script>
   <script src="js/views/vardiya.js"></script>
   <script src="js/bildirimMerkezi.js"></script>
@@ -85,6 +98,7 @@
   <script src="js/views/nobetler.js"></script>
   <script src="js/views/islemKaydi.js"></script>
   <script src="js/commandPalette.js"></script>
+  <script src="js/sistemAraclari.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

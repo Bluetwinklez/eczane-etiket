@@ -15,7 +15,8 @@
   function indirimYuzdesiOku() {
     const el = document.getElementById('pos-indirim');
     if (!el) return 0;
-    return Math.min(100, Math.max(0, Number(el.value) || 0));
+    const ust = el.max === '' ? 100 : Number(el.max);
+    return Math.min(ust, Math.max(0, Number(el.value) || 0));
   }
 
   function sepetiCiz(container) {
@@ -64,6 +65,9 @@
       if (sayac !== etkilesimSayaci) return;
       sonEtkilesim = sonuc;
       const satirlar = [
+        ...(sonuc.hasta || []).map(
+          (h) => `<div class="etkilesim ${h.seviye}"><b>${{ gebelik: 'Gebelik/emzirme', yas: 'Yaş sınırı', yasli: 'İleri yaş' }[h.tur]}:</b> ${UI.esc(h.urun)} — ${UI.esc(h.mesaj)}</div>`
+        ),
         ...sonuc.alerji.map(
           (a) => `<div class="etkilesim ciddi"><b>Alerji/sağlık notu:</b> ${UI.esc(a.urun)} (${UI.esc(a.madde)}) — müşteri notunda "${UI.esc(a.eslesen)}" geçiyor.</div>`
         ),
@@ -218,6 +222,42 @@
     }
   }
 
+  // Stokta olmayan urun icin ayni etken maddeli muadilleri listeler
+  async function muadilleriGoster(ilacId, container) {
+    const ilac = sonAramaSonuclari.find((i) => i.id === ilacId);
+    try {
+      const liste = await Api.get(`/api/ilaclar/${ilacId}/muadiller`);
+      const modal = UI.openModal(`
+        <h3>Muadil Ürünler</h3>
+        <p class="form-ipucu">${UI.esc(ilac ? ilac.ad : '')} — etken madde: <b>${UI.esc(ilac ? ilac.etken_madde : '')}</b>. Muadil değişimi reçete ve hekim kuralına uygun olmalıdır.</p>
+        ${
+          liste.length
+            ? `<table><thead><tr><th>Ürün</th><th class="num">Stok</th><th class="num">Fiyat</th><th></th></tr></thead><tbody>
+              ${liste
+                .map(
+                  (m) => `<tr><td>${UI.esc(m.ad)}${m.raf_konumu ? ` <span class="badge muted">📍 ${UI.esc(m.raf_konumu)}</span>` : ''}</td>
+                    <td class="num">${m.stok}</td><td class="num">${UI.tl(m.satis_fiyati)}</td>
+                    <td class="actions-col">${m.stok > 0 ? `<button data-ekle="${m.id}">Sepete ekle</button>` : '<span class="badge danger">Stok yok</span>'}</td></tr>`
+                )
+                .join('')}</tbody></table>`
+            : '<div class="empty-state">Aynı etken maddeye sahip başka ürün kayıtlı değil.</div>'
+        }
+        <div class="modal-actions"><button type="button" class="secondary" data-action="kapat">Kapat</button></div>
+      `);
+      modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));
+      modal.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-ekle]');
+        if (!btn) return;
+        const m = liste.find((x) => x.id === Number(btn.dataset.ekle));
+        sepeteEkle(m, container);
+        UI.closeModal(modal);
+        UI.toast(`${m.ad} sepete eklendi`, 'success');
+      });
+    } catch (err) {
+      UI.toast(err.message, 'error');
+    }
+  }
+
   async function aramaSonuclariniCiz(q) {
     const sonuclar = q ? await Api.get('/api/ilaclar?q=' + encodeURIComponent(q)) : [];
     sonAramaSonuclari = sonuclar;
@@ -226,7 +266,9 @@
       ? sonuclar
           .map(
             (i) => `<tr data-id="${i.id}">
-              <td>${UI.esc(i.ad)}</td>
+              <td>${UI.esc(i.ad)}${i.raf_konumu ? ` <span class="badge muted" title="Raf konumu">📍 ${UI.esc(i.raf_konumu)}</span>` : ''}${
+                i.stok <= 0 && i.etken_madde ? ` <button type="button" class="secondary muadil-btn" data-muadil="${i.id}">Muadil bul</button>` : ''
+              }</td>
               <td>${UI.esc(i.barkod || '-')}</td>
               <td class="num">${i.stok}</td>
               <td class="num">${UI.tl(i.satis_fiyati)}</td>
@@ -238,16 +280,29 @@
 
   const view = {
     async render(container) {
-      [musteriler, aktifKampanyalar] = await Promise.all([
+      let ayarlar;
+      let hizliUrunler;
+      [musteriler, aktifKampanyalar, ayarlar, hizliUrunler] = await Promise.all([
         Api.get('/api/musteriler'),
-        Api.get('/api/kampanyalar/aktif').catch(() => [])
+        Api.get('/api/kampanyalar/aktif').catch(() => []),
+        Api.get('/api/ayarlar').catch(() => ({ kasiyer_indirim_limiti: 100 })),
+        Api.get('/api/ilaclar?hizli=1').catch(() => [])
       ]);
+      const indirimLimiti = CURRENT_USER.rol === 'kasiyer' ? ayarlar.kasiyer_indirim_limiti : 100;
       sepet = [];
 
       container.innerHTML = `
         <div class="pos-layout">
           <div>
             <div class="card">
+              ${
+                hizliUrunler.length
+                  ? `<div class="hizli-tuslar" aria-label="Hızlı ürünler">${hizliUrunler
+                      .slice(0, 12)
+                      .map((u) => `<button type="button" class="hizli-tus" data-hizli="${u.id}" ${u.stok <= 0 ? 'disabled title="Stok yok"' : ''}><b>${UI.esc(u.ad)}</b><span>${UI.tl(u.satis_fiyati)}</span></button>`)
+                      .join('')}</div>`
+                  : ''
+              }
               <input id="pos-arama" placeholder="İlaç adı, barkod veya karekod okutun..." autofocus />
               <table style="margin-top:12px">
                 <thead><tr><th>Ad</th><th>Barkod</th><th class="num">Stok</th><th class="num">Fiyat</th></tr></thead>
@@ -272,10 +327,13 @@
               <div class="form-grid" style="margin-top:10px">
                 <div>
                   <label>Müşteri (opsiyonel)</label>
-                  <select id="pos-musteri">
-                    <option value="">- Müşteri seçilmedi -</option>
-                    ${musteriler.map((m) => `<option value="${m.id}">${UI.esc(m.ad_soyad)}</option>`).join('')}
-                  </select>
+                  <div class="musteri-secim">
+                    <select id="pos-musteri">
+                      <option value="">- Müşteri seçilmedi -</option>
+                      ${musteriler.map((m) => `<option value="${m.id}">${UI.esc(m.ad_soyad)}</option>`).join('')}
+                    </select>
+                    <button type="button" class="secondary" id="pos-musteri-ekle" title="Yeni müşteri ekle" aria-label="Yeni müşteri ekle">+</button>
+                  </div>
                   <div id="pos-saglik-uyarisi"></div>
                   <div id="pos-puan" hidden style="margin-top:6px">
                     <label>Puan Kullan <span class="form-ipucu" id="pos-puan-bakiye"></span></label>
@@ -299,7 +357,7 @@
                 </div>
                 <div>
                   <label>İndirim (%)</label>
-                  <input id="pos-indirim" type="number" min="0" max="100" step="1" value="0" />
+                  <input id="pos-indirim" type="number" min="0" max="${indirimLimiti}" step="1" value="0" title="${indirimLimiti < 100 ? `Kasiyer indirim limiti: %${indirimLimiti}` : ''}" />
                 </div>
               </div>
               <div id="pos-etkilesim"></div>
@@ -363,7 +421,51 @@
         }
       });
 
+      container.querySelectorAll('[data-hizli]').forEach((b) =>
+        b.addEventListener('click', () => {
+          const u = hizliUrunler.find((x) => x.id === Number(b.dataset.hizli));
+          if (u) sepeteEkle(u, container);
+        })
+      );
+
+      // Kasadan cikmadan hizli musteri kaydi: ad ve telefon yeterli
+      document.getElementById('pos-musteri-ekle').addEventListener('click', () => {
+        const modal = UI.openModal(`
+          <h3>Hızlı Müşteri Ekle</h3>
+          <form id="hizli-musteri-form">
+            <div class="form-grid">
+              <div><label>Ad Soyad</label><input name="ad_soyad" required autofocus /></div>
+              <div><label>Telefon</label><input name="telefon" inputmode="tel" /></div>
+            </div>
+            <div><label><input type="checkbox" name="ileti_izni" style="width:auto" /> Kampanya SMS'i almayı kabul ediyor (İYS)</label></div>
+            <p class="form-ipucu">Diğer bilgiler (doğum tarihi, sağlık notu) sonradan Müşteriler sayfasından eklenebilir.</p>
+            <div class="modal-actions"><button type="button" class="secondary" data-action="kapat">Vazgeç</button><button type="submit">Kaydet ve Seç</button></div>
+          </form>`);
+        modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));
+        modal.querySelector('#hizli-musteri-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const f = e.target;
+          try {
+            const m = await Api.post('/api/musteriler', { ad_soyad: f.ad_soyad.value, telefon: f.telefon.value || null, ileti_izni: f.ileti_izni.checked });
+            musteriler.push(m);
+            const sec = document.getElementById('pos-musteri');
+            sec.insertAdjacentHTML('beforeend', `<option value="${m.id}">${UI.esc(m.ad_soyad)}</option>`);
+            sec.value = String(m.id);
+            sec.dispatchEvent(new Event('change'));
+            UI.closeModal(modal);
+            UI.toast(`${m.ad_soyad} eklendi ve seçildi`, 'success');
+          } catch (err) {
+            UI.toast(err.message, 'error');
+          }
+        });
+      });
+
       document.getElementById('arama-tbody').addEventListener('click', (e) => {
+        const muadilBtn = e.target.closest('[data-muadil]');
+        if (muadilBtn) {
+          muadilleriGoster(Number(muadilBtn.dataset.muadil), container);
+          return;
+        }
         const tr = e.target.closest('tr[data-id]');
         if (!tr) return;
         const ilac = sonAramaSonuclari.find((i) => i.id === Number(tr.dataset.id));
@@ -442,9 +544,14 @@
         }
         const musteriId = document.getElementById('pos-musteri').value;
         const odemeTipi = document.getElementById('pos-odeme').value;
-        if (sonEtkilesim && (sonEtkilesim.alerji.length || sonEtkilesim.etkilesimler.some((x) => x.seviye === 'ciddi'))) {
+        if (
+          sonEtkilesim &&
+          (sonEtkilesim.alerji.length ||
+            sonEtkilesim.etkilesimler.some((x) => x.seviye === 'ciddi') ||
+            (sonEtkilesim.hasta || []).some((x) => x.seviye === 'ciddi'))
+        ) {
           const onay = window.confirm(
-            'Sepette CİDDİ etkileşim veya alerji uyarısı var. Eczacı değerlendirmesini yaptıysanız satışa devam etmek istiyor musunuz?'
+            'Sepette CİDDİ etkileşim, alerji, gebelik veya yaş uyarısı var. Eczacı değerlendirmesini yaptıysanız satışa devam etmek istiyor musunuz?'
           );
           if (!onay) return;
         }

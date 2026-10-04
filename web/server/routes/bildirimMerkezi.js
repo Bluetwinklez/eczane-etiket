@@ -1,6 +1,8 @@
 const express = require('express');
 const { db } = require('../db');
 const { bitisTahminleri } = require('./hatirlatmalar');
+const { acikFaturalar } = require('./tedarikciler');
+const { yaklasanDogumGunleri } = require('./musteriler');
 
 const router = express.Router();
 
@@ -21,7 +23,7 @@ router.get('/', (req, res) => {
     aciklama: 'Elde stoğu olan, son kullanma tarihi geçmiş partiler; imha veya iade edin',
     sayi: sayi("SELECT COUNT(*) AS c FROM ilac_partileri WHERE sube_id = ? AND miktar > 0 AND skt < date('now')", sube),
     seviye: 'danger',
-    link: '#stok'
+    link: yonetici ? '#kalite' : '#stok'
   });
   ekle({
     kod: 'kritik_stok',
@@ -45,6 +47,36 @@ router.get('/', (req, res) => {
     ),
     seviye: 'warn',
     link: '#stok'
+  });
+
+  ekle({
+    kod: 'sicaklik_aralik_disi',
+    baslik: 'Soğuk zincir aralık dışı',
+    aciklama: 'Son 24 saatte 2-8 °C dışında ölçülen dolap sıcaklığı',
+    sayi: sayi("SELECT COUNT(*) AS c FROM sicaklik_kayitlari WHERE sube_id = ? AND aralik_disi = 1 AND tarih >= datetime('now', '-1 day')", sube),
+    seviye: 'danger',
+    link: '#kalite'
+  });
+  ekle({
+    kod: 'sicaklik_olcum_yok',
+    baslik: 'Bugün sıcaklık ölçülmedi',
+    aciklama: 'Soğuk zincir dolabı için bugün kayıt girilmedi',
+    sayi:
+      db.prepare('SELECT 1 FROM sicaklik_kayitlari WHERE sube_id = ? LIMIT 1').get(sube) &&
+      !db.prepare("SELECT 1 FROM sicaklik_kayitlari WHERE sube_id = ? AND date(tarih) = date('now')").get(sube)
+        ? 1
+        : 0,
+    seviye: 'info',
+    link: '#kalite'
+  });
+
+  ekle({
+    kod: 'dogum_gunu',
+    baslik: 'Bugün doğum günü olan müşteri',
+    aciklama: 'Kutlama mesajı gönderebilirsiniz (ileti izni olanlara)',
+    sayi: yaklasanDogumGunleri(0).length,
+    seviye: 'ok',
+    link: '#musteriler'
   });
 
   const bitenler = bitisTahminleri(sube).filter((r) => r.kalan_gun <= 3 && r.kalan_gun >= -30 && !r.hatirlatildi);
@@ -112,6 +144,20 @@ router.get('/', (req, res) => {
   });
 
   if (yonetici) {
+    // Vadesi gecmis veya 7 gun icinde dolacak tedarikci faturalari
+    const bugun = new Date().toISOString().slice(0, 10);
+    const sinir = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+    let gecikmis = 0;
+    let yaklasan = 0;
+    for (const t of db.prepare('SELECT DISTINCT tedarikci_id AS id FROM tedarikci_hareketleri WHERE sube_id = ?').all(sube)) {
+      for (const f of acikFaturalar(t.id, sube)) {
+        const vade = f.vade_tarihi || f.belge_tarihi;
+        if (vade < bugun) gecikmis += 1;
+        else if (vade <= sinir) yaklasan += 1;
+      }
+    }
+    ekle({ kod: 'vade_gecmis', baslik: 'Vadesi geçmiş fatura', aciklama: 'Tedarikçi faturası ödeme günü geçti', sayi: gecikmis, seviye: 'danger', link: '#tedarikciler' });
+    ekle({ kod: 'vade_yakin', baslik: '7 gün içinde vadesi dolan fatura', aciklama: 'Yaklaşan tedarikçi ödemeleri', sayi: yaklasan, seviye: 'warn', link: '#tedarikciler' });
     ekle({
       kod: 'transfer_gelen',
       baslik: 'Teslim bekleyen transfer',

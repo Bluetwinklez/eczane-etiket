@@ -1958,6 +1958,10 @@ class App(tk.Tk):
         if not raw_text or len(raw_text.strip()) < 10:
             return False
 
+        # İşlenen metni pano izleyicisine bildir: Ctrl+M ile çekilen reçete,
+        # arka plandaki izleyici tarafından bir kez daha içeri alınmasın.
+        self._last_medula_hash = hashlib.md5(raw_text.strip().encode("utf-8", errors="ignore")).hexdigest()
+
         try:
             # Uygulama penceresini öne getir
             self.deiconify()

@@ -102,7 +102,7 @@
     ozetCiz();
     tabloCiz();
 
-    document.getElementById('sayim-geri').addEventListener('click', () => view.render(container));
+    document.getElementById('sayim-geri').addEventListener('click', () => rotayiRenderEt());
     if (!acik) return;
 
     document.getElementById('sayim-ara').addEventListener('input', tabloCiz);
@@ -160,7 +160,7 @@
     document.getElementById('sayim-iptal').addEventListener('click', async () => {
       if (!window.confirm('Sayım iptal edilsin mi? Stoklara dokunulmaz.')) return;
       await Api.post(`/api/sayimlar/${s.id}/iptal`, {});
-      view.render(container);
+      rotayiRenderEt();
     });
   }
 

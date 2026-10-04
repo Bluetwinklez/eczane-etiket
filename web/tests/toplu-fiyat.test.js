@@ -34,7 +34,7 @@ test('onizleme fiyatlari degistirmez; uygula degistirir ve gecmise yazar', async
 });
 
 test('yuvarlama secenekleri ve zararina satis uyarisi', async () => {
-  const r = (await admin.post('/api/ilaclar/toplu-fiyat', { hedef: { tip: 'kategori', deger: 'Agri Kesici' }, yuzde: -50, yuvarlama: 'lira', onizleme: true })).data;
+  const r = (await admin.post('/api/ilaclar/toplu-fiyat', { hedef: { tip: 'kategori', deger: 'Ağrı Kesici' }, yuzde: -50, yuvarlama: 'lira', onizleme: true })).data;
   const parol = r.degisiklikler.find((d) => d.id === 1);
   assert.equal(parol.yeni_satis, 12, '24.90 * 0.5 = 12.45 -> 12');
   assert.equal(parol.zararina, true, 'alis 15.5 > satis 12');

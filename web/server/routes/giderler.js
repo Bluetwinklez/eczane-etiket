@@ -47,11 +47,11 @@ router.get('/', (req, res) => {
 router.post('/', (req, res) => {
   const { kategori, aciklama, tutar, tarih } = req.body;
   if (!KATEGORILER.includes(kategori)) {
-    return res.status(400).json({ error: 'Gecersiz gider kategorisi' });
+    return res.status(400).json({ error: 'Geçersiz gider kategorisi' });
   }
   const tutarSayi = Number(tutar);
   if (!Number.isFinite(tutarSayi) || tutarSayi <= 0) {
-    return res.status(400).json({ error: 'Gecerli bir tutar girin' });
+    return res.status(400).json({ error: 'Geçerli bir tutar girin' });
   }
 
   const info = db
@@ -63,15 +63,15 @@ router.post('/', (req, res) => {
 
 router.put('/:id', (req, res) => {
   const mevcut = db.prepare('SELECT * FROM giderler WHERE id = ?').get(req.params.id);
-  if (!mevcut) return res.status(404).json({ error: 'Gider bulunamadi' });
+  if (!mevcut) return res.status(404).json({ error: 'Gider bulunamadı' });
 
   const { kategori, aciklama, tutar, tarih } = req.body;
   if (!KATEGORILER.includes(kategori)) {
-    return res.status(400).json({ error: 'Gecersiz gider kategorisi' });
+    return res.status(400).json({ error: 'Geçersiz gider kategorisi' });
   }
   const tutarSayi = Number(tutar);
   if (!Number.isFinite(tutarSayi) || tutarSayi <= 0) {
-    return res.status(400).json({ error: 'Gecerli bir tutar girin' });
+    return res.status(400).json({ error: 'Geçerli bir tutar girin' });
   }
 
   db.prepare('UPDATE giderler SET kategori=?, aciklama=?, tutar=?, tarih=? WHERE id=?').run(
@@ -86,7 +86,7 @@ router.put('/:id', (req, res) => {
 
 router.delete('/:id', (req, res) => {
   const mevcut = db.prepare('SELECT * FROM giderler WHERE id = ?').get(req.params.id);
-  if (!mevcut) return res.status(404).json({ error: 'Gider bulunamadi' });
+  if (!mevcut) return res.status(404).json({ error: 'Gider bulunamadı' });
   db.prepare('DELETE FROM giderler WHERE id = ?').run(req.params.id);
   res.status(204).end();
 });

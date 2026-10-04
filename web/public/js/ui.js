@@ -37,15 +37,26 @@ const UI = (function () {
     return n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TL';
   }
 
+  // Sunucu zaman damgalarini UTC tutar (SQLite datetime('now') ve toISOString).
+  // Saat iceren degerler kullanicinin yerel saatine cevrilerek gosterilir;
+  // yalnizca tarih olan degerler (YYYY-MM-DD) oldugu gibi kalir.
   function tarih(str) {
     if (!str) return '-';
-    return str.replace('T', ' ').slice(0, 16);
+    const s = String(str);
+    if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(s)) {
+      const d = new Date(s.replace(' ', 'T') + (/Z|[+-]\d{2}:?\d{2}$/.test(s) ? '' : 'Z'));
+      if (!Number.isNaN(d.getTime())) {
+        const p = (n) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+      }
+    }
+    return s.replace('T', ' ').slice(0, 16);
   }
 
   function openModal(html) {
     const backdrop = document.createElement('div');
     backdrop.className = 'modal-backdrop';
-    backdrop.innerHTML = `<div class="modal">${html}</div>`;
+    backdrop.innerHTML = `<div class="modal" role="dialog" aria-modal="true">${html}</div>`;
     backdrop.addEventListener('click', (e) => {
       if (e.target === backdrop) backdrop.remove();
     });
