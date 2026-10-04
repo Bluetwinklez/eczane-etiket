@@ -3,12 +3,13 @@
   'use strict';
 
   // ---------- Yardimcilar ----------
+  const YEREL = (window.EczamDil && window.EczamDil.yerel) || 'tr-TR';
   const $ = (s, k = document) => k.querySelector(s);
   const esc = (m) => String(m ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const tl = (n) => (Number(n) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+  const tl = (n) => (Number(n) || 0).toLocaleString(YEREL, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
   const tlKisa = (n) => {
     n = Number(n) || 0;
-    return n >= 1000 ? (n / 1000).toLocaleString('tr-TR', { maximumFractionDigits: 1 }) + 'B ₺' : Math.round(n).toLocaleString('tr-TR') + ' ₺';
+    return n >= 1000 ? (n / 1000).toLocaleString(YEREL, { maximumFractionDigits: 1 }) + (YEREL === 'tr-TR' ? 'B' : 'K') + ' ₺' : Math.round(n).toLocaleString(YEREL) + ' ₺';
   };
   const baslar = (ad) => String(ad || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0].toLocaleUpperCase('tr-TR')).join('');
   const yerel = (key, varsayilan) => {
@@ -223,7 +224,7 @@
 
   const hataKutusu = (e) => `<div class="hata-kutu" role="alert">${esc(e.message)}</div>`;
   const cevrimdisiNot = (veri) =>
-    veri && veri.__onbellekten ? `<div class="hata-kutu" style="background:var(--sari)">Çevrimdışı: ${new Date(veri.__onbellekten).toLocaleString('tr-TR')} tarihli kayıt gösteriliyor.</div>` : '';
+    veri && veri.__onbellekten ? `<div class="hata-kutu" style="background:var(--sari)">Çevrimdışı: ${new Date(veri.__onbellekten).toLocaleString(YEREL)} tarihli kayıt gösteriliyor.</div>` : '';
 
   // ---------- Ekran: giris ----------
   function girisEkrani(mesaj, sifreDegis) {
@@ -724,6 +725,7 @@
       </section>
       <div style="display:grid;gap:12px">
         ${bekleyen.length ? '<button class="hap" id="p-gonder">Bekleyenleri şimdi gönder</button>' : ''}
+        <div class="cipler" role="group" aria-label="Dil"><button class="hap ${window.EczamDil && EczamDil.dil === 'tr' ? 'secili' : ''}" data-dil="tr">Türkçe</button><button class="hap ${window.EczamDil && EczamDil.dil === 'en' ? 'secili' : ''}" data-dil="en">English</button></div>
         <a class="hap" style="text-align:center;text-decoration:none" href="/gizlilik.html">Gizlilik politikası</a>
         <button class="hap" id="p-sifre">Şifremi değiştir</button>
         ${/EczanemApp\//.test(navigator.userAgent) ? '<button class="hap" id="p-sunucu">Sunucuyu değiştir</button>' : ''}
@@ -732,6 +734,7 @@
       </div>`,
       { geri: true }
     );
+    uyg.querySelectorAll('[data-dil]').forEach((b) => (b.onclick = () => window.EczamDil && EczamDil.ayarla(b.dataset.dil)));
     const g = $('#p-gonder');
     if (g) g.onclick = async () => { await kuyruguBosalt(); profilEkrani(); };
     $('#p-cikis').onclick = async () => {
