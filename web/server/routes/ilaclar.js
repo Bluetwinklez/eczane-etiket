@@ -7,6 +7,7 @@ const { partiGiris, partiCikis, partiMiktariniKontrolEt, FEFO_SIRASI } = require
 const { karekodCoz } = require('../karekod');
 const { maddeleriAyir } = require('../etkilesim');
 const { satirlariCoz, SABLON } = require('../csvIceAktar');
+const { urunAnalizi } = require('../stokAnaliz');
 
 // "Amoksisilin + Klavulanik asit" -> "amoksisilin, klavulanik asit"
 function etkenMaddeNormallestir(deger) {
@@ -409,6 +410,13 @@ router.get('/:id/partiler', (req, res) => {
   if (!tumu) sql += ' AND p.miktar > 0';
   sql += ` ${FEFO_SIRASI.replace(/\b(skt|id)\b/g, 'p.$1')}`;
   res.json(db.prepare(sql).all(...params));
+});
+
+// Urunun satis hizi: son 30 gun, haftalik kirilim, stogun kac gun yetecegi
+router.get('/:id/analiz', (req, res) => {
+  const ilac = db.prepare('SELECT id FROM ilaclar WHERE id = ?').get(req.params.id);
+  if (!ilac) return res.status(404).json({ error: 'İlaç bulunamadı' });
+  res.json(urunAnalizi(ilac.id, req.user.sube_id));
 });
 
 router.get('/:id/fiyat-gecmisi', (req, res) => {
