@@ -67,155 +67,6 @@ const TITLES = {
 
 let CURRENT_USER = null;
 
-function gunStr(tarih) {
-  return tarih.toISOString().slice(0, 10);
-}
-
-function satisTrendSvg(gunlukVeri) {
-  const genislik = 640;
-  const yukseklik = 140;
-  const altBosluk = 22;
-  const maxTutar = Math.max(1, ...gunlukVeri.map((g) => g.toplam));
-  const barGenislik = genislik / gunlukVeri.length;
-
-  const barlar = gunlukVeri
-    .map((g, i) => {
-      const barYukseklik = (g.toplam / maxTutar) * (yukseklik - altBosluk - 10);
-      const x = i * barGenislik + barGenislik * 0.15;
-      const y = yukseklik - altBosluk - barYukseklik;
-      const w = barGenislik * 0.7;
-      const etiket = g.gun.slice(5).replace('-', '/');
-      return `
-        <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${barYukseklik.toFixed(1)}" rx="3" fill="var(--primary)">
-          <title>${g.gun}: ${g.toplam.toFixed(2)} TL</title>
-        </rect>
-        <text x="${(x + w / 2).toFixed(1)}" y="${yukseklik - 6}" font-size="10" fill="var(--text-muted)" text-anchor="middle">${etiket}</text>
-      `;
-    })
-    .join('');
-
-  return `<svg viewBox="0 0 ${genislik} ${yukseklik}" width="100%" height="${yukseklik}" role="img" aria-label="Son 7 gun satis grafigi">${barlar}</svg>`;
-}
-
-const AnaSayfaView = {
-  async render(container) {
-    container.innerHTML = '<div class="empty-state">Yükleniyor...</div>';
-
-    const yediGunOnce = new Date();
-    yediGunOnce.setDate(yediGunOnce.getDate() - 6);
-    const buAy = new Date().toISOString().slice(0, 7);
-    const yoneticiMi = CURRENT_USER.rol === 'admin' || CURRENT_USER.rol === 'eczaci';
-
-    const [uyarilar, satislar7Gun, bekleyenGorevler, buAykiNobetler, bekleyenSiparisler, hedef] = await Promise.all([
-      Api.get('/api/ilaclar/uyarilar'),
-      Api.get('/api/satislar?baslangic=' + gunStr(yediGunOnce)),
-      Api.get('/api/gorevler?durum=bekliyor'),
-      Api.get('/api/nobetler?ay=' + buAy),
-      yoneticiMi ? Api.get('/api/siparisler?durum=beklemede') : Promise.resolve([]),
-      Api.get('/api/hedefler/aktif').catch(() => null)
-    ]);
-
-    const bugun = gunStr(new Date());
-    const satislarBugun = satislar7Gun.filter((s) => s.tarih.slice(0, 10) === bugun);
-    const bugunkuCiro = satislarBugun.reduce((sum, s) => sum + s.toplam_tutar, 0);
-
-    const gunlukVeri = [];
-    for (let i = 6; i >= 0; i--) {
-      const tarih = new Date();
-      tarih.setDate(tarih.getDate() - i);
-      const gunKey = gunStr(tarih);
-      const toplam = satislar7Gun
-        .filter((s) => s.tarih.slice(0, 10) === gunKey)
-        .reduce((sum, s) => sum + s.toplam_tutar, 0);
-      gunlukVeri.push({ gun: gunKey, toplam });
-    }
-
-    container.innerHTML = `
-      <div class="stat-row">
-        <div class="stat-tile c-mint">
-          <div class="label">Bugünkü Satış Adedi</div>
-          <div class="value">${satislarBugun.length}</div>
-        </div>
-        <div class="stat-tile c-lilac">
-          <div class="label">Bugünkü Ciro</div>
-          <div class="value">${UI.tl(bugunkuCiro)}</div>
-        </div>
-        <div class="stat-tile c-rose">
-          <div class="label">Kritik Stok</div>
-          <div class="value">${uyarilar.kritik_stok.length}</div>
-        </div>
-        <div class="stat-tile c-amber">
-          <div class="label">SKT Uyarısı</div>
-          <div class="value">${uyarilar.skt_yaklasan.length}</div>
-        </div>
-      </div>
-      ${
-        hedef && hedef.hedef
-          ? `<div class="card">
-              <div class="toolbar" style="margin:0 0 8px"><h3 style="margin:0">🎯 Aylık Hedef</h3><div class="spacer"></div>
-                <span style="font-size:13px">${UI.tl(hedef.gerceklesen)} / ${UI.tl(hedef.hedef)} · <b>%${hedef.yuzde}</b></span></div>
-              <div class="hedef-cubuk"><div style="width:${Math.min(100, hedef.yuzde)}%;background:${hedef.yuzde >= 100 ? 'var(--success)' : 'var(--primary)'}"></div></div>
-              <a href="#analiz" style="font-size:12px">Ayrıntılar →</a>
-            </div>`
-          : ''
-      }
-      <div class="card">
-        <h3>Son 7 Gün Satış Trendi</h3>
-        ${satisTrendSvg(gunlukVeri)}
-      </div>
-      <div class="stat-row" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
-        <div class="card" style="margin-bottom:0">
-          <h3>📋 Bekleyen Görevler (${bekleyenGorevler.length})</h3>
-          ${
-            bekleyenGorevler.length
-              ? '<ul style="margin:0;padding-left:18px;font-size:13px">' +
-                bekleyenGorevler
-                  .slice(0, 5)
-                  .map((g) => `<li style="margin-bottom:4px">${UI.esc(g.baslik)}${g.atanan_adi ? ` <span style="color:var(--text-muted)">→ ${UI.esc(g.atanan_adi)}</span>` : ''}</li>`)
-                  .join('') +
-                '</ul>'
-              : '<p style="color:var(--text-muted);font-size:13px;margin:0">Bekleyen görev yok</p>'
-          }
-          <a href="#gorevler" style="font-size:12px">Tümünü gör →</a>
-        </div>
-        <div class="card" style="margin-bottom:0">
-          <h3>⚕ Bu Ayki Nöbetler (${buAykiNobetler.length})</h3>
-          ${
-            buAykiNobetler.length
-              ? '<ul style="margin:0;padding-left:18px;font-size:13px">' +
-                buAykiNobetler.map((n) => `<li style="margin-bottom:4px">${n.tarih}</li>`).join('') +
-                '</ul>'
-              : '<p style="color:var(--text-muted);font-size:13px;margin:0">Bu ay nöbet kaydı yok</p>'
-          }
-          <a href="#nobetler" style="font-size:12px">Takvimi gör →</a>
-        </div>
-        ${
-          yoneticiMi
-            ? `<div class="card" style="margin-bottom:0">
-                <h3>📦 Bekleyen Siparişler (${bekleyenSiparisler.length})</h3>
-                ${
-                  bekleyenSiparisler.length
-                    ? '<ul style="margin:0;padding-left:18px;font-size:13px">' +
-                      bekleyenSiparisler
-                        .slice(0, 5)
-                        .map((s) => `<li style="margin-bottom:4px">#${s.id} — ${UI.esc(s.tedarikci_adi || '-')}</li>`)
-                        .join('') +
-                      '</ul>'
-                    : '<p style="color:var(--text-muted);font-size:13px;margin:0">Bekleyen sipariş yok</p>'
-                }
-                <a href="#siparisler" style="font-size:12px">Tümünü gör →</a>
-              </div>`
-            : ''
-        }
-      </div>
-      <div class="card">
-        <h3>Hoş geldiniz, ${UI.esc(CURRENT_USER.ad_soyad)}</h3>
-        <p>Sol menüden ilaç/stok yönetimi, satış (POS), raporlar ve diğer modüllere ulaşabilirsiniz.</p>
-      </div>
-    `;
-  }
-};
-
 function menuIcinRolUygunMu(item) {
   return !item.roles || item.roles.includes(CURRENT_USER.rol);
 }
@@ -227,7 +78,7 @@ function navOlustur() {
     .map((item) => {
       const baslik = item.grup && item.grup !== sonGrup ? `<div class="nav-grup">${item.grup}</div>` : '';
       sonGrup = item.grup;
-      return `${baslik}<a href="#${item.key}" data-key="${item.key}">${item.label}</a>`;
+      return `${baslik}<a href="#${item.key}" data-key="${item.key}">${Ikon.svg(item.key)}<span>${item.label}</span></a>`;
     })
     .join('');
 }
@@ -308,21 +159,45 @@ async function init() {
 
   document.getElementById('user-name').textContent = CURRENT_USER.ad_soyad;
   document.getElementById('user-rol').textContent = CURRENT_USER.rol;
+  document.getElementById('user-avatar').textContent = AnaSayfaView.basHarfler(CURRENT_USER.ad_soyad);
+  document.getElementById('logo-yer').innerHTML = Ikon.logo();
+  document.getElementById('cp-ikon').innerHTML = Ikon.svg('ara');
+  document.getElementById('zil-ikon').innerHTML = Ikon.svg('zil');
   navOlustur();
+
+  // Kullanici menusu (tema, sifre, cikis): disari tiklayinca ve sayfa degisince kapanir
+  const kullaniciBtn = document.getElementById('kullanici-btn');
+  const kullaniciMenu = document.getElementById('kullanici-menu');
+  const menuKapat = () => {
+    kullaniciMenu.hidden = true;
+    kullaniciBtn.setAttribute('aria-expanded', 'false');
+  };
+  kullaniciBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    kullaniciMenu.hidden = !kullaniciMenu.hidden;
+    kullaniciBtn.setAttribute('aria-expanded', String(!kullaniciMenu.hidden));
+  });
+  document.addEventListener('click', (e) => {
+    if (!kullaniciMenu.hidden && !kullaniciMenu.contains(e.target)) menuKapat();
+  });
+  window.addEventListener('hashchange', menuKapat);
 
   const temaBtn = document.getElementById('tema-btn');
   const temaButonMetniGuncelle = () => {
-    temaBtn.textContent = UI.temaAktifMi() ? '☀️ Aydınlık Tema' : '🌙 Karanlık Tema';
+    temaBtn.innerHTML = UI.temaAktifMi() ? `${Ikon.svg('gunes')} Aydınlık Tema` : `${Ikon.svg('ay')} Karanlık Tema`;
   };
   temaButonMetniGuncelle();
   temaBtn.addEventListener('click', () => {
     UI.temaDegistir();
     temaButonMetniGuncelle();
   });
+  document.getElementById('sifre-btn').insertAdjacentHTML('afterbegin', Ikon.svg('anahtar') + ' ');
+  document.getElementById('logout-btn').insertAdjacentHTML('afterbegin', Ikon.svg('cikis') + ' ');
 
   document.getElementById('cp-ac-btn').addEventListener('click', () => CommandPalette.ac());
 
   document.getElementById('sifre-btn').addEventListener('click', () => {
+    menuKapat();
     const modal = UI.openModal(`
       <h3>Şifremi Değiştir</h3>
       <form id="sifre-degistir-form">
