@@ -27,7 +27,7 @@ Bu depoda birbirinden bağımsız çalışan iki eczane uygulaması bulunur:
 | **Eczam Programı (Web)** | [`web/`](web/) | Tarayıcıdan kullanılan eczane yönetim sistemi: POS satış, stok ve parti/SKT (FEFO), karekod okuma, kampanya, iade, veresiye defteri, ilaç etkileşim uyarısı, kasa kapanışı, raporlar, çoklu şube ve kullanıcı rolleri | Node.js / Express / SQLite |
 | **Eczam Mobil** | [`web/public/mobil/`](web/public/mobil/), [`mobil-uygulama/`](mobil-uygulama/) | Telefon uygulaması (PWA) ve App Store için iOS kabuğu: özet, ürün sorgu, kamerayla barkod okuma, bildirimler, çevrimdışı çalışma | Vanilla JS / Capacitor |
 
-Masaüstü programının gösterge paneli artık haftalık kıyas (ciro/etiket), en yoğun saat tahmini, otomatik öngörü cümleleri ve en çok basılan ilaçlar listesini de gösterir ([ekran görüntüsü](docs/masaustu-gosterge.png)).
+Masaüstü programının gösterge paneli artık haftalık kıyas (ciro/etiket), en yoğun saat tahmini, otomatik öngörü cümleleri en çok basılan ilaçlar listesi ve "Dikkat Gerektiren Stoklar" tablosunu (SKT'si geçen, yaklaşan, düşük stok) de gösterir ([ekran görüntüsü](docs/masaustu-gosterge.png)).
 
 Web uygulamasının kurulumu ve özellikleri için: **[web/README.md](web/README.md)**. Bu sayfanın geri kalanı masaüstü Eczane Etiket uygulamasını anlatır.
 
