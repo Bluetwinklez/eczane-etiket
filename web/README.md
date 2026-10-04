@@ -33,6 +33,33 @@ Eczane yönetim ve otomasyon sistemi. Node.js + Express + yerleşik `node:sqlite
 - **Veresiye (cari hesap) defteri**: POS'ta "Veresiye" ödeme tipi ve müşteri bazlı limit. Yürüyen bakiyeli hesap ekstresi, nakit veya kart tahsilat, 30 günü geçen alacak takibi. Tahsilatlar kasa kapanışına dahil edilir.
 - **İlaç etkileşim uyarısı**: sepetteki ürünlerin etken maddeleri arasındaki bilinen etkileşimler, mükerrer etken madde, müşterinin son 90 günlük alımlarıyla etkileşim ve sağlık notundaki alerji (örn. penisilin → amoksisilin) kontrol edilir. Ciddi uyarıda satıştan önce onay istenir. Etkileşim listesi **sınırlı bir örnek veri setidir**, klinik karar desteği yerine geçmez; eczacılar kendi kurallarını ekleyebilir.
 
+**Depo ve stok yönetimi (ek paket)**:
+- **Mal kabul (irsaliye/fatura girişi)**: Tedarikçi, fatura no, parti/SKT ve mal fazlası (MF, örn. 10+1) tek ekrandan girilir. Gerçek birim maliyet MF dahil hesaplanır. Karekod okutunca ürün, parti ve SKT kendiliğinden dolar. Bekleyen bir sipariş bu girişle kapatılabilir.
+- **Stok sayımı**: Sayılan adet elle girilir ya da barkod okutulur (her okutma +1). Fark canlı görünür. Tamamlanınca yalnızca sayılan ürünlerin stoğu düzeltilir; fazlalar yeni parti olarak girer, eksikler SKT sırasıyla düşer.
+- **Şubeler arası transfer**: Gönderen şubeden stok SKT sırasıyla düşer. Alıcı şube teslim alınca ürün aynı parti ve SKT ile girer. Yoldaki transfer iptal edilirse ürün geri döner.
+- **Toplu fiyat güncelleme**: Kategori, ürün tipi ya da reçeteli/reçetesiz ürünlere yüzde zam veya indirim uygulanır. Yuvarlama seçilebilir (kuruş, 0,50, tam lira, ,90). Uygulamadan önce önizleme gösterilir ve alış fiyatının altına düşen ürünler uyarılır.
+- **Akıllı sipariş önerisi**: Son 30 günün satış hızına göre stoğun kaç gün yeteceği hesaplanır. 7 günden önce bitecek ürünler 30 günlük ihtiyaca tamamlanacak şekilde önerilir.
+- **CSV ile toplu ürün yükleme**: Excel'den "CSV olarak kaydet" ile alınan dosya yüklenir; Türkçe başlıklar, "1.249,90" gibi sayılar ve Windows-1254 kodlaması tanınır. Önce önizleme gösterilir. Barkodu kayıtlı ürünler güncellenir, olmayanlar eklenir.
+- **Raf/fiyat etiketi**: Barkodlu etiketler A4'e basılır. Geçerli barkodlar EAN-13, diğerleri Code 128 olarak çizilir. "Son N günde fiyatı değişenler" filtresi vardır.
+- **Analiz raporları**: ölü stok (bağlı sermaye), ABC analizi, tedarikçi fiyat karşılaştırması (MF dahil).
+
+**Satış ve müşteri (ek paket)**:
+- **Sepeti beklet**: F8 ile sepet bekletilir, sonra geri alınır. Şubedeki tüm kasalar bekleyen sepetleri görür.
+- **Bölünmüş ödeme**: Bir satış nakit + kart olarak ödenebilir. Kasa kapanışı iki kısmı ayrı sayar; iadede tutar aynı oranla nakit ve karta bölünür.
+- **Sadakat puanı**: Varsayılan olarak 1 TL = 1 puan, 100 puan = 1 TL. Reçeteli ilaçlar ve SGK satışları puan kazandırmaz. İadede kazanılan puan geri alınır, harcanan puan geri yüklenir.
+- **İlaç bitiş hatırlatması**: Kronik ilacı biten veya bitmek üzere olan müşteriler listelenir ve tek tıkla SMS/e-posta gönderilir. Aynı dönem için ikinci kez hatırlatma gitmez.
+- **İstek/eksik defteri**: Stokta olmayan ürün not edilir. Ürün stoğa girince işaretlenir ve müşteriye haber verilir.
+- **Emanet ilaç defteri**: Başka eczanelerle alınıp verilen ilaçlar takip edilir ve stok otomatik güncellenir. Eczane bazında açık borç/alacak gösterilir.
+- **Reçete kaydı ve kontrollü ilaç defteri**: Satışa reçete no, renk, doktor ve hasta TC bağlanır. Kırmızı ve yeşil reçeteli ilaçlar bu bilgiler olmadan satılamaz. Kontrollü ilaç defteri raporu yürüyen bakiyeyle tutulur.
+- **Hasta ilaç kullanım kartı**: POS'ta girilen kullanım talimatları, ilaçlar arası etkileşimler ve alerji notu yazdırılabilir bir kartta toplanır.
+- **Toplu SMS**: Mesaj yalnızca ticari ileti onayı (İYS) olan müşterilere gider. Alıcı grupları seçilebilir (dermokozmetik alanlar, kronik ilaç kullananlar, 90 gündür gelmeyenler vb.).
+
+**Yönetim (ek paket)**:
+- **Satış analizi**: Gün × saat yoğunluk haritası (Türkiye saatiyle) ve aylık satış hedefi gösterilir. Hedefte yüzde, günlük gereken tutar ve ay sonu tahmini yer alır; hedef çubuğu ana sayfada da görünür.
+- **Vardiya çizelgesi**: Hazır vardiyalar (sabah, öğle, akşam, 24 saat nöbet, izin, rapor) ve kişi başına haftalık toplam saat gösterilir. Önceki hafta tek tıkla kopyalanır; devir notları da buradadır.
+- **Bildirim merkezi (🔔)**: Kritik stok, geçmiş/yaklaşan SKT, ilacı biten müşteri, gelen istek ürünü, geciken veresiye, kapatılmamış kasa, gelen transfer gibi işler tek panelde toplanır.
+- **Otomatik günlük yedek**: Sunucu açıkken günde bir kez yedek alınır ve son 14 yedek saklanır. Admin bu yedekleri indirebilir.
+
 **Güvenlik ve denetim**:
 - Giriş denemesi sınırı: aynı IP + kullanıcı için 15 dakikada 5 hatalı deneme, ardından geçici kilit.
 - Oturumlar SQLite'ta saklanır, sunucu yeniden başlasa da korunur. Girişte oturum kimliği yenilenir.
@@ -69,6 +96,10 @@ Sunucu varsayılan olarak `http://localhost:3000` adresinde çalışır. Veritab
 | `SESSION_SECRET` | Oturum imzalama anahtarı (verilmezse üretilip veritabanında saklanır) |
 | `ECZANEM_DB_PATH` | Veritabanı dosyası yolu (varsayılan `web/data/eczane.db`) |
 | `COOKIE_SECURE`  | `1` ise oturum çerezi yalnızca HTTPS üzerinden gönderilir |
+| `ECZANEM_SAAT_FARKI` | Saat bazlı analiz ve aylık hedef için UTC farkı (varsayılan `3`, Türkiye) |
+| `ECZANEM_YEDEK_DIZINI` | Otomatik yedek klasörü (varsayılan `web/data/yedekler`) |
+| `ECZANEM_YEDEK_SAKLA` | Saklanacak otomatik yedek sayısı (varsayılan `14`) |
+| `ECZANEM_OTOMATIK_YEDEK` | `0` ise otomatik günlük yedek kapalı |
 | `TRUST_PROXY`    | `1` ise ters vekil (reverse proxy) arkasında istemci IP'si `X-Forwarded-For`'dan alınır |
 | `SMTP_HOST`      | E-posta bildirimleri için SMTP sunucusu           |
 | `SMTP_PORT`      | SMTP portu (varsayılan 587)                       |
