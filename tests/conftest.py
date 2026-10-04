@@ -43,15 +43,20 @@ _configure_tcl_tk()
 
 
 # Windows CI runner'larında aynı süreçte Tk ikinci kez oluşturulurken Tcl, var olan
-# init.tcl dosyasını ara sıra okuyamıyor ("couldn't read file ...: No error").
-# Hata geçici: hemen ardından yapılan deneme başarılı oluyor. Bu yüzden yalnızca
-# bu hata için kısa beklemeyle yeniden denenir; diğer TclError'lar aynen yükselir.
+# kütüphane dosyalarını (init.tcl, tk.tcl) ara sıra okuyamıyor ("couldn't read file
+# ...: No error", "tk wasn't installed properly"). Hata geçici: hemen ardından yapılan
+# deneme başarılı oluyor. Bu yüzden yalnızca bu hatalar için kısa beklemeyle yeniden
+# denenir; diğer TclError'lar (örn. DISPLAY yok) aynen yükselir.
 TK_DENEME_SAYISI = 5
 TK_BEKLEME_SN = 0.5
 
 
+_GECICI_TK_HATALARI = ("init.tcl", "tk.tcl", "couldn't read file", "wasn't installed properly")
+
+
 def tk_gecici_hata_mi(exc):
-    return "init.tcl" in str(exc)
+    mesaj = str(exc)
+    return any(parca in mesaj for parca in _GECICI_TK_HATALARI)
 
 
 def app_olustur(app_sinifi=None, deneme=TK_DENEME_SAYISI, bekleme=TK_BEKLEME_SN):
