@@ -119,13 +119,40 @@ window.EczamEklenti = (M) => {
               .map((x) =>
                 x.tur === 'dolmus'
                   ? `<div class="satir"><div class="ad">${esc(x.ad)}<small>${x.parti_no ? 'Parti ' + esc(x.parti_no) : 'Partisiz'} · ${x.miktar} adet · SKT ${tarihKisa(x.skt)}</small></div><span class="rozet kirmizi">Süresi geçti</span></div>`
-                  : `<div class="satir"><div class="ad">${esc(x.ad)}<small>${x.fazla} adet ${x.kalan_gun} gün içinde satılamayabilir · olası zarar ${tl(x.tahmini_zarar)}</small></div><span class="rozet sari">%${x.onerilen_indirim} indirim</span></div>`
+                  : `<div class="satir"><div class="ad">${esc(x.ad)}<small>${x.fazla} adet ${x.kalan_gun} gün içinde satılamayabilir · olası zarar ${tl(x.tahmini_zarar)}</small></div>${
+                      x.kampanya_var
+                        ? '<span class="rozet yesil">Kampanya aktif</span>'
+                        : yonetici() && !x.receteli
+                          ? `<button class="rozet sari" type="button" data-kampanya="${x.ilac_id}" data-yuzde="${x.onerilen_indirim}" data-skt="${esc(x.skt)}" data-ad="${esc(x.ad)}" style="cursor:pointer">Kampanya başlat · %${x.onerilen_indirim}</button>`
+                          : `<span class="rozet sari">%${x.onerilen_indirim} indirim</span>`
+                    }</div>`
               )
               .join('')
           : bos('Yaklaşan riskli parti yok')
       }
       ${o.olu_stok.adet ? `${baslik('Ölü stok')}<p class="alt-yazi">${o.olu_stok.adet} ürün ${o.olu_stok.gun} gündür satılmadı. Bağlı sermaye: <b>${tl(o.olu_stok.bagli_sermaye)}</b></p>${o.olu_stok.ilk.map((u) => `<div class="satir"><div class="ad">${esc(u.ad)}<small>Stok ${u.stok}</small></div><span class="rozet">${tl(u.bagli_sermaye)}</span></div>`).join('')}` : ''}`,
       { geri: true }
+    );
+    uyg.querySelectorAll('[data-kampanya]').forEach((b) =>
+      b.addEventListener('click', async () => {
+        if (!window.confirm(`${b.dataset.ad}: %${b.dataset.yuzde} indirim kampanyası ${tarihKisa(b.dataset.skt)} tarihine kadar başlatılsın mı?`)) return;
+        b.disabled = true;
+        try {
+          await post('/api/kampanyalar', {
+            ad: `SKT indirimi: ${b.dataset.ad}`,
+            tip: 'yuzde',
+            hedef_tip: 'urun',
+            hedef_deger: b.dataset.kampanya,
+            indirim_yuzdesi: Number(b.dataset.yuzde),
+            bitis: b.dataset.skt
+          });
+          toast('Kampanya başlatıldı');
+          oneriEkrani();
+        } catch (e) {
+          b.disabled = false;
+          toast(hataMesaji(e));
+        }
+      })
     );
   }
 
@@ -530,11 +557,197 @@ window.EczamEklenti = (M) => {
       };
   }
 
+  // ---------- Gorevler (yapilacaklar) ----------
+  const ONCELIK = { yuksek: ['Yüksek', 'kirmizi'], orta: ['Orta', 'sari'], dusuk: ['Düşük', 'yesil'] };
+  async function gorevlerEkrani() {
+    cerceve('Görevler', 'bildirim', '<div class="yukleniyor">Yükleniyor…</div>', { geri: true });
+    let liste;
+    try {
+      liste = await get('/api/gorevler', { onbellek: true });
+    } catch (e) {
+      return cerceve('Görevler', 'bildirim', hataKutusu(e), { geri: true });
+    }
+    const bekleyen = liste.filter((g) => g.durum === 'bekliyor');
+    const biten = liste.filter((g) => g.durum === 'tamamlandi').slice(0, 5);
+    const satir = (g) => `<div class="satir"><button class="yuvarlak" data-tamam="${g.id}" data-durum="${g.durum}" style="width:40px;height:40px;flex:none;background:${g.durum === 'tamamlandi' ? 'var(--yesil)' : 'var(--beyaz)'}" aria-label="${g.durum === 'tamamlandi' ? 'Geri al' : 'Tamamla'}">${g.durum === 'tamamlandi' ? '✓' : ''}</button>
+      <div class="ad" style="${g.durum === 'tamamlandi' ? 'text-decoration:line-through;opacity:.6' : ''}">${esc(g.baslik)}<small>${g.atanan_adi ? esc(g.atanan_adi) : 'Herkes'}${g.aciklama ? ' · ' + esc(g.aciklama) : ''}</small></div>
+      ${g.durum === 'bekliyor' ? `<span class="rozet ${(ONCELIK[g.oncelik] || ONCELIK.orta)[1]}">${(ONCELIK[g.oncelik] || ONCELIK.orta)[0]}</span>` : ''}</div>`;
+    cerceve(
+      'Görevler',
+      'bildirim',
+      `${cevrimdisiNot(liste)}
+       <button class="hap siyah" id="g-yeni" style="margin-bottom:12px">+ Yeni görev</button>
+       <div class="kart bg-krem" style="padding:8px 16px">${bekleyen.length ? bekleyen.map(satir).join('') : bos('Bekleyen görev yok 🎉')}</div>
+       ${biten.length ? `${baslik('Son tamamlananlar')}<div class="kart bg-krem" style="padding:8px 16px">${biten.map(satir).join('')}</div>` : ''}`,
+      { geri: true }
+    );
+    uyg.querySelectorAll('[data-tamam]').forEach(
+      (b) =>
+        (b.onclick = async () => {
+          b.disabled = true;
+          try {
+            await put('/api/gorevler/' + b.dataset.tamam, { durum: b.dataset.durum === 'bekliyor' ? 'tamamlandi' : 'bekliyor' });
+            gorevlerEkrani();
+          } catch (e) {
+            b.disabled = false;
+            toast(hataMesaji(e));
+          }
+        })
+    );
+    $('#g-yeni').onclick = () => {
+      const perde = sayfaAc(`<h2 style="font-family:var(--font-baslik);margin:0 0 10px">Yeni görev</h2>
+        <form id="g-form">
+          <label class="etiket" for="g-baslik">Başlık</label><input class="alan" id="g-baslik" maxlength="120" required autocomplete="off" />
+          <label class="etiket" for="g-aciklama" style="margin-top:12px">Not (isteğe bağlı)</label><input class="alan" id="g-aciklama" autocomplete="off" />
+          <div class="cipler" style="margin-top:12px" role="group" aria-label="Öncelik">${[['yuksek', 'Yüksek'], ['orta', 'Orta'], ['dusuk', 'Düşük']].map(([k, a]) => `<button type="button" class="hap ${k === 'orta' ? 'secili' : ''}" data-oncelik="${k}">${a}</button>`).join('')}</div>
+          <button class="hap siyah" type="submit" style="margin-top:8px">Kaydet</button>
+        </form>`);
+      let oncelik = 'orta';
+      perde.querySelectorAll('[data-oncelik]').forEach(
+        (b) =>
+          (b.onclick = () => {
+            oncelik = b.dataset.oncelik;
+            perde.querySelectorAll('[data-oncelik]').forEach((x) => x.classList.toggle('secili', x === b));
+          })
+      );
+      $('#g-form', perde).addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+          await post('/api/gorevler', { baslik: $('#g-baslik', perde).value, aciklama: $('#g-aciklama', perde).value || undefined, oncelik });
+          perde.remove();
+          toast('Görev eklendi');
+          gorevlerEkrani();
+        } catch (err) {
+          toast(hataMesaji(err));
+        }
+      });
+    };
+  }
+
+  // ---------- Gunun kasasi (salt okunur) ----------
+  async function kasaEkrani() {
+    cerceve('Günün Kasası', 'satis', '<div class="yukleniyor">Yükleniyor…</div>', { geri: true });
+    let k;
+    try {
+      k = await get('/api/kasa-kapanislari/ozet', { onbellek: true });
+    } catch (e) {
+      return cerceve('Günün Kasası', 'satis', hataKutusu(e), { geri: true });
+    }
+    const satirlar = [
+      ['Nakit', k.nakit], ['Kart', k.kart], ['SGK', k.sgk], ['Veresiye', k.veresiye]
+    ];
+    cerceve(
+      'Günün Kasası',
+      'satis',
+      `${cevrimdisiNot(k)}
+       <div class="kart bg-yesil"><h2>Günün cirosu</h2><div class="tutar">${tl(k.toplam)}</div>
+         <div class="fark">${k.zaten_kapatildi ? 'Kasa kapatıldı ✓' : 'Kasa henüz kapatılmadı'}</div></div>
+       <div class="kart bg-krem" style="padding:8px 16px">${satirlar.map(([a, v]) => `<div class="satir"><div class="ad">${a}</div><span class="rozet">${tl(v)}</span></div>`).join('')}
+         ${k.tahsilat ? `<div class="satir"><div class="ad">Veresiye tahsilatı<small>Nakit/kart toplamına dahil</small></div><span class="rozet yesil">${tl(k.tahsilat)}</span></div>` : ''}
+         ${k.iade ? `<div class="satir"><div class="ad">İadeler</div><span class="rozet kirmizi">${tl(k.iade)}</span></div>` : ''}</div>
+       <p class="alt-yazi">Kasa kapanışı bilgisayardan yapılır.</p>`,
+      { geri: true }
+    );
+  }
+
+  // ---------- Iade ----------
+  const ODEME_ADI = { nakit: 'Nakit', kredi_karti: 'Kart', sgk: 'SGK', veresiye: 'Veresiye', karma: 'Karma' };
+  async function iadeEkrani() {
+    if (!yonetici()) return cerceve('İade', 'satis', hataKutusu({ message: 'Bu ekran eczacı ve yöneticiler içindir.' }), { geri: true });
+    cerceve('İade', 'satis', '<div class="yukleniyor">Yükleniyor…</div>', { geri: true });
+    let liste;
+    try {
+      const bas = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+      liste = (await get('/api/satislar?baslangic=' + bas, { onbellek: true })).slice(0, 20);
+    } catch (e) {
+      return cerceve('İade', 'satis', hataKutusu(e), { geri: true });
+    }
+    cerceve(
+      'İade',
+      'satis',
+      `${cevrimdisiNot(liste)}<p class="alt-yazi">Son 7 günün satışları. İade edilecek satışı seçin.</p>
+       <div class="kart bg-krem" style="padding:8px 16px">${
+         liste.length
+           ? liste
+               .map((x) => `<button class="satir" data-id="${x.id}" style="width:100%;background:none;border:none;text-align:left;font-size:inherit;cursor:pointer"><div class="ad">Satış #${x.id}<small>${esc(String(x.tarih).slice(0, 16).replace('T', ' '))} · ${esc(x.musteri_adi || 'Perakende')} · ${esc(ODEME_ADI[x.odeme_tipi] || x.odeme_tipi)}</small></div><span class="rozet">${tl(x.toplam_tutar)}</span></button>`)
+               .join('')
+           : bos('Son 7 günde satış yok')
+       }</div>`,
+      { geri: true }
+    );
+    uyg.querySelectorAll('[data-id]').forEach((b) => (b.onclick = () => iadeKarti(Number(b.dataset.id))));
+  }
+
+  async function iadeKarti(satisId) {
+    const perde = sayfaAc('<div class="yukleniyor">Yükleniyor…</div>');
+    const kapat = () => perde.remove();
+    try {
+      const sat = await get('/api/iadeler/satis/' + satisId);
+      const secim = new Map(); // kalem id -> iade adedi
+      const ciz = () => {
+        const toplam = sat.kalemler.reduce((t, k) => t + (secim.get(k.id) || 0) * k.birim_iade_tutari, 0);
+        $('.sayfa', perde).innerHTML = `<div class="tutamak"></div>
+          <h2 style="font-family:var(--font-baslik);font-size:24px;margin:0 0 4px">Satış #${sat.id} iadesi</h2>
+          <p class="alt-yazi" style="margin-bottom:8px">${tl(sat.toplam_tutar)} · ${esc(ODEME_ADI[sat.odeme_tipi] || sat.odeme_tipi)}${sat.musteri_adi ? ' · ' + esc(sat.musteri_adi) : ''}</p>
+          ${sat.kalemler
+            .map((k) =>
+              k.iade_edilebilir_adet > 0
+                ? `<div class="satir"><div class="ad">${esc(k.ilac_adi)}<small>${tl(k.birim_iade_tutari)} × ${k.iade_edilebilir_adet} iade edilebilir</small></div>
+                    <button class="yuvarlak" data-eksi="${k.id}" style="width:40px;height:40px;background:var(--beyaz)" aria-label="Azalt">−</button><b>${secim.get(k.id) || 0}</b>
+                    <button class="yuvarlak" data-arti="${k.id}" style="width:40px;height:40px;background:var(--yesil)" aria-label="Artır">+</button></div>`
+                : `<div class="satir"><div class="ad" style="opacity:.6">${esc(k.ilac_adi)}<small>Tamamı iade edilmiş</small></div></div>`
+            )
+            .join('')}
+          <label class="satir" style="cursor:pointer"><input type="checkbox" id="ia-stok" checked style="width:22px;height:22px" /><div class="ad">Ürünleri stoğa geri al</div></label>
+          <input class="alan" id="ia-neden" placeholder="İade nedeni (isteğe bağlı)" aria-label="İade nedeni" autocomplete="off" style="margin-top:6px" />
+          <div class="kart bg-mercan" style="margin-top:12px"><h2>İade tutarı</h2><div class="tutar">${tl(toplam)}</div></div>
+          <div style="display:grid;gap:10px;margin-top:12px"><button class="hap siyah" id="ia-onayla" ${toplam > 0 ? '' : 'disabled'}>İadeyi tamamla</button><button class="hap" id="ia-kapat">Vazgeç</button></div>`;
+        $('#ia-kapat', perde).onclick = kapat;
+        perde.querySelectorAll('[data-arti]').forEach((b) => (b.onclick = () => {
+          const k = sat.kalemler.find((x) => x.id === Number(b.dataset.arti));
+          if ((secim.get(k.id) || 0) < k.iade_edilebilir_adet) secim.set(k.id, (secim.get(k.id) || 0) + 1);
+          ciz();
+        }));
+        perde.querySelectorAll('[data-eksi]').forEach((b) => (b.onclick = () => {
+          const id = Number(b.dataset.eksi);
+          if ((secim.get(id) || 0) > 0) secim.set(id, secim.get(id) - 1);
+          ciz();
+        }));
+        $('#ia-onayla', perde).onclick = async (e) => {
+          const stoga = $('#ia-stok', perde).checked;
+          const neden = $('#ia-neden', perde).value.trim();
+          e.target.disabled = true;
+          try {
+            const r = await post('/api/iadeler', {
+              satis_id: sat.id,
+              stoga_geri_al: stoga,
+              neden: neden || undefined,
+              kalemler: [...secim].filter(([, adet]) => adet > 0).map(([satis_kalem_id, adet]) => ({ satis_kalem_id, adet }))
+            });
+            kapat();
+            toast(`İade tamamlandı: ${tl(r.toplam_tutar)}`);
+            iadeEkrani();
+          } catch (err) {
+            e.target.disabled = false;
+            toast(hataMesaji(err));
+          }
+        };
+      };
+      ciz();
+    } catch (e) {
+      $('.sayfa', perde).innerHTML = `${hataKutusu(e)}<button class="hap" id="ia-kapat" style="width:100%;margin-top:12px">Kapat</button>`;
+      $('#ia-kapat', perde).onclick = kapat;
+    }
+  }
+
   return {
     oneri: oneriEkrani,
     'hizli-satis': () => hizliSatisEkrani(),
     musteriler: musterilerEkrani,
     siparisler: siparislerEkrani,
-    'mal-kabul': malKabulEkrani
+    'mal-kabul': malKabulEkrani,
+    gorevler: gorevlerEkrani,
+    kasa: kasaEkrani,
+    iade: iadeEkrani
   };
 };

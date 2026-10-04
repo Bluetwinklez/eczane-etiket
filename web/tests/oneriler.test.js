@@ -101,3 +101,24 @@ test('ölü stok ve gün sonu özeti', async () => {
   assert.ok(g.kar > 0 && g.kar < g.ciro);
   assert.equal(g.en_cok_satan.adet, 2);
 });
+
+test('SKT önerisi: reçeteli ürün işaretlenir, aktif kampanyası olan ürün kampanya_var olur', async () => {
+  const [a, , c] = db.prepare('SELECT id FROM ilaclar ORDER BY id LIMIT 3').all();
+  // c ürününün GECMIS-1 partisi var (önceki testte); c reçeteli yapılır, b için kampanya açılır
+  const b = db.prepare("SELECT ilac_id FROM ilac_partileri WHERE parti_no = 'YAKIN-1'").get();
+  db.prepare('UPDATE ilaclar SET receteli = 1 WHERE id = ?').run(c.id);
+  let o = (await kasiyer.get('/api/oneriler')).data;
+  assert.equal(o.skt_indirim.find((x) => x.parti_no === 'GECMIS-1').receteli, 1);
+  const yakin = o.skt_indirim.find((x) => x.parti_no === 'YAKIN-1');
+  assert.equal(yakin.receteli, 0);
+  assert.equal(yakin.kampanya_var, 0);
+
+  db.prepare("INSERT INTO kampanyalar (ad, tip, hedef_tip, hedef_deger, indirim_yuzdesi, bitis, aktif) VALUES ('SKT', 'yuzde', 'urun', ?, 30, date('now', '+10 days'), 1)").run(String(b.ilac_id));
+  o = (await kasiyer.get('/api/oneriler')).data;
+  assert.equal(o.skt_indirim.find((x) => x.parti_no === 'YAKIN-1').kampanya_var, 1);
+  // süresi dolmuş kampanya sayılmaz
+  db.prepare("UPDATE kampanyalar SET bitis = date('now', '-3 days')").run();
+  o = (await kasiyer.get('/api/oneriler')).data;
+  assert.equal(o.skt_indirim.find((x) => x.parti_no === 'YAKIN-1').kampanya_var, 0);
+  assert.ok(a);
+});
