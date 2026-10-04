@@ -47,7 +47,7 @@ Xcode'da:
 
 1. Sol listeden **App** projesini → **App** hedefini seçin → **Signing & Capabilities**.
 2. **Team**: kendi Apple Developer takımınızı seçin. "Automatically manage signing" açık kalsın.
-3. **Bundle Identifier**: varsayılan `com.eczam.mobil`. Bu adres dünyada tekildir; başkası aldıysa değiştirin (örn. `com.eczaneadiniz.eczanem`). Değiştirirseniz `capacitor.config.json` içindeki `appId` değerini de aynı yapıp `npm run senkron` çalıştırın.
+3. **Bundle Identifier**: varsayılan `com.bluetwinklez.eczam`. Bu adres dünyada tekildir; başkası aldıysa değiştirin (örn. `com.eczaneadiniz.eczanem`). Değiştirirseniz `capacitor.config.json` içindeki `appId` değerini de aynı yapıp `npm run senkron` çalıştırın.
 4. **General → Version** `1.0`, **Build** `1`. Her yüklemede Build numarasını 1 artırın.
 5. Üstten hedef olarak bir simülatör seçip ▶ ile çalıştırın. Bağlantı ekranı açılmalı; sunucu adresinizi yazınca `/mobil/` açılır.
 6. **Gerçek iPhone'da** deneyin (USB ile bağlayıp hedef seçin): kamera izni sorulmalı ve barkod okutulabilmeli. Simülatörde kamera yoktur.
