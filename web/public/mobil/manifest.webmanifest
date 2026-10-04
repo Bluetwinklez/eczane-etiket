@@ -1,0 +1,22 @@
+{
+  "name": "Eczanem Mobil",
+  "short_name": "Eczanem",
+  "description": "Eczane özeti, stok sorgu, barkod/karekod tarama ve bildirimler",
+  "lang": "tr",
+  "id": "/mobil/",
+  "start_url": "/mobil/",
+  "scope": "/mobil/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f9b572",
+  "theme_color": "#f9b572",
+  "icons": [
+    { "src": "ikonlar/ikon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "ikonlar/ikon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "ikonlar/ikon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Tara", "url": "/mobil/#/tara", "icons": [{ "src": "ikonlar/ikon-192.png", "sizes": "192x192" }] },
+    { "name": "Bildirimler", "url": "/mobil/#/bildirim", "icons": [{ "src": "ikonlar/ikon-192.png", "sizes": "192x192" }] }
+  ]
+}
