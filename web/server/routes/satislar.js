@@ -5,6 +5,7 @@ const { sepetHesapla } = require('../kampanyalar');
 const { musteriBakiyesi, cariHareketEkle } = require('../cari');
 const { puanUygula, puanHareketi } = require('../sadakat');
 const { RECETE_TURLERI, KONTROLLU_TURLER } = require('../sabitler');
+const { sqlSaatFarki, yerelSimdi } = require('../zaman');
 
 const ODEME_TIPLERI = ['nakit', 'kredi_karti', 'sgk', 'veresiye', 'karma'];
 
@@ -331,6 +332,73 @@ router.get('/', (req, res) => {
 
   const rows = db.prepare(sql).all(...params);
   res.json(rows);
+});
+
+// Ana sayfa paneli: son 14 gunun gunluk cirosu, son 30 / onceki 30 gun kategori dagilimi
+// ve son satislar. Gunler yerel saate gore gruplanir.
+router.get('/panel-ozet', (req, res) => {
+  const fark = sqlSaatFarki();
+  const subeId = req.user.sube_id;
+  const yerelGun = (gunOnce) => {
+    const d = yerelSimdi();
+    d.setUTCDate(d.getUTCDate() - gunOnce);
+    return d.toISOString().slice(0, 10);
+  };
+
+  const gunlukSatirlar = db
+    .prepare(
+      `SELECT date(tarih, ?) AS gun, SUM(toplam_tutar) AS toplam, COUNT(*) AS adet
+       FROM satislar WHERE sube_id = ? AND date(tarih, ?) >= ? GROUP BY gun`
+    )
+    .all(fark, subeId, fark, yerelGun(13));
+  const gunHaritasi = Object.fromEntries(gunlukSatirlar.map((r) => [r.gun, r]));
+  const gunluk = [];
+  for (let i = 13; i >= 0; i--) {
+    const gun = yerelGun(i);
+    const r = gunHaritasi[gun];
+    gunluk.push({ gun, toplam: r ? Math.round(r.toplam * 100) / 100 : 0, adet: r ? r.adet : 0 });
+  }
+
+  // Kategori karsilastirmasi: son 30 gun / onceki 30 gun (yarim ay ile tam ayi kiyaslamamak icin)
+  const kategoriSatirlari = db
+    .prepare(
+      `SELECT COALESCE(NULLIF(TRIM(i.kategori), ''), 'Diğer') AS kategori,
+              SUM(CASE WHEN date(sa.tarih, ?) >= ? THEN sk.ara_toplam ELSE 0 END) AS son_30,
+              SUM(CASE WHEN date(sa.tarih, ?) < ? THEN sk.ara_toplam ELSE 0 END) AS onceki_30
+       FROM satis_kalemleri sk
+       JOIN satislar sa ON sa.id = sk.satis_id
+       JOIN ilaclar i ON i.id = sk.ilac_id
+       WHERE sa.sube_id = ? AND date(sa.tarih, ?) >= ?
+       GROUP BY 1 ORDER BY son_30 DESC, onceki_30 DESC`
+    )
+    .all(fark, yerelGun(29), fark, yerelGun(29), subeId, fark, yerelGun(59));
+  // Radar okunakli kalsin diye en fazla 6 eksen: ilk 5 kategori + "Diğer"
+  let kategoriler = kategoriSatirlari;
+  if (kategoriSatirlari.length > 6) {
+    const kalan = kategoriSatirlari.slice(5);
+    kategoriler = kategoriSatirlari.slice(0, 5).concat({
+      kategori: 'Diğer',
+      son_30: kalan.reduce((t, r) => t + r.son_30, 0),
+      onceki_30: kalan.reduce((t, r) => t + r.onceki_30, 0)
+    });
+  }
+  kategoriler = kategoriler.map((k) => ({
+    kategori: k.kategori,
+    son_30: Math.round(k.son_30 * 100) / 100,
+    onceki_30: Math.round(k.onceki_30 * 100) / 100
+  }));
+
+  const sonSatislar = db
+    .prepare(
+      `SELECT sa.id, sa.tarih, sa.toplam_tutar, sa.odeme_tipi, m.ad_soyad AS musteri_adi,
+              (SELECT COUNT(*) FROM satis_kalemleri WHERE satis_id = sa.id) AS kalem_sayisi,
+              (SELECT ilac_adi FROM satis_kalemleri WHERE satis_id = sa.id ORDER BY id LIMIT 1) AS ilk_urun
+       FROM satislar sa LEFT JOIN musteriler m ON m.id = sa.musteri_id
+       WHERE sa.sube_id = ? ORDER BY sa.tarih DESC, sa.id DESC LIMIT 6`
+    )
+    .all(subeId);
+
+  res.json({ gunluk, kategoriler, son_satislar: sonSatislar });
 });
 
 router.get('/:id', (req, res) => {

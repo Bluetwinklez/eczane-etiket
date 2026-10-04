@@ -490,7 +490,7 @@
           });
 
           const uyariMetni = satis.kritik_stok_uyarisi.length
-            ? '<p style="color:#b8860b">Uyarı: ' +
+            ? '<p style="color:var(--warning)">Uyarı: ' +
               satis.kritik_stok_uyarisi.map((u) => `${UI.esc(u.ad)} (kalan: ${u.kalan_stok})`).join(', ') +
               ' kritik stok seviyesinde.</p>'
             : '';
