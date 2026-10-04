@@ -245,6 +245,38 @@ def build_insights(data: dict) -> list:
     return out
 
 
+def attention_items(limit: int = 8, items: Optional[list] = None, today: Optional[_dt.date] = None) -> list:
+    """Dikkat gerektiren stok kalemleri: önce SKT'si geçmiş, sonra SKT'si yaklaşan, sonra düşük stok.
+
+    Her öğe: {"kind": expired|expiring|low, "name", "detail", "quantity", "sort"}. En acil olan başta.
+    """
+    from .stock import DEFAULT_WARNING_DAYS, _parse_date
+
+    items = items if items is not None else load_stock()
+    today = today or _dt.date.today()
+    found = []
+    for item in items:
+        name = item.get("name") or "-"
+        qty = item.get("quantity", 0)
+        expiry = _parse_date(item.get("expiry_date", ""))
+        if expiry is not None:
+            days_left = (expiry - today).days
+            if days_left < 0:
+                found.append({"kind": "expired", "name": name, "quantity": qty,
+                              "detail": f"SKT {-days_left} gün önce geçti", "sort": (0, days_left)})
+                continue
+            if days_left <= DEFAULT_WARNING_DAYS:
+                found.append({"kind": "expiring", "name": name, "quantity": qty,
+                              "detail": "SKT bugün" if days_left == 0 else f"SKT'ye {days_left} gün kaldı", "sort": (1, days_left)})
+                continue
+        minimum = item.get("min_quantity", 0)
+        if minimum > 0 and qty <= minimum:
+            found.append({"kind": "low", "name": name, "quantity": qty,
+                          "detail": f"Stok {qty} / alt sınır {minimum}", "sort": (2, qty - minimum)})
+    found.sort(key=lambda f: (f["sort"], f["name"]))
+    return found[:limit]
+
+
 def summary(days: int = DEFAULT_DAYS) -> dict:
     records = load_history()
     today = _dt.date.today()
@@ -261,6 +293,7 @@ def summary(days: int = DEFAULT_DAYS) -> dict:
         "comparison": period_comparison(days, records, today),
         "busiest_hour": busiest_hour(30, records, today),
         "yesterday_turnover": daily_turnover((today - _dt.timedelta(days=1)).isoformat(), records),
+        "attention_items": attention_items(8, today=today),
     }
     data["insights"] = build_insights(data)
     return data

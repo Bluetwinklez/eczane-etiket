@@ -25,6 +25,7 @@ class DashboardView(ttk.Frame):
         self.recent_tree: Optional[ttk.Treeview] = None
         self.insights_frame: Optional[ttk.Frame] = None
         self.top_drugs_frame: Optional[ttk.Frame] = None
+        self.attention_tree: Optional[ttk.Treeview] = None
         self.chart_metric_var = tk.StringVar(value="counts")  # "counts" veya "turnover"
 
         self._build_ui()
@@ -174,6 +175,25 @@ class DashboardView(ttk.Frame):
         self.top_drugs_frame = ttk.Frame(drugs_card, style="Card.TFrame")
         self.top_drugs_frame.pack(fill="x")
 
+        # 5. Dikkat Gerektiren Stoklar (SKT geçen / yaklaşan / düşük stok)
+        attention_card = ttk.Frame(self, style="Card.TFrame", padding=12)
+        attention_card.pack(fill="x", pady=(12, 0))
+        ttk.Label(
+            attention_card,
+            text="⚠️ Dikkat Gerektiren Stoklar",
+            font=(theme.FONT_FAMILY, 11, "bold"),
+            foreground=theme.PRIMARY,
+        ).pack(anchor="w", pady=(0, 6))
+        att_cols = ("kind", "name", "detail", "qty")
+        self.attention_tree = ttk.Treeview(attention_card, columns=att_cols, show="headings", height=6)
+        for col, heading, width in zip(att_cols, ("Durum", "Ürün", "Ayrıntı", "Miktar"), (110, 260, 220, 70)):
+            self.attention_tree.heading(col, text=heading)
+            self.attention_tree.column(col, width=width, anchor="w")
+        self.attention_tree.tag_configure("expired", background="#fef2f2", foreground="#991b1b")
+        self.attention_tree.tag_configure("expiring", background="#fffbeb", foreground="#92400e")
+        self.attention_tree.tag_configure("low", background="#eff6ff", foreground="#1e40af")
+        self.attention_tree.pack(fill="x")
+
     def _create_summary_cards(self):
         self.card_data_holders = []
 
@@ -284,6 +304,7 @@ class DashboardView(ttk.Frame):
         # 2b. Öngörüler ve en çok basılan ilaçlar
         self._render_insights(s.get("insights", []))
         self._render_top_drugs(s.get("top_drugs", [])[:5])
+        self._render_attention(s.get("attention_items", []))
 
         # 3. Son İşlemler Tablosunu Güncelle
         if self.recent_tree:
@@ -353,6 +374,23 @@ class DashboardView(ttk.Frame):
                 wraplength=380,
                 justify="left",
             ).pack(side="left", fill="x", expand=True)
+
+    _ATTENTION_LABELS = {"expired": "SKT geçti", "expiring": "SKT yaklaşıyor", "low": "Düşük stok"}
+
+    def _render_attention(self, items: list):
+        if not self.attention_tree:
+            return
+        self.attention_tree.delete(*self.attention_tree.get_children())
+        if not items:
+            self.attention_tree.insert("", "end", values=("✅ Temiz", "Dikkat gerektiren stok kalemi yok", "", ""))
+            return
+        for it in items:
+            self.attention_tree.insert(
+                "",
+                "end",
+                values=(self._ATTENTION_LABELS.get(it["kind"], it["kind"]), it["name"], it["detail"], it["quantity"]),
+                tags=(it["kind"],),
+            )
 
     def _render_top_drugs(self, top_drugs: list):
         if not self.top_drugs_frame:
