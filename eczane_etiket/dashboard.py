@@ -23,6 +23,8 @@ class DashboardView(ttk.Frame):
         self.card_widgets = []
         self.chart_widget: Optional[CanvasChart] = None
         self.recent_tree: Optional[ttk.Treeview] = None
+        self.insights_frame: Optional[ttk.Frame] = None
+        self.top_drugs_frame: Optional[ttk.Frame] = None
         self.chart_metric_var = tk.StringVar(value="counts")  # "counts" veya "turnover"
 
         self._build_ui()
@@ -146,6 +148,32 @@ class DashboardView(ttk.Frame):
         self.recent_tree.pack(side="left", fill="both", expand=True)
         recent_scroll.pack(side="right", fill="y")
 
+        # 4. Öngörüler ve En Çok Basılan İlaçlar
+        insight_row = ttk.Frame(self)
+        insight_row.pack(fill="x", pady=(12, 0))
+
+        insight_card = ttk.Frame(insight_row, style="Card.TFrame", padding=12)
+        insight_card.pack(side="left", fill="both", expand=True, padx=(0, 6))
+        ttk.Label(
+            insight_card,
+            text="💡 Öngörüler ve Uyarılar",
+            font=(theme.FONT_FAMILY, 11, "bold"),
+            foreground=theme.PRIMARY,
+        ).pack(anchor="w", pady=(0, 6))
+        self.insights_frame = ttk.Frame(insight_card, style="Card.TFrame")
+        self.insights_frame.pack(fill="x")
+
+        drugs_card = ttk.Frame(insight_row, style="Card.TFrame", padding=12)
+        drugs_card.pack(side="left", fill="both", expand=True, padx=(6, 0))
+        ttk.Label(
+            drugs_card,
+            text="🏆 En Çok Basılan İlaçlar",
+            font=(theme.FONT_FAMILY, 11, "bold"),
+            foreground=theme.PRIMARY,
+        ).pack(anchor="w", pady=(0, 6))
+        self.top_drugs_frame = ttk.Frame(drugs_card, style="Card.TFrame")
+        self.top_drugs_frame.pack(fill="x")
+
     def _create_summary_cards(self):
         self.card_data_holders = []
 
@@ -238,10 +266,10 @@ class DashboardView(ttk.Frame):
         prof_name = active_prof.get("name") or "Eczanem"
 
         self.card_data_holders[0]["val"].config(text=f"₺ {today_turnover:,.2f}")
-        self.card_data_holders[0]["sub"].config(text=f"Bugünkü {today_count} işlem toplamı")
+        self.card_data_holders[0]["sub"].config(text=self._turnover_subtitle(today_count, today_turnover, s.get("yesterday_turnover", 0.0)))
 
         self.card_data_holders[1]["val"].config(text=f"{today_count} Adet")
-        self.card_data_holders[1]["sub"].config(text=f"Toplam kayıtlı: {s.get('total', 0)}")
+        self.card_data_holders[1]["sub"].config(text=self._count_subtitle(s))
 
         crit_text = f"{expired + low} Kritik / {expiring} Yakın"
         self.card_data_holders[2]["val"].config(text=crit_text)
@@ -252,6 +280,10 @@ class DashboardView(ttk.Frame):
 
         # 2. Grafiği Güncelle
         self._update_chart(s)
+
+        # 2b. Öngörüler ve en çok basılan ilaçlar
+        self._render_insights(s.get("insights", []))
+        self._render_top_drugs(s.get("top_drugs", [])[:5])
 
         # 3. Son İşlemler Tablosunu Güncelle
         if self.recent_tree:
@@ -272,6 +304,74 @@ class DashboardView(ttk.Frame):
                     ),
                     tags=("success",),
                 )
+
+    # ---- Öngörü ve kart metinleri (saf metin üretimi; arayüzden bağımsız test edilebilir) ----
+    @staticmethod
+    def _delta_text(change: Optional[float]) -> str:
+        if change is None:
+            return ""
+        arrow = "▲" if change >= 0 else "▼"
+        return f"{arrow} %{abs(change):.0f}"
+
+    @classmethod
+    def _turnover_subtitle(cls, today_count: int, today_turnover: float, yesterday: float) -> str:
+        base = f"Bugünkü {today_count} işlem toplamı"
+        if yesterday:
+            change = (today_turnover - yesterday) / yesterday * 100
+            return f"{base} · dün {cls._delta_text(change)}"
+        return base
+
+    @classmethod
+    def _count_subtitle(cls, s: dict) -> str:
+        cmp_ = s.get("comparison") or {}
+        delta = cls._delta_text(cmp_.get("count_change_pct"))
+        base = f"Toplam kayıtlı: {s.get('total', 0)}"
+        return f"{base} · hafta {delta}" if delta else base
+
+    _LEVEL_STYLE = {
+        "good": ("✅", "#065f46"),
+        "warn": ("⚠️", "#991b1b"),
+        "info": ("ℹ️", "#1e40af"),
+    }
+
+    def _render_insights(self, insights: list):
+        if not self.insights_frame:
+            return
+        for child in self.insights_frame.winfo_children():
+            child.destroy()
+        for item in insights:
+            icon, color = self._LEVEL_STYLE.get(item.get("level"), self._LEVEL_STYLE["info"])
+            row = ttk.Frame(self.insights_frame, style="Card.TFrame")
+            row.pack(fill="x", pady=2)
+            ttk.Label(row, text=icon, style="Card.TLabel", font=(theme.FONT_FAMILY, 10)).pack(side="left", padx=(0, 6))
+            ttk.Label(
+                row,
+                text=item.get("text", ""),
+                style="Card.TLabel",
+                foreground=color,
+                font=(theme.FONT_FAMILY, 9),
+                wraplength=380,
+                justify="left",
+            ).pack(side="left", fill="x", expand=True)
+
+    def _render_top_drugs(self, top_drugs: list):
+        if not self.top_drugs_frame:
+            return
+        for child in self.top_drugs_frame.winfo_children():
+            child.destroy()
+        if not top_drugs:
+            ttk.Label(self.top_drugs_frame, text="Henüz kayıt yok.", style="Muted.TLabel").pack(anchor="w")
+            return
+        peak = max(count for _, count in top_drugs) or 1
+        ttk.Style(self).configure("Drug.Horizontal.TProgressbar", background=theme.PRIMARY, troughcolor="#e5e7eb")
+        for rank, (name, count) in enumerate(top_drugs, start=1):
+            row = ttk.Frame(self.top_drugs_frame, style="Card.TFrame")
+            row.pack(fill="x", pady=2)
+            ttk.Label(row, text=f"{rank}.", style="Card.TLabel", width=3, font=(theme.FONT_FAMILY, 9, "bold")).pack(side="left")
+            ttk.Label(row, text=str(name)[:26], style="Card.TLabel", font=(theme.FONT_FAMILY, 9), width=26).pack(side="left")
+            bar = ttk.Progressbar(row, length=110, maximum=peak, value=count, style="Drug.Horizontal.TProgressbar")
+            bar.pack(side="left", padx=6)
+            ttk.Label(row, text=f"{count} adet", style="Muted.TLabel", font=(theme.FONT_FAMILY, 8)).pack(side="left")
 
     def _update_chart(self, s: Optional[dict] = None):
         if not self.chart_widget:

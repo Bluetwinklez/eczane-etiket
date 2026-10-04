@@ -6,7 +6,7 @@ Mağaza metinleri: [`STORE_LISTING.md`](STORE_LISTING.md) · Gizlilik politikas�
 > - Hazır: iOS kabuğu (Capacitor + Swift Package Manager), ikon, açılış ekranı, izin metinleri (tr + en), GitHub Actions iş akışları, imzalama betikleri, mağaza metinleri, ekran görüntüleri, gizlilik politikası.
 > - **Doğrulandı:** GitHub'daki macOS çalıştırıcısında imzasız iOS cihaz derlemesi (`iOS derleme kontrolü`) **BUILD SUCCEEDED** verdi; yani Xcode projesi ve Swift Paketleri derleniyor.
 > - **Henüz doğrulanmadı:** imzalama, arşivleme, TestFlight yüklemesi (`Eczam iPhone TestFlight` hiç çalıştırılmadı) ve uygulamanın gerçek iPhone'da çalışması (kamera izni, `capacitor://` ↔ uzak sunucu geçişi). İlk çalıştırmada küçük düzeltmeler çıkabilir.
-> - Uygulama arayüzü **yalnızca Türkçe**; App Store sayfası da Türkçe (bkz. STORE_LISTING.md).
+> - Uygulama arayüzü **Türkçe ve İngilizce** (sunucudan gelen ürün/müşteri adları çevrilmez). App Store sayfası Türkçe (ana dil) + İngilizce eklenebilir (bkz. STORE_LISTING.md).
 > - Yalnızca **iPhone** (iPad ve Android yok).
 
 ## 1. Önce bilinmesi gerekenler
@@ -86,7 +86,7 @@ NFC Tag Master reposundan kopyalayın:
 
 ### 3.7 Sürüm sayfası
 **Sol menü → iOS Uygulaması → 1.0 Sürümü Hazırlanıyor**
-- **Ekran görüntüleri:** *iPhone 6,9″ Ekran* alanına `docs/magaza/` içindeki 6 dosyayı sırayla yükleyin (1320×2868). Diğer iPhone boyutları otomatik türetilir. Uygulama yalnızca iPhone olduğu için iPad görüntüsü gerekmez.
+- **Ekran görüntüleri:** *iPhone 6,9″ Ekran* alanına Türkçe sayfa için `docs/magaza/`, İngilizce sayfa için `docs/magaza/en/` içindeki 6 dosyayı sırayla yükleyin (1320×2868). Diğer iPhone boyutları otomatik türetilir. Uygulama yalnızca iPhone olduğu için iPad görüntüsü gerekmez.
 - **Tanıtım Metni, Açıklama, Anahtar Kelimeler, Destek URL'si, Bu Sürümdeki Yenilikler:** [STORE_LISTING.md](STORE_LISTING.md)'den kopyalayın. Telif Hakkı: `2026 Bluetwinklez`.
 - **Derleme (Build):** “Derleme Ekle” → TestFlight'a yüklediğiniz derlemeyi seçin.
 - **Uygulama İnceleme Bilgileri:** ad, soyad, telefon, e-posta `doflerim@gmail.com`; **Oturum açma gerekli** kutusunu işaretleyin ve demo kullanıcı adı/şifresini girin; **Notlar** alanına 5. bölümdeki metni yapıştırın.
@@ -169,4 +169,4 @@ PORT=3000 TRUST_PROXY=1 COOKIE_SECURE=1 ECZANEM_GIZLILIK_EPOSTA=doflerim@gmail.c
 
 ## 10. Henüz yok
 
-Anlık bildirim (push), Face ID girişi, mobilde mal kabul, İngilizce arayüz, iPad ve Android. İstenirse sonraki sürümlerde eklenir; Android için aynı kabuk `npx cap add android` ile üretilebilir.
+Anlık bildirim (push), Face ID girişi, iPad ve Android. İstenirse sonraki sürümlerde eklenir; Android için aynı kabuk `npx cap add android` ile üretilebilir.

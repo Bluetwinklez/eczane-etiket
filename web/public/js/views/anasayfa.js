@@ -241,12 +241,57 @@ const AnaSayfaView = (() => {
       <path d="M45 74q7 6 14 0" fill="none" stroke="#10110e" stroke-width="3.5" stroke-linecap="round"/>
     </g></svg>`;
 
+
+  // Akilli oneriler: stok bitis tahmini, SKT indirim onerisi ve gun sonu ozeti
+  function oneriKarti(o, yoneticiMi) {
+    if (!o) return '';
+    const bos = (m) => `<li class="oneri-bos">${m}</li>`;
+    const durumEtiket = { bitti: ['Bitti', 'tehlike'], yarin_biter: ['Yarın biter', 'tehlike'], yakinda: ['Yakında', 'uyari'] };
+    const bitiyor = o.bitmek_uzere.length
+      ? o.bitmek_uzere
+          .slice(0, 5)
+          .map((b) => {
+            const [et, ton] = durumEtiket[b.durum];
+            return `<li><span class="islem-metin"><b>${UI.esc(b.ad)}</b><small>Stok ${b.stok} · günde ~${b.gunluk_ortalama} adet · önerilen sipariş ${b.onerilen_adet}</small></span><span class="oneri-etiket ${ton}">${et}${b.durum === 'yakinda' ? ` · ${b.yetecek_gun} gün` : ''}</span></li>`;
+          })
+          .join('')
+      : bos('Stoklar rahat görünüyor 👍');
+    const skt = o.skt_indirim.length
+      ? o.skt_indirim
+          .slice(0, 5)
+          .map((x) =>
+            x.tur === 'dolmus'
+              ? `<li><span class="islem-metin"><b>${UI.esc(x.ad)}</b><small>${x.parti_no ? 'Parti ' + UI.esc(x.parti_no) : 'Partisiz'} · ${x.miktar} adet · SKT ${UI.esc(x.skt)}</small></span><span class="oneri-etiket tehlike">Süresi geçti</span></li>`
+              : `<li><span class="islem-metin"><b>${UI.esc(x.ad)}</b><small>${x.fazla} adet SKT'ye (${x.kalan_gun} gün) kadar satılamayabilir · olası zarar ${UI.tl(x.tahmini_zarar)}</small></span><span class="oneri-etiket uyari">%${x.onerilen_indirim} indirim</span></li>`
+          )
+          .join('')
+      : bos('Yaklaşan riskli parti yok');
+    const gs = o.gun_sonu;
+    const fark = gs.dun_ciro > 0 ? Math.round(((gs.ciro - gs.dun_ciro) / gs.dun_ciro) * 100) : null;
+    const farkHtml = fark === null ? '' : `<small class="${fark >= 0 ? 'artis' : 'dusus'}">${fark >= 0 ? '▲' : '▼'} %${Math.abs(fark)} dünden</small>`;
+    return `<section class="card p-oneri">
+      <div class="kart-bas"><h3>Akıllı Öneriler</h3>
+        ${o.mesajlar.length ? `<span class="oneri-ozet">${o.mesajlar.length} uyarı</span>` : '<span class="oneri-ozet iyi">Her şey yolunda</span>'}</div>
+      <div class="oneri-sutunlar">
+        <div><h4>Stoğu bitiyor${o.bitmek_uzere_toplam > 5 ? ` <small>(${o.bitmek_uzere_toplam})</small>` : ''}</h4><ul class="oneri-liste">${bitiyor}</ul>
+          ${yoneticiMi && o.bitmek_uzere.length ? '<a class="hap-link" href="#siparisler">Akıllı sipariş oluştur ' + Ikon.svg('ok') + '</a>' : ''}</div>
+        <div><h4>SKT için öneri${o.skt_indirim_toplam > 5 ? ` <small>(${o.skt_indirim_toplam})</small>` : ''}</h4><ul class="oneri-liste">${skt}</ul></div>
+        <div><h4>Bugünün özeti</h4>
+          <div class="gun-sonu"><div><span>Ciro</span><b>${UI.tl(gs.ciro)}</b>${farkHtml}</div>
+            <div><span>Tahmini kâr</span><b>${UI.tl(gs.kar)}</b></div>
+            <div><span>Satış</span><b>${gs.satis_adedi}</b></div></div>
+          ${gs.en_cok_satan ? `<p class="oneri-not">En çok satan: <b>${UI.esc(gs.en_cok_satan.ad)}</b> (${gs.en_cok_satan.adet} adet)</p>` : ''}
+          ${o.olu_stok.adet ? `<p class="oneri-not">💤 ${o.olu_stok.adet} ürün ${o.olu_stok.gun} gündür satılmadı · bağlı sermaye <b>${UI.tl(o.olu_stok.bagli_sermaye)}</b></p>` : ''}</div>
+      </div>
+    </section>`;
+  }
+
   async function render(container) {
     container.innerHTML = '<div class="empty-state">Yükleniyor...</div>';
     const buAy = new Date().toISOString().slice(0, 7);
     const yoneticiMi = CURRENT_USER.rol === 'admin' || CURRENT_USER.rol === 'eczaci';
 
-    const [ozet, uyarilar, gorevler, nobetler, siparisler, hedef, ekip, duyurular] = await Promise.all([
+    const [ozet, uyarilar, gorevler, nobetler, siparisler, hedef, ekip, duyurular, oneri] = await Promise.all([
       Api.get('/api/satislar/panel-ozet'),
       Api.get('/api/ilaclar/uyarilar'),
       Api.get('/api/gorevler?durum=bekliyor'),
@@ -254,7 +299,8 @@ const AnaSayfaView = (() => {
       yoneticiMi ? Api.get('/api/siparisler?durum=beklemede') : Promise.resolve([]),
       Api.get('/api/hedefler/aktif').catch(() => null),
       Api.get('/api/vardiyalar/bugun').catch(() => []),
-      Api.get('/api/sistem/duyurular').catch(() => [])
+      Api.get('/api/sistem/duyurular').catch(() => []),
+      Api.get('/api/oneriler').catch(() => null)
     ]);
 
     const g = ozet.gunluk;
@@ -396,6 +442,8 @@ const AnaSayfaView = (() => {
           <a class="promo-link" href="#analiz">Satış analizine git ${Ikon.svg('ok')}</a>
           ${MASKOT}
         </section>
+
+        ${oneriKarti(oneri, yoneticiMi)}
       </div>
     `;
 

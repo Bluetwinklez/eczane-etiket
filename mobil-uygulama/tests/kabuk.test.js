@@ -109,15 +109,17 @@ test('mağaza metni sınırları (docs/STORE_LISTING.md)', () => {
   assert.ok(!/Eczanem/.test(metin), 'eski ad kalmamalı');
 });
 
-test('mağaza ekran görüntüleri: iPhone 6,9" (1320×2868), RGB, alfa yok', () => {
-  const dizin = path.join(KOK, 'docs', 'magaza');
-  const dosyalar = fs.readdirSync(dizin).filter((f) => f.endsWith('.png'));
-  assert.ok(dosyalar.length >= 3 && dosyalar.length <= 10);
-  for (const f of dosyalar) {
-    const b = fs.readFileSync(path.join(dizin, f));
-    assert.equal(b.readUInt32BE(16), 1320, f);
-    assert.equal(b.readUInt32BE(20), 2868, f);
-    assert.equal(b[25], 2, `${f}: renk türü 2 (RGB, alfa yok) olmalı`);
+test('mağaza ekran görüntüleri (tr + en): iPhone 6,9" (1320×2868), RGB, alfa yok', () => {
+  for (const alt of ['', 'en']) {
+    const dizin = path.join(KOK, 'docs', 'magaza', alt);
+    const dosyalar = fs.readdirSync(dizin).filter((f) => f.endsWith('.png'));
+    assert.ok(dosyalar.length >= 3 && dosyalar.length <= 10, `${alt || 'tr'}: 3-10 görüntü olmalı`);
+    for (const f of dosyalar) {
+      const b = fs.readFileSync(path.join(dizin, f));
+      assert.equal(b.readUInt32BE(16), 1320, f);
+      assert.equal(b.readUInt32BE(20), 2868, f);
+      assert.equal(b[25], 2, `${f}: renk türü 2 (RGB, alfa yok) olmalı`);
+    }
   }
 });
 

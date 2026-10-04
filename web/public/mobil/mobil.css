@@ -182,3 +182,5 @@ label.etiket { display: block; font-weight: 700; margin: 0 0 6px 6px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+.bolum-baslik { font-family: var(--font-baslik); font-size: 22px; letter-spacing: -0.02em; margin: 22px 0 10px; }
