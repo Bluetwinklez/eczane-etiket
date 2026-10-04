@@ -707,6 +707,7 @@
         ${bekleyen.length ? '<button class="hap" id="p-gonder">Bekleyenleri şimdi gönder</button>' : ''}
         <a class="hap" style="text-align:center;text-decoration:none" href="/gizlilik.html">Gizlilik politikası</a>
         <button class="hap" id="p-sifre">Şifremi değiştir</button>
+        ${/EczanemApp\//.test(navigator.userAgent) ? '<button class="hap" id="p-sunucu">Sunucuyu değiştir</button>' : ''}
         <button class="hap siyah" id="p-cikis">Çıkış yap</button>
         <button class="hap" id="p-sil" style="background:var(--mercan)">Hesabım ve veri silme</button>
       </div>`,
@@ -720,6 +721,15 @@
       oturum.kullanici = null;
       location.hash = '#/giris';
     };
+    const sunucuDugme = $('#p-sunucu');
+    if (sunucuDugme) {
+      // Yerel kabuktaki baglanti ekranina don (kayitli adres silinir)
+      sunucuDugme.onclick = () => {
+        if (window.confirm('Bu cihazdaki sunucu bağlantısı kaldırılsın ve farklı bir eczane sunucusu seçilsin mi?')) {
+          location.href = 'capacitor://localhost/index.html?degistir=1';
+        }
+      };
+    }
     $('#p-sifre').onclick = () => {
       const perde = sayfaAc(`<h2 style="font-family:var(--font-baslik);margin:0 0 12px">Şifre değiştir</h2>
         <form id="ps-form"><label class="etiket" for="ps-m">Mevcut şifre</label><input class="alan" id="ps-m" type="password" autocomplete="current-password" required />

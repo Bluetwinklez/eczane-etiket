@@ -1,0 +1,18 @@
+{
+  "appId": "com.eczanem.mobil",
+  "appName": "Eczanem",
+  "webDir": "www",
+  "backgroundColor": "#f9b572",
+  "ios": {
+    "contentInset": "never",
+    "allowsLinkPreview": false,
+    "limitsNavigationsToAppBoundDomains": false,
+    "appendUserAgent": "EczanemApp/1.0"
+  },
+  "server": {
+    "iosScheme": "capacitor",
+    "allowNavigation": [
+      "*"
+    ]
+  }
+}
