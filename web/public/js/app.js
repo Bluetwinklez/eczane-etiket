@@ -1,34 +1,35 @@
+// Menu gruplara ayrilir; grup basliklari yalnizca gorunur ogesi olan gruplar icin cizilir
 const NAV = [
-  { key: 'anasayfa', label: 'Ana Sayfa' },
-  { key: 'ilaclar', label: 'İlaçlar' },
-  { key: 'stok', label: 'Stok Hareketleri' },
-  { key: 'sayim', label: 'Stok Sayımı', roles: ['admin', 'eczaci'] },
-  { key: 'transferler', label: 'Şube Transferleri', roles: ['admin', 'eczaci'] },
-  { key: 'etiketler', label: 'Raf Etiketleri' },
-  { key: 'satis', label: 'Satış (POS)' },
-  { key: 'iadeler', label: 'Satış İadeleri', roles: ['admin', 'eczaci'] },
-  { key: 'musteriler', label: 'Müşteriler' },
-  { key: 'hatirlatmalar', label: 'İlaç Hatırlatmaları' },
-  { key: 'istekler', label: 'İstek / Eksik Defteri' },
-  { key: 'emanetler', label: 'Emanet Defteri', roles: ['admin', 'eczaci'] },
-  { key: 'tedarikciler', label: 'Tedarikçiler' },
-  { key: 'siparisler', label: 'Siparişler', roles: ['admin', 'eczaci'] },
-  { key: 'mal-kabul', label: 'Mal Kabul', roles: ['admin', 'eczaci'] },
-  { key: 'raporlar', label: 'Raporlar', roles: ['admin', 'eczaci'] },
-  { key: 'analiz', label: 'Satış Analizi & Hedef' },
-  { key: 'kasa-kapanisi', label: 'Kasa Kapanışı' },
-  { key: 'giderler', label: 'Giderler', roles: ['admin', 'eczaci'] },
-  { key: 'kampanyalar', label: 'Kampanyalar' },
-  { key: 'veresiye', label: 'Veresiye Defteri' },
-  { key: 'etkilesimler', label: 'İlaç Etkileşimleri' },
-  { key: 'gorevler', label: 'Görevler' },
-  { key: 'nobetler', label: 'Nöbetçi Takvimi' },
-  { key: 'vardiya', label: 'Vardiya Çizelgesi' },
-  { key: 'bildirimler', label: 'Bildirimler' },
-  { key: 'kullanicilar', label: 'Kullanıcılar', roles: ['admin'] },
-  { key: 'subeler', label: 'Şubeler', roles: ['admin'] },
-  { key: 'yedekleme', label: 'Yedekleme', roles: ['admin'] },
-  { key: 'islem-kaydi', label: 'İşlem Kaydı', roles: ['admin'] }
+  { key: 'anasayfa', label: 'Ana Sayfa', grup: '' },
+  { key: 'satis', label: 'Satış (POS)', grup: 'Satış' },
+  { key: 'iadeler', label: 'Satış İadeleri', grup: 'Satış', roles: ['admin', 'eczaci'] },
+  { key: 'kasa-kapanisi', label: 'Kasa Kapanışı', grup: 'Satış' },
+  { key: 'kampanyalar', label: 'Kampanyalar', grup: 'Satış' },
+  { key: 'veresiye', label: 'Veresiye Defteri', grup: 'Satış' },
+  { key: 'ilaclar', label: 'İlaçlar', grup: 'Stok' },
+  { key: 'stok', label: 'Stok Hareketleri', grup: 'Stok' },
+  { key: 'mal-kabul', label: 'Mal Kabul', grup: 'Stok', roles: ['admin', 'eczaci'] },
+  { key: 'siparisler', label: 'Siparişler', grup: 'Stok', roles: ['admin', 'eczaci'] },
+  { key: 'tedarikciler', label: 'Tedarikçiler', grup: 'Stok' },
+  { key: 'sayim', label: 'Stok Sayımı', grup: 'Stok', roles: ['admin', 'eczaci'] },
+  { key: 'transferler', label: 'Şube Transferleri', grup: 'Stok', roles: ['admin', 'eczaci'] },
+  { key: 'etiketler', label: 'Raf Etiketleri', grup: 'Stok' },
+  { key: 'musteriler', label: 'Müşteriler', grup: 'Müşteri & Eczacılık' },
+  { key: 'hatirlatmalar', label: 'İlaç Hatırlatmaları', grup: 'Müşteri & Eczacılık' },
+  { key: 'istekler', label: 'İstek / Eksik Defteri', grup: 'Müşteri & Eczacılık' },
+  { key: 'emanetler', label: 'Emanet Defteri', grup: 'Müşteri & Eczacılık', roles: ['admin', 'eczaci'] },
+  { key: 'etkilesimler', label: 'İlaç Etkileşimleri', grup: 'Müşteri & Eczacılık' },
+  { key: 'bildirimler', label: 'Bildirimler / SMS', grup: 'Müşteri & Eczacılık' },
+  { key: 'raporlar', label: 'Raporlar', grup: 'Rapor', roles: ['admin', 'eczaci'] },
+  { key: 'analiz', label: 'Satış Analizi & Hedef', grup: 'Rapor' },
+  { key: 'giderler', label: 'Giderler', grup: 'Rapor', roles: ['admin', 'eczaci'] },
+  { key: 'gorevler', label: 'Görevler', grup: 'Ekip' },
+  { key: 'vardiya', label: 'Vardiya Çizelgesi', grup: 'Ekip' },
+  { key: 'nobetler', label: 'Nöbetçi Takvimi', grup: 'Ekip' },
+  { key: 'kullanicilar', label: 'Kullanıcılar', grup: 'Yönetim', roles: ['admin'] },
+  { key: 'subeler', label: 'Şubeler', grup: 'Yönetim', roles: ['admin'] },
+  { key: 'yedekleme', label: 'Yedekleme', grup: 'Yönetim', roles: ['admin'] },
+  { key: 'islem-kaydi', label: 'İşlem Kaydı', grup: 'Yönetim', roles: ['admin'] }
 ];
 
 const TITLES = {
@@ -221,8 +222,13 @@ function menuIcinRolUygunMu(item) {
 
 function navOlustur() {
   const nav = document.getElementById('nav');
+  let sonGrup = null;
   nav.innerHTML = NAV.filter(menuIcinRolUygunMu)
-    .map((item) => `<a href="#${item.key}" data-key="${item.key}">${item.label}</a>`)
+    .map((item) => {
+      const baslik = item.grup && item.grup !== sonGrup ? `<div class="nav-grup">${item.grup}</div>` : '';
+      sonGrup = item.grup;
+      return `${baslik}<a href="#${item.key}" data-key="${item.key}">${item.label}</a>`;
+    })
     .join('');
 }
 
@@ -354,6 +360,7 @@ async function init() {
   });
 
   window.addEventListener('hashchange', rotayiRenderEt);
+  BildirimMerkezi.baslat();
   rotayiRenderEt();
 }
 
