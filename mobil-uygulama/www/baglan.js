@@ -1,4 +1,4 @@
-// Eczanem Mobil kabugu: sunucu adresini alir, dogrular, kaydeder ve uygulamayi ona acar.
+// Eczam Mobil kabugu: sunucu adresini alir, dogrular, kaydeder ve uygulamayi ona acar.
 // Her eczanenin kendi sunucusu vardir; adres cihazda saklanir (localStorage).
 (() => {
   'use strict';
@@ -87,7 +87,7 @@
     const tamam = await dogrula(s.adres);
     dugme.disabled = false;
     dugme.textContent = 'Bağlan';
-    if (!tamam) return hata('Bu adreste bir Eczanem sunucusu bulunamadı. Adresi ve internet bağlantınızı kontrol edin.');
+    if (!tamam) return hata('Bu adreste bir Eczam sunucusu bulunamadı. Adresi ve internet bağlantınızı kontrol edin.');
     yaz(s.adres);
     ac(s.adres);
   });

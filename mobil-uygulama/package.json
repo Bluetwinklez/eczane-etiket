@@ -2,7 +2,7 @@
   "name": "eczanem-mobil-uygulama",
   "version": "1.0.0",
   "private": true,
-  "description": "Eczanem Mobil iOS/Android kabuğu (Capacitor)",
+  "description": "Eczam Mobil iOS/Android kabuğu (Capacitor)",
   "scripts": {
     "hazirla": "node scripts/hazirla.js",
     "senkron": "node scripts/hazirla.js && cap sync ios",

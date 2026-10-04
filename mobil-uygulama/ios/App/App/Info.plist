@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>tr</string>
 	<key>CFBundleDisplayName</key>
-        <string>Eczanem</string>
+        <string>Eczam</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -48,7 +48,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Ürün barkodunu ve karekodunu okumak için kameranız kullanılır. Görüntü kaydedilmez ve gönderilmez.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Eczanenizin yerel ağdaki Eczanem sunucusuna bağlanmak için yerel ağ erişimi gerekir.</string>
+	<string>Eczanenizin yerel ağdaki Eczam sunucusuna bağlanmak için yerel ağ erişimi gerekir.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSAppTransportSecurity</key>

@@ -24,8 +24,8 @@ Bu depoda birbirinden bağımsız çalışan iki eczane uygulaması bulunur:
 | Uygulama | Klasör | Ne işe yarar? | Teknoloji |
 |---|---|---|---|
 | **Eczane Etiket** (bu sayfa) | [`eczane_etiket/`](eczane_etiket/) | Banko bilgisayarında çalışan masaüstü programı: Medula reçete aktarımı, ilaç etiketi ve hasta kullanım çizelgesi basımı | Python / Tkinter |
-| **Eczanem Programı (Web)** | [`web/`](web/) | Tarayıcıdan kullanılan eczane yönetim sistemi: POS satış, stok ve parti/SKT (FEFO), karekod okuma, kampanya, iade, veresiye defteri, ilaç etkileşim uyarısı, kasa kapanışı, raporlar, çoklu şube ve kullanıcı rolleri | Node.js / Express / SQLite |
-| **Eczanem Mobil** | [`web/public/mobil/`](web/public/mobil/), [`mobil-uygulama/`](mobil-uygulama/) | Telefon uygulaması (PWA) ve App Store için iOS kabuğu: özet, ürün sorgu, kamerayla barkod okuma, bildirimler, çevrimdışı çalışma | Vanilla JS / Capacitor |
+| **Eczam Programı (Web)** | [`web/`](web/) | Tarayıcıdan kullanılan eczane yönetim sistemi: POS satış, stok ve parti/SKT (FEFO), karekod okuma, kampanya, iade, veresiye defteri, ilaç etkileşim uyarısı, kasa kapanışı, raporlar, çoklu şube ve kullanıcı rolleri | Node.js / Express / SQLite |
+| **Eczam Mobil** | [`web/public/mobil/`](web/public/mobil/), [`mobil-uygulama/`](mobil-uygulama/) | Telefon uygulaması (PWA) ve App Store için iOS kabuğu: özet, ürün sorgu, kamerayla barkod okuma, bildirimler, çevrimdışı çalışma | Vanilla JS / Capacitor |
 
 Web uygulamasının kurulumu ve özellikleri için: **[web/README.md](web/README.md)**. Bu sayfanın geri kalanı masaüstü Eczane Etiket uygulamasını anlatır.
 

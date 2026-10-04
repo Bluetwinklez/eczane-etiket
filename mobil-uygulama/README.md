@@ -1,6 +1,6 @@
-# Eczanem Mobil — iOS kabuğu (Capacitor)
+# Eczam Mobil — iOS kabuğu (Capacitor)
 
-Bu klasör, `/mobil` adresindeki Eczanem Mobil uygulamasını (PWA) **App Store'a gönderilebilir iOS uygulamasına** saran ince kabuktur. Uygulamanın kendisi sunucudan yüklenir; kabuk yalnızca sunucu adresini sorar, doğrular (`/api/health`) ve WebView'ı `<sunucu>/mobil/` adresine yönlendirir.
+Bu klasör, `/mobil` adresindeki Eczam Mobil uygulamasını (PWA) **App Store'a gönderilebilir iOS uygulamasına** saran ince kabuktur. Uygulamanın kendisi sunucudan yüklenir; kabuk yalnızca sunucu adresini sorar, doğrular (`/api/health`) ve WebView'ı `<sunucu>/mobil/` adresine yönlendirir.
 
 ```
 www/            Yerel bağlantı ekranı (baglan.html/js/css, logo, yazı tipleri)

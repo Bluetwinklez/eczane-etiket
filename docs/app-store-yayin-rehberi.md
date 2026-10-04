@@ -1,4 +1,4 @@
-# Eczanem Mobil — App Store Yayın Rehberi
+# Eczam Mobil — App Store Yayın Rehberi
 
 Bu rehber, `mobil-uygulama/` klasöründeki iOS uygulamasını **TestFlight**'a ve oradan **App Store**'a göndermek için gereken her adımı sırayla anlatır.
 
@@ -22,7 +22,7 @@ Bu rehber, `mobil-uygulama/` klasöründeki iOS uygulamasını **TestFlight**'a 
 
 ### Önce bir karar: "Herkese açık" mı, "Yalnızca çalışanlar" mı?
 
-Eczanem Mobil **eczane çalışanları içindir**; her eczanenin kendi sunucusu vardır. Apple'ın normal yayını bunun için en uygun yol olmayabilir. Üç seçenek:
+Eczam Mobil **eczane çalışanları içindir**; her eczanenin kendi sunucusu vardır. Apple'ın normal yayını bunun için en uygun yol olmayabilir. Üç seçenek:
 
 1. **Herkese açık App Store** — Herkes indirebilir, ilk açılışta kendi eczane sunucusunun adresini girer. İnceleme daha sıkıdır (aşağıda "4.2 riski").
 2. **Unlisted App Distribution (listelenmemiş)** — Arama sonuçlarında çıkmaz, yalnızca doğrudan bağlantıyla indirilir. Çalışanlara link verirsiniz. **Bu uygulama için önerilen yoldur.** Başvuru: App Store Connect → uygulama → "Distribution" bölümünden Apple'a form gönderilir.
@@ -47,7 +47,7 @@ Xcode'da:
 
 1. Sol listeden **App** projesini → **App** hedefini seçin → **Signing & Capabilities**.
 2. **Team**: kendi Apple Developer takımınızı seçin. "Automatically manage signing" açık kalsın.
-3. **Bundle Identifier**: varsayılan `com.eczanem.mobil`. Bu adres dünyada tekildir; başkası aldıysa değiştirin (örn. `com.eczaneadiniz.eczanem`). Değiştirirseniz `capacitor.config.json` içindeki `appId` değerini de aynı yapıp `npm run senkron` çalıştırın.
+3. **Bundle Identifier**: varsayılan `com.eczam.mobil`. Bu adres dünyada tekildir; başkası aldıysa değiştirin (örn. `com.eczaneadiniz.eczanem`). Değiştirirseniz `capacitor.config.json` içindeki `appId` değerini de aynı yapıp `npm run senkron` çalıştırın.
 4. **General → Version** `1.0`, **Build** `1`. Her yüklemede Build numarasını 1 artırın.
 5. Üstten hedef olarak bir simülatör seçip ▶ ile çalıştırın. Bağlantı ekranı açılmalı; sunucu adresinizi yazınca `/mobil/` açılır.
 6. **Gerçek iPhone'da** deneyin (USB ile bağlayıp hedef seçin): kamera izni sorulmalı ve barkod okutulabilmeli. Simülatörde kamera yoktur.
@@ -70,7 +70,7 @@ Xcode'da:
 2. **Product → Archive**. Bittiğinde Organizer açılır.
 3. **Distribute App → App Store Connect → Upload**. Varsayılan seçenekleri onaylayın.
 4. <https://appstoreconnect.apple.com> → **Uygulamalarım → "+" → Yeni Uygulama** (henüz yapmadıysanız):
-   - Platform: iOS · Ad: **Eczanem** (alınmışsa "Eczanem Mobil" veya "Eczanem – Eczane Yönetimi") · Birincil dil: Türkçe · Bundle ID: yukarıdaki · SKU: `eczanem-mobil-1`
+   - Platform: iOS · Ad: **Eczam** (alınmışsa "Eczam Mobil" veya "Eczam: Eczane Yönetimi") · Birincil dil: Türkçe · Bundle ID: yukarıdaki · SKU: `eczam-mobil-1`
 5. Yüklenen derleme birkaç dakika "işleniyor" görünür, sonra **TestFlight** sekmesinde belirir.
 6. **İç test** (App Store Connect kullanıcıları): inceleme yok, hemen kullanılır.
 7. **Dış test** (herkes, e-posta/bağlantıyla): kısa bir "Beta Uygulama İncelemesi" gerekir (genelde 1 gün).
@@ -83,7 +83,7 @@ Xcode'da:
 
 ### 4.1 Mağaza sayfası metinleri (kopyalayıp yapıştırın)
 
-**Ad** (30 karakter): `Eczanem`
+**Ad** (30 karakter): `Eczam`
 
 **Alt başlık** (30 karakter): `Eczane özeti, stok ve barkod`
 
@@ -94,7 +94,7 @@ Eczanenizin günlük satışlarını, kritik stoklarını ve SKT uyarılarını 
 
 **Açıklama:**
 ```
-Eczanem Mobil, Eczanem eczane yönetim sisteminin telefon uygulamasıdır. Eczane çalışanları ve sahipleri için tasarlanmıştır; eczanenizin kendi Eczanem sunucusuna bağlanır.
+Eczam Mobil, Eczam eczane yönetim sisteminin telefon uygulamasıdır. Eczane çalışanları ve sahipleri için tasarlanmıştır; eczanenizin kendi Eczam sunucusuna bağlanır.
 
 • ECZANE ÖZETİ — Bugün, hafta ve ay için reçeteli / reçetesiz satış tutarları, önceki dönemle karşılaştırma
 • SATIŞ GRAFİĞİ — Gün gün satış çubukları ve şube karşılaştırması
@@ -105,7 +105,7 @@ Eczanem Mobil, Eczanem eczane yönetim sisteminin telefon uygulamasıdır. Eczan
 • ÇEVRİMDIŞI — İnternet kesilince son görüntülenen veriler açılır; yaptığınız kayıtlar bağlantı gelince otomatik gönderilir
 • GÜVENLİK — Kullanıcı adı ve şifreyle giriş, rol bazlı yetki, bağlantı HTTPS ile şifrelenir
 
-Uygulamayı kullanmak için eczanenizde Eczanem sunucusunun kurulu olması ve yöneticinizden bir kullanıcı hesabı almanız gerekir. Kamera yalnızca barkod okumak için kullanılır; görüntü kaydedilmez ve hiçbir yere gönderilmez.
+Uygulamayı kullanmak için eczanenizde Eczam sunucusunun kurulu olması ve yöneticinizden bir kullanıcı hesabı almanız gerekir. Kamera yalnızca barkod okumak için kullanılır; görüntü kaydedilmez ve hiçbir yere gönderilmez.
 
 Bu uygulama tıbbi tavsiye vermez ve tanı koymaz.
 ```
@@ -161,7 +161,7 @@ Kamera: görüntü saklanmaz ve gönderilmez; yalnızca cihazda anlık okunur �
 Aşağıyı kendi demo bilgilerinizle doldurup yapıştırın:
 
 ```
-Eczanem Mobil, eczane çalışanlarının eczanenin kendi Eczanem sunucusuna bağlanarak
+Eczam Mobil, eczane çalışanlarının eczanenin kendi Eczam sunucusuna bağlanarak
 satış özetini görmesi, ürün/stok sorgulaması ve kamerayla barkod okutması için bir
 iş uygulamasıdır. Her eczane kendi sunucusunu işletir; bu yüzden uygulama ilk açılışta
 sunucu adresi ister.

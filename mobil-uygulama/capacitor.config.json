@@ -1,6 +1,6 @@
 {
-  "appId": "com.eczanem.mobil",
-  "appName": "Eczanem",
+  "appId": "com.eczam.mobil",
+  "appName": "Eczam",
   "webDir": "www",
   "backgroundColor": "#f9b572",
   "ios": {

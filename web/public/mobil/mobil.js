@@ -1,4 +1,4 @@
-// Eczanem Mobil — tek dosyalik istemci: hash yonlendirme, ekranlar, tarama, cevrimdisi kuyruk.
+// Eczam Mobil — tek dosyalik istemci: hash yonlendirme, ekranlar, tarama, cevrimdisi kuyruk.
 (() => {
   'use strict';
 
@@ -212,7 +212,7 @@
     if (tema) tema.setAttribute('content', { ozet: '#f9b572', satis: '#b8e986', tara: '#8fd3e8', urunler: '#f6e27f', bildirim: '#f4a6e8', profil: '#9d8df1' }[aktif] || '#f9b572');
     uyg.innerHTML = `
       <header class="ust-bar">
-        ${geri ? `<a class="yuvarlak" style="background:var(--mercan)" href="#/ozet" aria-label="Geri">${svg('geri')}</a>` : `<a class="yuvarlak" style="background:var(--beyaz)" href="#/ozet" aria-label="Eczanem ana sayfa"><img src="../img/logo-isaret.svg" alt="" /></a>`}
+        ${geri ? `<a class="yuvarlak" style="background:var(--mercan)" href="#/ozet" aria-label="Geri">${svg('geri')}</a>` : `<a class="yuvarlak" style="background:var(--beyaz)" href="#/ozet" aria-label="Eczam ana sayfa"><img src="../img/logo-isaret.svg" alt="" /></a>`}
         <h1>${esc(baslik)}</h1>
         <a class="yuvarlak" style="background:var(--sari)" href="#/profil" aria-label="Profil">${esc(baslar(oturum.kullanici && oturum.kullanici.ad_soyad))}</a>
       </header>
@@ -256,7 +256,7 @@
     }
     uyg.innerHTML = `<div class="giris ekran-giris">
       <div class="logo-kutu"><img src="../img/logo-isaret.svg" alt="" /></div>
-      <h1 class="dev-baslik">Eczanem<br />Mobil</h1>
+      <h1 class="dev-baslik">Eczam<br />Mobil</h1>
       <p class="alt-yazi">Eczanenizi cebinizden izleyin.</p>
       <div id="giris-hata">${mesaj ? hataKutusu({ message: mesaj }) : ''}</div>
       <form id="giris-form">
@@ -701,7 +701,7 @@
       <section class="kart">
         <div class="satir"><div class="ad">Bekleyen kayıtlar<small>Bağlantı gelince gönderilir</small></div><span class="rozet ${bekleyen.length ? 'sari' : 'yesil'}" id="kuyruk-rozet">${bekleyen.length}</span></div>
         <div class="satir"><div class="ad">Bağlantı<small>${cevrimiciMi ? 'Sunucuya bağlı' : 'Çevrimdışı'}</small></div><span class="rozet ${cevrimiciMi ? 'yesil' : 'kirmizi'}">${cevrimiciMi ? 'Açık' : 'Kapalı'}</span></div>
-        <div class="satir"><div class="ad">Sürüm<small>Eczanem Mobil 1.0</small></div></div>
+        <div class="satir"><div class="ad">Sürüm<small>Eczam Mobil 1.0</small></div></div>
       </section>
       <div style="display:grid;gap:12px">
         ${bekleyen.length ? '<button class="hap" id="p-gonder">Bekleyenleri şimdi gönder</button>' : ''}
@@ -748,7 +748,7 @@
     };
     $('#p-sil').onclick = () => {
       sayfaAc(`<h2 style="font-family:var(--font-baslik);margin:0 0 10px">Hesap ve veri silme</h2>
-        <p style="font-weight:600;line-height:1.5">Eczanem Mobil, hesabınızı eczanenizin yöneticisi yönetir. Hesabınızın ve kişisel verilerinizin silinmesi için eczane yöneticinize başvurun (Web uygulaması → Kullanıcılar). Yönetici hesabı siler; satış kayıtları yasal saklama süresi boyunca anonim biçimde tutulur.</p>
+        <p style="font-weight:600;line-height:1.5">Eczam Mobil, hesabınızı eczanenizin yöneticisi yönetir. Hesabınızın ve kişisel verilerinizin silinmesi için eczane yöneticinize başvurun (Web uygulaması → Kullanıcılar). Yönetici hesabı siler; satış kayıtları yasal saklama süresi boyunca anonim biçimde tutulur.</p>
         <a class="hap siyah" style="display:block;text-align:center;text-decoration:none" href="/gizlilik.html">Gizlilik politikasını oku</a>`);
     };
   }
