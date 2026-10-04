@@ -297,6 +297,7 @@
     } catch (e) {
       return cerceve('Eczane Özeti', 'ozet', hataKutusu(e));
     }
+    const hedef = await get('/api/hedefler/aktif', { onbellek: true }).catch(() => null);
     const ad = (oturum.kullanici.ad_soyad || '').split(' ')[0];
     cerceve(
       'Eczane Özeti',
@@ -319,10 +320,19 @@
         <a class="kart kart-dokun bg-sari" href="#/urunler?filtre=kritik"><h2>Kritik stok</h2><div class="tutar">${d.kritik_stok}</div><div class="fark" style="max-width:none">ürün azaldı</div></a>
         <a class="kart kart-dokun bg-mavi" href="#/urunler?filtre=skt"><h2>SKT uyarısı</h2><div class="tutar">${d.skt_yakin}</div><div class="fark" style="max-width:none">parti 30 gün içinde</div></a>
       </div>
+      ${
+        hedef && hedef.hedef
+          ? `<a class="kart kart-dokun bg-mor" href="#/satis" style="margin-top:14px"><h2>Aylık hedef</h2><div class="tutar">%${Math.round(hedef.yuzde)}</div>
+              <div class="fark" style="max-width:none">${tl(hedef.gerceklesen)} / ${tl(hedef.hedef)}${hedef.gunluk_gereken ? ` · günde ${tl(hedef.gunluk_gereken)} gerekli` : ''}</div>
+              <div style="height:12px;border:2.5px solid var(--cizgi);border-radius:999px;background:var(--beyaz);margin-top:10px;overflow:hidden"><div style="height:100%;width:${Math.min(100, hedef.yuzde)}%;background:var(--yesil)"></div></div></a>`
+          : ''
+      }
       <h3 class="bolum-baslik">Hızlı işlemler</h3>
       <div class="kart-ikili">
         <a class="kart kart-dokun bg-mor" href="#/hizli-satis"><h2>Hızlı satış</h2><div class="fark" style="max-width:none">Sepete ekle, sat</div></a>
         <a class="kart kart-dokun bg-pembe" href="#/musteriler"><h2>Müşteriler</h2><div class="fark" style="max-width:none">Veresiye, tahsilat</div></a>
+        <a class="kart kart-dokun bg-sari" href="#/gorevler"><h2>Görevler</h2><div class="fark" style="max-width:none">Yapılacaklar listesi</div></a>
+        <a class="kart kart-dokun bg-yesil" href="#/kasa"><h2>Günün kasası</h2><div class="fark" style="max-width:none">Nakit, kart, veresiye</div></a>
         ${
           ['admin', 'eczaci'].includes(oturum.kullanici.rol)
             ? `<a class="kart kart-dokun bg-turuncu" href="#/mal-kabul"><h2>Mal kabul</h2><div class="fark" style="max-width:none">Gelen malı okut</div></a>
