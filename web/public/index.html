@@ -9,9 +9,13 @@
   <script>
     (function () {
       try {
-        if (localStorage.getItem('eczanem-tema') === 'dark') {
+        var tema = localStorage.getItem('eczanem-tema');
+        var sistemKoyu = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (tema === 'dark' || (tema === 'sistem' && sistemKoyu)) {
           document.documentElement.setAttribute('data-theme', 'dark');
         }
+        var yazi = localStorage.getItem('eczanem-yazi');
+        if (yazi === 'kucuk' || yazi === 'buyuk') document.documentElement.setAttribute('data-yazi', yazi);
       } catch (e) {}
     })();
   </script>
@@ -39,6 +43,9 @@
             </button>
             <div class="kullanici-menu" id="kullanici-menu" role="menu" hidden>
               <button id="tema-btn" type="button" role="menuitem">Karanlık Tema</button>
+              <button id="gorunum-btn" type="button" role="menuitem">Görünüm Ayarları</button>
+              <button id="kisayol-btn" type="button" role="menuitem">Klavye Kısayolları</button>
+              <button id="kilitle-btn" type="button" role="menuitem">Ekranı Kilitle</button>
               <button id="sifre-btn" type="button" role="menuitem">Şifremi Değiştir</button>
               <hr />
               <button id="logout-btn" type="button" role="menuitem">Çıkış Yap</button>
@@ -82,6 +89,7 @@
   <script src="js/views/istekler.js"></script>
   <script src="js/views/emanetler.js"></script>
   <script src="js/views/kalite.js"></script>
+  <script src="js/views/sistem.js"></script>
   <script src="js/views/analiz.js"></script>
   <script src="js/views/vardiya.js"></script>
   <script src="js/bildirimMerkezi.js"></script>
@@ -90,6 +98,7 @@
   <script src="js/views/nobetler.js"></script>
   <script src="js/views/islemKaydi.js"></script>
   <script src="js/commandPalette.js"></script>
+  <script src="js/sistemAraclari.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

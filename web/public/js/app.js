@@ -30,7 +30,8 @@ const NAV = [
   { key: 'kullanicilar', label: 'Kullanıcılar', grup: 'Yönetim', roles: ['admin'] },
   { key: 'subeler', label: 'Şubeler', grup: 'Yönetim', roles: ['admin'] },
   { key: 'yedekleme', label: 'Yedekleme', grup: 'Yönetim', roles: ['admin'] },
-  { key: 'islem-kaydi', label: 'İşlem Kaydı', grup: 'Yönetim', roles: ['admin'] }
+  { key: 'islem-kaydi', label: 'İşlem Kaydı', grup: 'Yönetim', roles: ['admin'] },
+  { key: 'sistem', label: 'Sistem Durumu', grup: 'Yönetim', roles: ['admin'] }
 ];
 
 const TITLES = {
@@ -64,7 +65,8 @@ const TITLES = {
   kullanicilar: 'Kullanıcılar',
   subeler: 'Şubeler',
   yedekleme: 'Yedekleme',
-  'islem-kaydi': 'İşlem Kaydı'
+  'islem-kaydi': 'İşlem Kaydı',
+  sistem: 'Sistem Durumu'
 };
 
 let CURRENT_USER = null;
@@ -193,7 +195,8 @@ const VIEW_MAP = {
   kullanicilar: () => Views.kullanicilar,
   subeler: () => Views.subeler,
   yedekleme: () => Views.yedekleme,
-  'islem-kaydi': () => Views.islemKaydi
+  'islem-kaydi': () => Views.islemKaydi,
+  sistem: () => Views.sistem
 };
 
 async function rotayiRenderEt() {
@@ -209,6 +212,8 @@ async function rotayiRenderEt() {
   // Icerik alani her sayfa gecisinde yenisiyle degistirilir: gorunumlerin
   // container'a ekledigi olay dinleyicileri sayfalar arasi birikmesin
   // (aksi halde bir sayfadaki 'Sil' dugmesi onceki sayfanin kodunu da tetikler)
+  // Onceki sayfada acik kalan pencereler yeni sayfanin ustunde kalmasin
+  document.querySelectorAll('.modal-backdrop').forEach((m) => m.remove());
   const eskiContent = document.getElementById('content');
   const content = eskiContent.cloneNode(false);
   eskiContent.replaceWith(content);
@@ -278,6 +283,22 @@ async function init() {
     temaButonMetniGuncelle();
   });
   document.getElementById('sifre-btn').insertAdjacentHTML('afterbegin', Ikon.svg('anahtar') + ' ');
+  document.getElementById('gorunum-btn').insertAdjacentHTML('afterbegin', Ikon.svg('gorunum') + ' ');
+  document.getElementById('kisayol-btn').insertAdjacentHTML('afterbegin', Ikon.svg('klavye') + ' ');
+  document.getElementById('kilitle-btn').insertAdjacentHTML('afterbegin', Ikon.svg('kilit') + ' ');
+  document.getElementById('gorunum-btn').addEventListener('click', () => {
+    menuKapat();
+    SistemAraclari.gorunumAc();
+  });
+  document.getElementById('kisayol-btn').addEventListener('click', () => {
+    menuKapat();
+    SistemAraclari.kisayollariGoster();
+  });
+  document.getElementById('kilitle-btn').addEventListener('click', () => {
+    menuKapat();
+    SistemAraclari.kilitle();
+  });
+  window.addEventListener('eczanem:tema', temaButonMetniGuncelle);
   document.getElementById('logout-btn').insertAdjacentHTML('afterbegin', Ikon.svg('cikis') + ' ');
 
   document.getElementById('cp-ac-btn').addEventListener('click', () => CommandPalette.ac());
@@ -325,6 +346,7 @@ async function init() {
   window.addEventListener('resize', gostergeyiYenile);
   if (document.fonts) document.fonts.ready.then(gostergeyiYenile);
   BildirimMerkezi.baslat();
+  SistemAraclari.baslat(CURRENT_USER);
   rotayiRenderEt();
 }
 

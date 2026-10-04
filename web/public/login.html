@@ -9,9 +9,13 @@
   <script>
     (function () {
       try {
-        if (localStorage.getItem('eczanem-tema') === 'dark') {
+        var tema = localStorage.getItem('eczanem-tema');
+        var sistemKoyu = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (tema === 'dark' || (tema === 'sistem' && sistemKoyu)) {
           document.documentElement.setAttribute('data-theme', 'dark');
         }
+        var yazi = localStorage.getItem('eczanem-yazi');
+        if (yazi === 'kucuk' || yazi === 'buyuk') document.documentElement.setAttribute('data-yazi', yazi);
       } catch (e) {}
     })();
   </script>

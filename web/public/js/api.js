@@ -9,7 +9,15 @@ const Api = (function () {
       opts.headers['Content-Type'] = 'application/json';
       opts.body = JSON.stringify(body);
     }
-    const res = await fetch(url, opts);
+    let res;
+    try {
+      res = await fetch(url, opts);
+    } catch (err) {
+      // Ag hatasi: sunucuya ulasilamiyor (baglanti bandi gosterilir)
+      window.dispatchEvent(new CustomEvent('eczanem:baglanti', { detail: { var: false } }));
+      throw new Error('Sunucuya ulaşılamıyor; bağlantıyı kontrol edin');
+    }
+    window.dispatchEvent(new CustomEvent('eczanem:baglanti', { detail: { var: true } }));
     const girisSayfasindaMi = location.pathname.endsWith('login.html');
 
     if (res.status === 204) return null;
@@ -28,7 +36,7 @@ const Api = (function () {
     }
 
     if (!res.ok) {
-      const message = (data && data.error) || 'Bir hata olustu';
+      const message = (data && data.error) || 'Bir hata oluştu';
       throw new Error(message);
     }
     return data;

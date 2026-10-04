@@ -46,6 +46,20 @@ router.get('/me', requireOturum, (req, res) => {
   res.json({ user: toPublicUser(req.user) });
 });
 
+// Ekran kilidini acmak icin mevcut kullanicinin sifresi dogrulanir (oturum yenilenmez).
+// Basarisiz denemeler giris sinirlayicisina sayilir; kilitlenen hesap icin istemci cikis yapar.
+router.post('/kilit-ac', requireOturum, (req, res) => {
+  const anahtar = 'kilit:' + req.user.kullanici_adi;
+  const kalanSaniye = sinirlayici.kilitliMi(req.ip, anahtar);
+  if (kalanSaniye > 0) return res.status(429).json({ error: 'Çok fazla hatalı deneme; yeniden giriş yapın.' });
+  if (!req.body.sifre || !verifyPassword(String(req.body.sifre), req.user.sifre_salt, req.user.sifre_hash)) {
+    sinirlayici.basarisizKaydet(req.ip, anahtar);
+    return res.status(400).json({ error: 'Şifre hatalı' });
+  }
+  sinirlayici.sifirla(req.ip, anahtar);
+  res.json({ ok: true });
+});
+
 router.post('/sifre-degistir', requireOturum, (req, res) => {
   const { mevcut_sifre, yeni_sifre } = req.body;
   if (!mevcut_sifre || !verifyPassword(mevcut_sifre, req.user.sifre_salt, req.user.sifre_hash)) {

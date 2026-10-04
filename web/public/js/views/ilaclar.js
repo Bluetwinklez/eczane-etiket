@@ -390,7 +390,7 @@
             ${Object.entries(UI.URUN_TIPLERI).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}
           </select>
           <div class="spacer"></div>
-          ${yazmaYetkisiVar(ctx) ? '<button class="secondary" id="ice-aktar-btn">CSV İçe Aktar</button><button class="secondary" id="toplu-fiyat-btn">Toplu Fiyat</button><button id="yeni-ilac-btn">+ Yeni İlaç</button>' : ''}
+          ${yazmaYetkisiVar(ctx) ? '<a class="hap-link ikincil-link" href="/api/ilaclar/disa-aktar" download>CSV Dışa Aktar</a><button class="secondary" id="ice-aktar-btn">CSV İçe Aktar</button><button class="secondary" id="toplu-fiyat-btn">Toplu Fiyat</button><button id="yeni-ilac-btn">+ Yeni İlaç</button>' : ''}
         </div>
         <div class="card">
           <table>
