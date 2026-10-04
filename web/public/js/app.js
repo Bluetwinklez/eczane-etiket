@@ -84,9 +84,61 @@ function navOlustur() {
 }
 
 function aktifLinkiGuncelle(key) {
+  let hedef = null;
   document.querySelectorAll('#nav a').forEach((a) => {
-    a.classList.toggle('active', a.dataset.key === key);
+    const aktif = a.dataset.key === key;
+    if (aktif && !a.classList.contains('active')) {
+      // Ikon "ziplama" animasyonu yalnizca yeni secilen ogede bir kez oynar
+      a.classList.remove('yeni-aktif');
+      void a.offsetWidth;
+      a.classList.add('yeni-aktif');
+    }
+    a.classList.toggle('active', aktif);
+    if (aktif) hedef = a;
   });
+  if (hedef) gostergeyiTasi(hedef, true);
+}
+
+// Secili ogeyi isaretleyen hapi tasir: once eski ve yeni ogeyi kapsayacak
+// kadar uzar ("uzat"), sonra yeni ogenin ustune yaylanarak oturur ("otur").
+let gostergeZamanlayici = null;
+function gostergeyiTasi(hedef, animasyonlu) {
+  const nav = document.getElementById('nav');
+  let gosterge = nav.querySelector('.nav-gosterge');
+  if (!gosterge) {
+    gosterge = document.createElement('div');
+    gosterge.className = 'nav-gosterge';
+    gosterge.setAttribute('aria-hidden', 'true');
+    nav.prepend(gosterge);
+  }
+  if (getComputedStyle(gosterge).display === 'none') return; // mobil yerlesim
+  const ust = hedef.offsetTop, boy = hedef.offsetHeight;
+  const eskiUst = parseFloat(gosterge.style.top), eskiBoy = parseFloat(gosterge.style.height);
+  clearTimeout(gostergeZamanlayici);
+
+  if (!animasyonlu || !eskiBoy || eskiUst === ust) {
+    delete gosterge.dataset.faz;
+    gosterge.style.top = ust + 'px';
+    gosterge.style.height = boy + 'px';
+  } else {
+    const bas = Math.min(eskiUst, ust);
+    const son = Math.max(eskiUst + eskiBoy, ust + boy);
+    gosterge.dataset.faz = 'uzat';
+    gosterge.style.top = bas + 'px';
+    gosterge.style.height = son - bas + 'px';
+    gostergeZamanlayici = setTimeout(() => {
+      gosterge.dataset.faz = 'otur';
+      gosterge.style.top = ust + 'px';
+      gosterge.style.height = boy + 'px';
+    }, 150);
+  }
+  const navKutu = nav.getBoundingClientRect(), ogeKutu = hedef.getBoundingClientRect();
+  if (ogeKutu.top < navKutu.top || ogeKutu.bottom > navKutu.bottom) hedef.scrollIntoView({ block: 'nearest' });
+}
+
+function gostergeyiYenile() {
+  const aktif = document.querySelector('#nav a.active');
+  if (aktif) gostergeyiTasi(aktif, false);
 }
 
 const VIEW_MAP = {
@@ -235,6 +287,9 @@ async function init() {
   });
 
   window.addEventListener('hashchange', rotayiRenderEt);
+  // Yazi tipi yuklenince veya pencere boyutu degisince oge yukseklikleri degisebilir
+  window.addEventListener('resize', gostergeyiYenile);
+  if (document.fonts) document.fonts.ready.then(gostergeyiYenile);
   BildirimMerkezi.baslat();
   rotayiRenderEt();
 }
