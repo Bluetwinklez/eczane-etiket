@@ -99,6 +99,7 @@
     'Bugünün özeti': "Today's summary", 'Stoğu bitiyor': 'Running out', 'SKT için öneri': 'Expiry suggestions', 'Ölü stok': 'Dead stock', 'Stoklar rahat görünüyor 👍': 'Stock levels look comfortable 👍',
     'Yaklaşan riskli parti yok': 'No risky batches coming up', 'Kampanya aktif': 'Campaign active', 'Kampanya başlatıldı': 'Campaign started', 'Bitti': 'Sold out', 'Yarın biter': 'Ends tomorrow', 'Süresi geçti': 'Expired', 'En çok satan:': 'Top seller:',
     // Gorevler, kasa, hedef
+    'Sipariş taslağı': 'Draft order', 'Önce bir tedarikçi tanımlayın (bilgisayardan)': 'Add a supplier first (from the computer)', 'Akıllı öneriden oluşturuldu': 'Created from smart suggestions',
     'Satış hızı': 'Sales pace', 'Haftalık satış': 'Weekly sales', 'Son 4 hafta (eskiden yeniye)': 'Last 4 weeks (oldest to newest)', 'Sepete ekle': 'Add to cart',
     'İade': 'Refund', 'Satıştan iade al': 'Refund a sale', 'Son 7 günün satışları. İade edilecek satışı seçin.': "Sales from the last 7 days. Pick the sale to refund.", 'Son 7 günde satış yok': 'No sales in the last 7 days',
     'Karma': 'Mixed', 'Tamamı iade edilmiş': 'Fully refunded', 'Ürünleri stoğa geri al': 'Return items to stock', 'İade nedeni (isteğe bağlı)': 'Reason for refund (optional)', 'İade nedeni': 'Reason for refund',
@@ -146,6 +147,9 @@
     [/^Son 30 günde (\d+) adet$/, (m) => `${m[1]} pcs in the last 30 days`],
     [/^günde ~([\d.,]+) adet(?: · stok ~(\d+) gün yeter| · satış yok)?$/, (m) => `~${m[1]}/day${m[2] ? ` · stock lasts ~${m[2]} days` : ' · no sales'}`],
     [/^(.+) eklendi · sepette (\d+) ürün$/, (m) => `${m[1]} added · ${m[2]} in cart`],
+    [/^Siparişe çevir \((\d+) ürün\)$/, (m) => `Turn into an order (${m[1]} ${m[1] === '1' ? 'product' : 'products'})`],
+    [/^(\d+) ürün önerilen adetlerle siparişe eklenecek\. Tedarikçiyi seçin:$/, (m) => `${m[1]} products will be added to the order with the suggested quantities. Pick the supplier:`],
+    [/^Sipariş #(\d+) oluşturuldu$/, (m) => `Order #${m[1]} created`],
     [/^Satış #(\d+) iadesi$/, (m) => `Refund for sale #${m[1]}`],
     [/^(.+) × (\d+) iade edilebilir$/, (m) => `${m[1]} × ${m[2]} refundable`],
     [/^İade tamamlandı: (.+)$/, (m) => `Refund completed: ${m[1]}`],

@@ -112,6 +112,7 @@ test('mobil işlem ekranları: eklenti dosyası mobil.js’ten önce yüklenir v
   assert.match(sw.match(/const KABUK = \[([\s\S]*?)\];/)[1], /\/mobil\/mobil-islemler\.js/);
   const eklenti = fs.readFileSync(path.join(kok, 'mobil-islemler.js'), 'utf8');
   for (const ekran of ['oneri', "'hizli-satis'", 'musteriler', 'siparisler', "'mal-kabul'", 'gorevler', 'kasa', 'iade']) assert.ok(eklenti.includes(ekran), ekran);
+  assert.ok(eklenti.includes('o-siparis') && eklenti.includes('/api/siparisler') && eklenti.includes('EczamSepet'), 'öneriden sipariş ve sepete ekleme köprüsü');
   // Cekirdek hala ekranlari yonlendiriyor
   const cekirdek = fs.readFileSync(path.join(kok, 'mobil.js'), 'utf8');
   assert.match(cekirdek, /window\.EczamEklenti/);
