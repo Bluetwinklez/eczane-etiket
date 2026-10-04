@@ -18,23 +18,30 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar">
-      <h2>Eczanem Programı</h2>
-      <button id="cp-ac-btn" class="secondary" style="margin:0 10px 8px;text-align:left;background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.2);color:rgba(255,255,255,0.75)">🔍 Hızlı ara <span style="float:right;opacity:0.6">Ctrl+K</span></button>
+      <div class="sidebar-marka"><span id="logo-yer"></span><h2>Eczanem Programı</h2></div>
+      <button id="cp-ac-btn" class="cp-ac" type="button"><span id="cp-ikon"></span>Hızlı ara <kbd>Ctrl+K</kbd></button>
       <nav id="nav"></nav>
-      <div class="user-box">
-        <div id="user-name">-</div>
-        <div class="rol" id="user-rol">-</div>
-        <button id="tema-btn" class="secondary">🌙 Karanlık Tema</button>
-        <button id="sifre-btn" class="secondary">🔑 Şifremi Değiştir</button>
-        <button id="logout-btn" class="secondary">Çıkış Yap</button>
-      </div>
     </aside>
     <div class="main">
       <div class="topbar">
         <h1 id="page-title">Yükleniyor...</h1>
-        <div class="zil-kutu">
-          <button class="secondary zil-btn" id="zil-btn" aria-label="Bildirim merkezi" title="Bildirim merkezi">🔔<span class="zil-sayi" id="zil-sayi" hidden>0</span></button>
-          <div class="zil-panel" id="zil-panel" hidden></div>
+        <div class="topbar-sag">
+          <div class="zil-kutu">
+            <button class="ikon-btn zil-btn" id="zil-btn" aria-label="Bildirim merkezi" title="Bildirim merkezi"><span id="zil-ikon"></span><span class="zil-sayi" id="zil-sayi" hidden>0</span></button>
+            <div class="zil-panel" id="zil-panel" hidden></div>
+          </div>
+          <div class="kullanici-kutu">
+            <button class="kullanici-cip" id="kullanici-btn" type="button" aria-haspopup="menu" aria-expanded="false">
+              <span class="kc-metin"><span id="user-name">-</span><span class="rol" id="user-rol">-</span></span>
+              <span class="avatar" id="user-avatar">?</span>
+            </button>
+            <div class="kullanici-menu" id="kullanici-menu" role="menu" hidden>
+              <button id="tema-btn" type="button" role="menuitem">Karanlık Tema</button>
+              <button id="sifre-btn" type="button" role="menuitem">Şifremi Değiştir</button>
+              <hr />
+              <button id="logout-btn" type="button" role="menuitem">Çıkış Yap</button>
+            </div>
+          </div>
         </div>
       </div>
       <div class="content" id="content"></div>
@@ -43,7 +50,9 @@
   <div class="toast-wrap" id="toast-wrap"></div>
 
   <script src="js/api.js"></script>
+  <script src="js/ikonlar.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/views/anasayfa.js"></script>
   <script src="js/views/ilaclar.js"></script>
   <script src="js/views/stok.js"></script>
   <script src="js/views/satis.js"></script>

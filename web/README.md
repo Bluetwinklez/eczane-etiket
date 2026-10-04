@@ -14,6 +14,8 @@ Eczane yönetim ve otomasyon sistemi. Node.js + Express + yerleşik `node:sqlite
 
 **Ek özellikler**: POS'ta yüzdelik indirim desteği, yazdırılabilir satış fişi, ilaç bazlı stok hareketleri geçmişi, ana sayfada son 7 günün satış trend grafiği, karanlık/aydınlık tema (kalıcı tercih), POS klavye kısayolları (F2 arama, Enter ile sepete ekle, Ctrl+Enter ile satışı tamamla), her sayfadan `Ctrl+K` ile açılan hızlı komut paleti (sayfa + ilaç/müşteri arama).
 
+**Arayüz**: siyah kenar menü (ikonlu, gruplu), adaçayı zemin ve fıstık yeşili vurgu rengi, yuvarlak kartlar ve hap butonlar; başlıklar Bricolage Grotesque, metinler Manrope (font dosyaları `public/fonts` altında yerel olarak bulunur, internet gerekmez; SIL OFL lisanslı). Ana sayfa paneli: bugünkü ciro/satış (düne göre değişim), kritik stok ve SKT kutuları, son satışlar, kategori radarı (son 30 gün / önceki 30 gün), bu hafta / geçen hafta satış trendi (fareyle gün ayrıntısı), bugün vardiyada olan ekip, hızlı işlemler ve aylık hedef kartı. Grafik verileri `GET /api/satislar/panel-ozet` ucundan gelir ve her grafik "Tablo olarak gör" ile tablo halinde de okunabilir.
+
 **Eczacının günlük işini kolaylaştıran modüller** (ilaç reçetesiyle sınırlı değil):
 - **Gün sonu kasa kapanışı (Z-Raporu)**: nakit/kredi kartı/SGK bazında sistem toplamı önizlemesi, sayılan nakit girişiyle fark hesaplama, kapanış geçmişi.
 - **Gider takibi**: kira/fatura/maaş/vergi/tedarik/diğer giderler; kâr-zarar raporuna otomatik yansıyıp net kâr hesaplanıyor.
