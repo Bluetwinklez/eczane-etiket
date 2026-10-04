@@ -433,6 +433,7 @@ sutunEkleGerekirse('ilaclar', 'gebelik_uyari', 'TEXT');
 sutunEkleGerekirse('ilaclar', 'min_yas', 'INTEGER');
 sutunEkleGerekirse('ilaclar', 'yasli_uyari', 'INTEGER NOT NULL DEFAULT 0');
 sutunEkleGerekirse('ilaclar', 'raf_konumu', 'TEXT');
+sutunEkleGerekirse('ilaclar', 'hizli_tus', 'INTEGER NOT NULL DEFAULT 0');
 
 // Ayni ilac bitis donemi icin musteriye tekrar tekrar hatirlatma gitmesin
 db.exec(`
@@ -760,6 +761,11 @@ function ornekGuvenlikBilgileriniDoldur() {
      WHERE ad = ?`
   );
   if (ayarOku('ornek_guvenlik_dolduruldu')) return;
+  // Kasada hizli tus olarak en cok satilan demo urunleri
+  const hizliTus = db.prepare('UPDATE ilaclar SET hizli_tus = 1 WHERE ad = ?');
+  for (const ad of ['Parol 500mg 20 Tablet', 'Aspirin 100mg 30 Tablet', 'Nurofen 400mg 24 Tablet', "Cerrahi Maske 50'li", 'Talcid 500mg 20 Tablet', 'Supradyn Energy 30 Tablet']) {
+    hizliTus.run(ad);
+  }
   for (const [ad, [gebelik, minYas, yasli, raf]] of Object.entries(ORNEK_GUVENLIK)) guncelle.run(gebelik, minYas, yasli, raf, ad);
   ayarYaz('ornek_guvenlik_dolduruldu', '1');
 }
