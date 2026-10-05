@@ -88,11 +88,31 @@ Eczane yönetim ve otomasyon sistemi. Node.js + Express + yerleşik `node:sqlite
 - Şifre kuralı: en az 8 karakter, en az bir harf ve bir rakam. Demo hesaplar ve yöneticinin oluşturduğu/sıfırladığı şifreler ilk girişte değiştirilmek zorundadır. Şifre değişince kullanıcının diğer oturumları kapatılır.
 - İşlem kaydı (audit log): tüm veri değiştiren istekler kullanıcı, yöntem, kaynak ve sonuç koduyla kaydedilir; şifreler maskelenir. Admin, filtreleyip CSV olarak indirebilir.
 
+**Muhasebe**:
+- **Özet**: seçilen dönemde brüt hasılat, müşteri iadeleri, net hasılat, satılan malın maliyeti (stoğa dönen iadenin maliyeti düşülür), brüt/net kâr ve marj. Mal alımı (tedarik) giderleri maliyette zaten sayıldığı için net kâra ikinci kez yansıtılmaz, ayrıca gösterilir.
+- **Alış tarafı**: alış faturaları, **alış iadeleri** (depoya iade / iade faturası; borçtan düşer, ödeme sayılmaz), tedarikçi ödemeleri, güncel ve vadesi geçmiş tedarikçi borcu, veresiye alacağı.
+- **Günlük kazanç tablosu** ve **kasa raporu** (nakit/kart/SGK/veresiye, tahsilat, iade, kasa giriş-çıkış, beklenen nakit, kasa farkı). Hepsi CSV ve PDF olarak indirilir; mobilde Bugün/Hafta/Ay özeti vardır.
+
+**İTS / karekod hareket defteri**:
+- Satışta, mal kabulde ve iadede okutulan karekodların GTIN, seri no, parti ve SKT bilgisi kutu bazında kaydedilir.
+- **Aynı kutu iki kez satılamaz**: seri no daha önce satıldıysa kasa uyarır ve satış reddedilir. Stokta görünen seri mal kabulde tekrar girilemez; iade edilen kutu yeniden satılabilir.
+- Defter tarih/işlem/seri no ile süzülür, CSV/PDF indirilir; bir kutunun tüm geçmişi sorgulanabilir.
+- **Stok eşitleme**: İTS ekranından indirilen stok listesi (CSV veya yapıştırma) sistem stoğuyla karşılaştırılır ("İTS fazla", "Sistem fazla", "Sistemde yok"); farklar CSV olarak iner.
+- Bu modül İTS'ye **bildirim göndermez**; gerçek bildirim eczacının kendi İTS girişi veya resmî entegratör üzerinden yapılır.
+
+**İlaç kartı, ilaç tespit ve TİTCK listesi**:
+- **TİTCK resmî ilaç listesi** (SKRS e-reçete listesi, ~18 bin ürün: barkod, ATC kodu/adı, firma, reçete türü, aktif/pasif): `.xlsx` dosyası yüklenir ya da tek tıkla titck.gov.tr'den indirilir (yalnızca bu alan adı; internet gerektirir, isteğe bağlıdır). Yüklenince katalogdaki ürünlerin boş ATC kodu barkoddan dolar. Liste yedeğe alınmaz, yeniden indirilebilir. Dosya, harici paket kullanmayan küçük bir xlsx okuyucuyla açılır.
+- **İlaç Kartı** (sekmeli): özet ve TİTCK durumu, fiyat hareketleri (İSF/DSF/PSF/KF/KÖ/Kİ tablosu ve grafiği), etkin madde/ATC, **eşdeğerler** (ATC koduna göre; katalogda olmayan TİTCK eşdeğerleri "Kataloğa ekle" ile), SUT/KÜB/KT notu ve bağlantıları, **hasta maliyeti** (fiyat farkı + katılım payı; oranlar varsayılan, tahminidir) ve tablet bilgisi formu.
+- **İlaç Tespit**: üzerindeki yazı, şekil, renk (en fazla iki), ATC, endikasyon, çentik ve şeffaflığa göre ürün bulma (ilaç kartına girilen tablet bilgileriyle çalışır).
+- **Kategori Gezgini**: ürün tipi, kategori ve marka/firma süzgeci, fiyat/stok sıralaması, "sadece stokta".
+- TİTCK listesinden **tek tıkla ürün ekleme** (ad, firma, ATC ana grubu, reçete türü dolar) ve stokta duran **pasif ürün** uyarısı.
+- Kamu fiyatı ve tablet bilgisi **CSV ile** toplu yüklenir (barkodla eşleşir, önizlemeli). Tablet görünümü, SUT maddeleri ve KÜB metinleri pakette hazır gelmez; eczane girer veya yükler.
+
 **Ürün satış hızı** (`GET /api/ilaclar/:id/analiz`: son 30 gün, 4 haftalık kırılım, stoğun kaç gün yeteceği; mobil ürün kartında gösterilir).
 
 **Akıllı öneriler** (ana sayfa kartı ve `GET /api/oneriler`): son 30 günlük net satış hızından stoğun kaç gün yeteceğini, SKT'ye kadar satılamayacak fazla stoku (kademeli %10/20/30 indirim önerisiyle), satılmayan ölü stoku ve günün ciro/kâr özetini gösterir.
 
-**Eczam Mobil** (`/mobil`): telefona kurulabilen (PWA) ikinci arayüz. Bugün/hafta/ay özeti ve şube karşılaştırması, ürün arama ve ürün kartı (parti, muadil, istek defteri), kamerayla barkod/karekod okuma (sorgu ve sayım modu), bildirim merkezi, soğuk zincir sıcaklık girişi, çevrimdışı açılış ve bekleyen işlem kuyruğu. Ayrıca **akıllı öneriler** (stok bitiş tahmini, SKT için indirim önerisi, ölü stok, gün sonu özeti), **hızlı satış** (sepet, barkod/kamera, nakit/kart/veresiye), **müşteri ve veresiye** (tahsilat), **siparişler** ve siparişten **mal kabul** (parti/SKT/fatura), **iade**, **görevler**, **günün kasası**, aylık **hedef** ilerlemesi ve SKT önerisinden tek dokunuşla **kampanya başlatma**. Arayüz **Türkçe ve İngilizce** (cihaz diline göre; Profil'den değiştirilir). App Store paketi ve yayın adımları: [`docs/APP_STORE_RELEASE.md`](../docs/APP_STORE_RELEASE.md). Gizlilik politikası sunucudan `/gizlilik.html` adresiyle yayınlanır.
+**Eczam Mobil** (`/mobil`): telefona kurulabilen (PWA) ikinci arayüz. Bugün/hafta/ay özeti ve şube karşılaştırması, ürün arama ve ürün kartı (parti, muadil, istek defteri), kamerayla barkod/karekod okuma (sorgu ve sayım modu), bildirim merkezi, soğuk zincir sıcaklık girişi, çevrimdışı açılış ve bekleyen işlem kuyruğu. Ayrıca **akıllı öneriler** (stok bitiş tahmini, SKT için indirim önerisi, ölü stok, gün sonu özeti), **muhasebe özeti** (Bugün/Hafta/Ay: net hasılat, kâr, alış ve borç), **hızlı satış** (sepet, barkod/kamera, nakit/kart/veresiye), **müşteri ve veresiye** (tahsilat), **siparişler** ve siparişten **mal kabul** (parti/SKT/fatura), **iade**, **görevler**, **günün kasası**, aylık **hedef** ilerlemesi ve SKT önerisinden tek dokunuşla **kampanya başlatma**. Arayüz **Türkçe ve İngilizce** (cihaz diline göre; Profil'den değiştirilir). App Store paketi ve yayın adımları: [`docs/APP_STORE_RELEASE.md`](../docs/APP_STORE_RELEASE.md). Gizlilik politikası sunucudan `/gizlilik.html` adresiyle yayınlanır.
 
 ## Kurulum
 
@@ -142,8 +162,8 @@ SMTP ayarları tanımlanmazsa e-posta bildirimleri ve tüm SMS bildirimleri "sim
 ## Rol Yetkileri
 
 - **Admin**: tüm modüller + kullanıcı/şube yönetimi + yedekleme + işlem kaydı.
-- **Eczacı**: ilaç/stok/parti yönetimi, satış, iade, kampanya ve etkileşim kuralları, raporlar, müşteri/tedarikçi, bildirim.
-- **Kasiyer**: satış (POS), veresiye tahsilatı, ilaç/stok görüntüleme, müşteri/tedarikçi, bildirim. Raporlara, iadelere ve yönetim sayfalarına erişemez.
+- **Eczacı**: ilaç/stok/parti yönetimi, satış, iade, kampanya ve etkileşim kuralları, raporlar, muhasebe, İTS defteri, ilaç kartı düzenleme ve TİTCK listesi yükleme, müşteri/tedarikçi, bildirim.
+- **Kasiyer**: satış (POS), veresiye tahsilatı, ilaç/stok görüntüleme, ilaç kartı ve ilaç tespit (salt okunur), müşteri/tedarikçi, bildirim. Raporlara, muhasebeye, İTS defterine, iadelere ve yönetim sayfalarına erişemez.
 
 ## Geliştirme
 
