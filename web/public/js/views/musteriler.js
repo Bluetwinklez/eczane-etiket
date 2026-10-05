@@ -210,6 +210,7 @@
                     <button class="secondary" data-action="kart" data-id="${m.id}">Kullanım Kartı</button>
                     <button class="secondary" data-action="gecmis" data-id="${m.id}">Satış Geçmişi</button>
                     <button class="secondary" data-action="takip" data-id="${m.id}">Takip</button>
+                    ${EczamWA.dugme(m.telefon, '')}
                     <button class="secondary" data-action="duzenle" data-id="${m.id}">Düzenle</button>
                     <button class="danger" data-action="sil" data-id="${m.id}">Sil</button>
                   </td>

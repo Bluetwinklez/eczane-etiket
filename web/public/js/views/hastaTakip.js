@@ -128,7 +128,7 @@
           <div class="card"><table><thead><tr><th>Hasta</th><th>Telefon</th><th>Tanı</th><th>İlaç</th><th>Rapor no</th><th>Bitiş</th><th>Durum</th>${yazma ? '<th></th>' : ''}</tr></thead>
           <tbody>${v.raporlar.length ? v.raporlar
             .map((r) => `<tr><td>${UI.esc(r.musteri_adi)}</td><td>${UI.esc(r.telefon || '-')}</td><td>${UI.esc(r.tani || '-')}${icdKodu(r.tani) ? ` <button class="secondary" data-sut="${UI.esc(icdKodu(r.tani))}" title="Bu tanıda katılım payından muaf ilaçlar (EK-4/D)">Muafiyet</button>` : ''}</td><td>${UI.esc(r.ilac || '-')}</td><td>${UI.esc(r.rapor_no || '-')}</td>
-              <td>${UI.esc(r.bitis)}</td><td><span class="badge ${DURUM[r.durum][1]}">${DURUM[r.durum][0]}${r.durum === 'bitti' ? '' : ` · ${r.kalan_gun} gün`}</span></td>
+              <td>${UI.esc(r.bitis)}</td><td><span class="badge ${DURUM[r.durum][1]}">${DURUM[r.durum][0]}${r.durum === 'bitti' ? '' : ` · ${r.kalan_gun} gün`}</span>${r.durum !== 'aktif' ? ' ' + EczamWA.dugme(r.telefon, EczamWA.SABLONLAR.raporBitis({ ad: r.musteri_adi, ilac: r.ilac, tarih: r.bitis })) : ''}</td>
               ${yazma ? `<td><button class="secondary" data-rapor-duzenle="${r.id}">Düzenle</button> <button class="danger" data-rapor-sil="${r.id}">Sil</button></td>` : ''}</tr>`)
             .join('') : `<tr><td colspan="${yazma ? 8 : 7}" class="empty-state">Kayıtlı rapor yok</td></tr>`}</tbody></table></div>`;
         const formAc = (r) => {

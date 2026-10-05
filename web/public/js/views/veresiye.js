@@ -112,7 +112,7 @@
                   <td class="num">${m.veresiye_limiti != null ? UI.tl(m.veresiye_limiti) : '-'}</td>
                   <td>${gecikmeRozeti(m)}</td>
                   <td>${UI.tarih(m.son_hareket)}</td>
-                  <td class="actions-col"><button class="secondary" data-musteri="${m.id}">Hesap / Tahsilat</button></td>
+                  <td class="actions-col"><button class="secondary" data-musteri="${m.id}">Hesap / Tahsilat</button> ${m.bakiye > 0 ? EczamWA.dugme(m.telefon, EczamWA.SABLONLAR.bakiye({ ad: m.ad_soyad, tutar: UI.tl(m.bakiye) })) : ''}</td>
                 </tr>`
               )
               .join('')
