@@ -48,6 +48,7 @@ const TABLO_SIRASI = [
   'sicaklik_kayitlari',
   'kasa_hareketleri',
   'tedarikci_hareketleri',
+  'karekod_hareketleri',
   'duyurular'
 ];
 
