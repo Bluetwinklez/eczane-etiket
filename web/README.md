@@ -116,7 +116,9 @@ Eczane yönetim ve otomasyon sistemi. Node.js + Express + yerleşik `node:sqlite
 
 ## Kurulum
 
-Node.js 22.5 veya üstü gerekir (yerleşik `node:sqlite` modülü için).
+**Windows bilgisayara tek komutla kurulum, güncelleme kısayolu ve hata bildirimi:** [ana README → Eczam Programını Bilgisayara Kurma](../README.md#-eczam-programını-bilgisayara-kurma-windows).
+
+Elle kurulum için Node.js 22.5 veya üstü gerekir (yerleşik `node:sqlite` modülü için).
 
 ```bash
 cd web
@@ -148,6 +150,7 @@ Sunucu varsayılan olarak `http://localhost:3000` adresinde çalışır. Veritab
 | `ECZANEM_YEDEK_DIZINI` | Otomatik yedek klasörü (varsayılan `web/data/yedekler`) |
 | `ECZANEM_YEDEK_SAKLA` | Saklanacak otomatik yedek sayısı (varsayılan `14`) |
 | `ECZANEM_OTOMATIK_YEDEK` | `0` ise otomatik günlük yedek kapalı |
+| `ECZANEM_HATA_GUNLUGU` | Hata günlüğü dosyası (varsayılan veritabanının yanında `hatalar.log`) |
 | `ECZANEM_GIZLILIK_EPOSTA` | Gizlilik politikasında (`/gizlilik.html`) gösterilen iletişim e-postası (App Store için gerekli) |
 | `TRUST_PROXY`    | `1` ise ters vekil (reverse proxy) arkasında istemci IP'si `X-Forwarded-For`'dan alınır |
 | `SMTP_HOST`      | E-posta bildirimleri için SMTP sunucusu           |

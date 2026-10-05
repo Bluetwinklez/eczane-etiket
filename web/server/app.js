@@ -142,4 +142,15 @@ app.use('/api', requireLogin, (req, res) => {
   res.status(404).json({ error: 'Bulunamadı' });
 });
 
+// Beklenmeyen sunucu hatalari hata gunlugune yazilir; kullaniciya kisa bir mesaj doner
+// (express'in varsayilan isleyicisi yigini HTML olarak gosterirdi)
+app.use((err, req, res, next) => {
+  const { hataKaydet } = require('./hataGunlugu');
+  if (err.type === 'entity.too.large') return res.status(413).json({ error: 'Gönderilen veri çok büyük' });
+  if (err.type === 'entity.parse.failed') return res.status(400).json({ error: 'İstek gövdesi okunamadı' });
+  hataKaydet('sunucu', err.message, { yol: `${req.method} ${req.originalUrl.split('?')[0]}`, yigin: String(err.stack || '').split('\n').slice(0, 6).join(' | ') });
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: 'Beklenmeyen bir hata oluştu. Destek ekranından hata raporu gönderebilirsiniz.' });
+});
+
 module.exports = app;
