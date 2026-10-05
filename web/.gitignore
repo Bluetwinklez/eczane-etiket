@@ -3,3 +3,4 @@ data/*.db
 data/*.db-journal
 *.log
 data/yedekler/
+data/durdur.bayrak
