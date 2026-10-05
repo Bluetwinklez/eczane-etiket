@@ -62,7 +62,8 @@
                   <td>${UI.esc(i.notlar || '')}</td>
                   <td class="actions-col">${
                     ['bekliyor', 'haber_verildi'].includes(i.durum)
-                      ? `${i.musteri_id ? `<button class="secondary" data-haber="${i.id}">SMS ile haber ver</button>` : ''}
+                      ? `${i.stokta_var ? EczamWA.dugme(i.telefon, EczamWA.SABLONLAR.urunGeldi({ ad: i.musteri_adi || '', urun: i.urun_adi })) : ''}
+                         ${i.musteri_id ? `<button class="secondary" data-haber="${i.id}">SMS ile haber ver</button>` : ''}
                          ${i.durum === 'bekliyor' && !i.musteri_id ? `<button class="secondary" data-durum="haber_verildi" data-id="${i.id}">Arandı</button>` : ''}
                          <button data-durum="teslim_edildi" data-id="${i.id}">Teslim edildi</button>
                          <button class="secondary" data-durum="iptal" data-id="${i.id}">İptal</button>`
