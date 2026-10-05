@@ -20,6 +20,7 @@
     { key: 'kasa-kapanisi', etiket: 'Kasa Kapanışı', ikon: '💰' },
     { key: 'destek', etiket: 'Destek / Hata Bildir', ikon: '🛟' },
     { key: 'ilac-karti', etiket: 'İlaç Kartı', ikon: '💊' },
+    { key: 'hasta-takip', etiket: 'Hasta Takibi (rapor, tansiyon, şeker)', ikon: '🩺' },
     { key: 'hesaplamalar', etiket: 'Hesaplamalar (doz, kutu bitiş, VKİ…)', ikon: '🧮' },
     { key: 'karsilastir', etiket: 'Müstahzar Karşılaştırma', ikon: '⚖️' },
     { key: 'gezgin', etiket: 'Kategori Gezgini', ikon: '🗂️' },
