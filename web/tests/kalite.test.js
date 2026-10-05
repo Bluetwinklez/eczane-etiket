@@ -16,9 +16,9 @@ before(async () => {
 });
 after(() => sunucu.kapat());
 
-test('yedek tüm veri tablolarını kapsar (oturum, ayar, işlem kaydı ve yeniden indirilebilen TİTCK listesi hariç)', () => {
+test('yedek tüm veri tablolarını kapsar (oturum, ayar, işlem kaydı ve yeniden indirilebilen TİTCK listesi ve 30 günde silinen asistan sohbetleri hariç)', () => {
   const tablolar = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all().map((r) => r.name);
-  const eksik = tablolar.filter((t) => !TABLO_SIRASI.includes(t) && !['ayarlar', 'oturumlar', 'islem_kayitlari', 'titck_ilaclar'].includes(t));
+  const eksik = tablolar.filter((t) => !TABLO_SIRASI.includes(t) && !['ayarlar', 'oturumlar', 'islem_kayitlari', 'titck_ilaclar', 'asistan_mesajlari'].includes(t));
   assert.deepEqual(eksik, []);
 });
 
