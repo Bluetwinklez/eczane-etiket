@@ -5,7 +5,7 @@
     ['fiyat', 'Fiyat hareketleri'],
     ['etkin', 'Etkin madde / ATC'],
     ['esdeger', 'Eşdeğer'],
-    ['sut', 'SUT / KÜB / KT'],
+    ['sut', 'SUT / SGK / KÜB'],
     ['maliyet', 'Hasta maliyeti'],
     ['tablet', 'Tablet bilgisi']
   ];
@@ -108,9 +108,10 @@
       const b = k.bilgi;
       const baglanti = (u, ad) => (u ? `<a href="${UI.esc(u)}" target="_blank" rel="noopener noreferrer"><button type="button" class="secondary">${ad}</button></a>` : `<span class="form-ipucu">${ad}: bağlantı girilmemiş</span>`);
       return `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">${baglanti(b.kub_url, 'KÜB aç')} ${baglanti(b.kt_url, 'KT aç')}</div>
-        <h4 style="margin:0 0 6px">SUT / ödeme notu</h4>
+        <div id="kart-sgk" style="margin-bottom:16px"><span class="form-ipucu">SGK listeleri yükleniyor…</span></div>
+        <h4 style="margin:0 0 6px">Eczane notu (SUT / ödeme)</h4>
         <div class="card" style="white-space:pre-wrap">${b.sut_notu ? UI.esc(b.sut_notu) : '<span class="form-ipucu">Not girilmemiş. “Tablet bilgisi” sekmesinden ekleyebilirsiniz.</span>'}</div>
-        <p class="form-ipucu">SUT maddeleri ve KÜB/KT belgeleri resmî kaynaklardan (SGK, TİTCK) alınmalıdır; burada eczanenizin notları ve bağlantıları tutulur.</p>`;
+        <p class="form-ipucu">KÜB/KT belgeleri TİTCK'dan alınır; burada eczanenizin notları ve bağlantıları tutulur.</p>`;
     },
     maliyet(k) {
       return `<div class="form-grid" style="max-width:640px">
@@ -256,7 +257,20 @@
           </div>`;
         if (sekme === 'maliyet') maliyetBagla();
         if (sekme === 'aile') aileCiz();
+        if (sekme === 'sut') sgkCiz();
         if (sekme === 'tablet' && yazma) formBagla();
+      };
+
+      const sgkCiz = async () => {
+        const id = kart.ilac.id;
+        let html;
+        try {
+          html = window.SutOzetiHtml(await Api.get('/api/sgk/ilac/' + id));
+        } catch (err) {
+          html = `<p class="form-ipucu">${UI.esc(err.message)}</p>`;
+        }
+        const hedef = document.getElementById('kart-sgk');
+        if (hedef && kart && kart.ilac.id === id) hedef.innerHTML = html;
       };
 
       const aileCiz = async () => {

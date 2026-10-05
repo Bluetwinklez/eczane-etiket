@@ -79,4 +79,4 @@ function xlsxYap(sayfalar) {
   return zipYap(dosyalar);
 }
 
-module.exports = { xlsxYap };
+module.exports = { xlsxYap, zipYap };
