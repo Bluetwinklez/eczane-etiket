@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+  xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+  xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+  <cbc:UBLVersionID>2.1</cbc:UBLVersionID>
+  <cbc:CustomizationID>TR1.2</cbc:CustomizationID>
+  <cbc:ProfileID>TICARIFATURA</cbc:ProfileID>
+  <cbc:ID>DEP2026000012345</cbc:ID>
+  <cbc:UUID>3f2b8c1e-5d6a-4e7f-9a0b-1c2d3e4f5a6b</cbc:UUID>
+  <cbc:IssueDate>2026-10-03</cbc:IssueDate>
+  <cbc:InvoiceTypeCode>SATIS</cbc:InvoiceTypeCode>
+  <!-- Depo notu: vade 60 gün -->
+  <cbc:DocumentCurrencyCode>TRY</cbc:DocumentCurrencyCode>
+  <cac:AccountingSupplierParty>
+    <cac:Party>
+      <cac:PartyIdentification><cbc:ID schemeID="MERSISNO">0123456789000017</cbc:ID></cac:PartyIdentification>
+      <cac:PartyIdentification><cbc:ID schemeID="VKN">4560012345</cbc:ID></cac:PartyIdentification>
+      <cac:PartyName><cbc:Name>Selçuk Ecza Deposu Tic. A.Ş.</cbc:Name></cac:PartyName>
+    </cac:Party>
+  </cac:AccountingSupplierParty>
+  <cac:TaxTotal><cbc:TaxAmount currencyID="TRY">47.40</cbc:TaxAmount></cac:TaxTotal>
+  <cac:LegalMonetaryTotal>
+    <cbc:TaxExclusiveAmount currencyID="TRY">474.00</cbc:TaxExclusiveAmount>
+    <cbc:PayableAmount currencyID="TRY">521.40</cbc:PayableAmount>
+  </cac:LegalMonetaryTotal>
+  <cac:InvoiceLine>
+    <cbc:ID>1</cbc:ID>
+    <cbc:InvoicedQuantity unitCode="NIU">10</cbc:InvoicedQuantity>
+    <cbc:LineExtensionAmount currencyID="TRY">150.00</cbc:LineExtensionAmount>
+    <cac:AllowanceCharge><cbc:ChargeIndicator>false</cbc:ChargeIndicator><cbc:Amount currencyID="TRY">5.00</cbc:Amount></cac:AllowanceCharge>
+    <cac:TaxTotal><cbc:TaxAmount currencyID="TRY">15.00</cbc:TaxAmount>
+      <cac:TaxSubtotal><cbc:TaxAmount currencyID="TRY">15.00</cbc:TaxAmount><cbc:Percent>10</cbc:Percent></cac:TaxSubtotal></cac:TaxTotal>
+    <cac:Item>
+      <cbc:Name>PAROL 500 MG 20 TABLET</cbc:Name>
+      <cac:SellersItemIdentification><cbc:ID>STK-00042</cbc:ID></cac:SellersItemIdentification>
+      <cac:StandardItemIdentification><cbc:ID>8699504010012</cbc:ID></cac:StandardItemIdentification>
+      <cac:ItemInstance><cac:LotIdentification><cbc:LotNumberID>L2610A</cbc:LotNumberID><cbc:ExpiryDate>2028-06-30</cbc:ExpiryDate></cac:LotIdentification></cac:ItemInstance>
+    </cac:Item>
+    <cac:Price><cbc:PriceAmount currencyID="TRY">15.50</cbc:PriceAmount></cac:Price>
+  </cac:InvoiceLine>
+  <cac:InvoiceLine>
+    <cbc:ID>2</cbc:ID>
+    <cbc:InvoicedQuantity unitCode="NIU">1</cbc:InvoicedQuantity>
+    <cbc:LineExtensionAmount currencyID="TRY">0.00</cbc:LineExtensionAmount>
+    <cac:Item><cbc:Name>PAROL 500 MG 20 TABLET (BEDELSİZ)</cbc:Name>
+      <cac:StandardItemIdentification><cbc:ID>8699504010012</cbc:ID></cac:StandardItemIdentification></cac:Item>
+    <cac:Price><cbc:PriceAmount currencyID="TRY">0</cbc:PriceAmount></cac:Price>
+  </cac:InvoiceLine>
+  <cac:InvoiceLine>
+    <cbc:ID>3</cbc:ID>
+    <cbc:Note>MF: 2</cbc:Note>
+    <cbc:InvoicedQuantity unitCode="NIU">12</cbc:InvoicedQuantity>
+    <cbc:LineExtensionAmount currencyID="TRY">324.00</cbc:LineExtensionAmount>
+    <cac:TaxTotal><cbc:TaxAmount currencyID="TRY">32.40</cbc:TaxAmount>
+      <cac:TaxSubtotal><cbc:Percent>10</cbc:Percent></cac:TaxSubtotal></cac:TaxTotal>
+    <cac:Item><cbc:Name>Nurofen 400mg 24 Tablet &amp; Ağrı</cbc:Name>
+      <cac:BuyersItemIdentification><cbc:ID>8699504010043</cbc:ID></cac:BuyersItemIdentification></cac:Item>
+    <cac:Price><cbc:PriceAmount currencyID="TRY">27.00</cbc:PriceAmount></cac:Price>
+  </cac:InvoiceLine>
+  <cac:InvoiceLine>
+    <cbc:ID>4</cbc:ID>
+    <cbc:InvoicedQuantity unitCode="NIU">2</cbc:InvoicedQuantity>
+    <cbc:LineExtensionAmount currencyID="TRY">0.00</cbc:LineExtensionAmount>
+    <cac:Item><cbc:Name><![CDATA[YENİ ÜRÜN <ÖRNEK> 5 MG 30 TABLET]]></cbc:Name>
+      <cac:StandardItemIdentification><cbc:ID>8690000009999</cbc:ID></cac:StandardItemIdentification></cac:Item>
+  </cac:InvoiceLine>
+</Invoice>

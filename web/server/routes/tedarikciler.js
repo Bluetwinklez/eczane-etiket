@@ -133,9 +133,11 @@ router.post('/', yonetici, (req, res) => {
   const vadeGun = vadeGunOku(req.body.vade_gun, 30);
   if (Number.isNaN(vadeGun)) return res.status(400).json({ error: 'Vade günü 0-365 arasında olmalı' });
 
+  const vergiNo = req.body.vergi_no ? String(req.body.vergi_no).replace(/\D/g, '') : null;
+  if (vergiNo && !/^\d{10,11}$/.test(vergiNo)) return res.status(400).json({ error: 'Vergi/TC kimlik no 10 veya 11 haneli olmalı' });
   const info = db
-    .prepare('INSERT INTO tedarikciler (firma_adi, yetkili, telefon, email, vade_gun) VALUES (?, ?, ?, ?, ?)')
-    .run(firma_adi.trim(), yetkili || null, telefon || null, email || null, vadeGun);
+    .prepare('INSERT INTO tedarikciler (firma_adi, yetkili, telefon, email, vade_gun, vergi_no) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(firma_adi.trim(), yetkili || null, telefon || null, email || null, vadeGun, vergiNo);
   res.status(201).json(db.prepare('SELECT * FROM tedarikciler WHERE id = ?').get(info.lastInsertRowid));
 });
 
