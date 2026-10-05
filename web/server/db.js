@@ -955,6 +955,9 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_titck_atc ON titck_ilaclar (atc_kodu);
 `);
+// Dermokozmetik kategori agaci (ana kategori / alt kategori)
+sutunEkleGerekirse('ilac_bilgi', 'derma_ana', 'TEXT');
+sutunEkleGerekirse('ilac_bilgi', 'derma_alt', 'TEXT');
 
 seedIfEmpty();
 ornekEtkenMaddeleriDoldur();

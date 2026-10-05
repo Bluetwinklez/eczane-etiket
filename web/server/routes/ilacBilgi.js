@@ -17,7 +17,7 @@ const TARIH = /^\d{4}-\d{2}-\d{2}$/;
 const BILGI_BOS = {
   atc_kodu: null, endikasyon: null, tablet_renk: null, tablet_sekil: null, tablet_yazi: null, tablet_centik: null, tablet_seffaf: 0,
   imalatci_fiyati: null, depocu_fiyati: null, kamu_fiyati: null, kamu_odenecek: null, kurum_iskontosu: null, sgk_kapsaminda: 0,
-  sut_notu: null, kub_url: null, kt_url: null
+  sut_notu: null, kub_url: null, kt_url: null, derma_ana: null, derma_alt: null
 };
 
 const bugun = () => yerelSimdi().toISOString().slice(0, 10);
@@ -27,7 +27,7 @@ function stoklu(subeId, kosul = '', params = []) {
     .prepare(
       `SELECT i.id, i.ad, i.barkod, i.kategori, i.uretici, i.urun_tipi, i.etken_madde, i.receteli, i.satis_fiyati,
               COALESCE(s.stok, 0) AS stok, b.atc_kodu, b.endikasyon, b.tablet_renk, b.tablet_sekil, b.tablet_yazi, b.tablet_centik, b.tablet_seffaf,
-              b.kamu_fiyati
+              b.kamu_fiyati, b.kamu_odenecek, b.sgk_kapsaminda, b.derma_ana, b.derma_alt
        FROM ilaclar i
        LEFT JOIN ilac_stok s ON s.ilac_id = i.id AND s.sube_id = ?
        LEFT JOIN ilac_bilgi b ON b.ilac_id = i.id
@@ -78,6 +78,8 @@ router.get('/gezgin', (req, res) => {
   const temel = tum.filter(
     (r) =>
       (!q.tip || r.urun_tipi === q.tip) &&
+      (!q.ana || r.derma_ana === q.ana) &&
+      (!q.alt || r.derma_alt === q.alt) &&
       (q.stokta !== '1' || r.stok > 0) &&
       (!ara || B.kucuk(r.ad).includes(ara) || (r.barkod || '').includes(q.q) || B.kucuk(r.uretici).includes(ara))
   );
@@ -105,6 +107,75 @@ router.get('/gezgin', (req, res) => {
     markalar: sayim(temel.filter(kategoriSecili), 'uretici'),
     tipler: [...tipSayim].map(([tip, adet]) => ({ tip, ad: URUN_TIPLERI[tip] || tip, adet }))
   });
+});
+
+// ---- Dermokozmetik kategori agaci (adetleriyle) ve otomatik siniflandirma ----
+router.get('/derma-agaci', (req, res) => {
+  const sayim = new Map();
+  for (const r of db.prepare('SELECT derma_ana, derma_alt FROM ilac_bilgi WHERE derma_ana IS NOT NULL').all()) {
+    sayim.set(r.derma_ana, (sayim.get(r.derma_ana) || 0) + 1);
+    sayim.set(r.derma_ana + '|' + r.derma_alt, (sayim.get(r.derma_ana + '|' + r.derma_alt) || 0) + 1);
+  }
+  const siniflanmamis = db
+    .prepare("SELECT COUNT(*) AS c FROM ilaclar i LEFT JOIN ilac_bilgi b ON b.ilac_id = i.id WHERE i.urun_tipi = 'dermokozmetik' AND b.derma_ana IS NULL")
+    .get().c;
+  res.json({
+    siniflanmamis,
+    agac: Object.entries(B.DERMA_AGACI).map(([ana, altlar]) => ({
+      ana,
+      adet: sayim.get(ana) || 0,
+      altlar: altlar.map((alt) => ({ alt, adet: sayim.get(ana + '|' + alt) || 0 }))
+    }))
+  });
+});
+
+router.post('/derma-siniflandir', yonetici, (req, res) => {
+  const adaylar = db
+    .prepare(
+      `SELECT i.id, i.ad FROM ilaclar i LEFT JOIN ilac_bilgi b ON b.ilac_id = i.id
+       WHERE i.urun_tipi = 'dermokozmetik' AND b.derma_ana IS NULL ORDER BY i.ad`
+    )
+    .all();
+  const oneriler = adaylar.map((u) => ({ ...u, tahmin: B.dermaTahmin(u.ad) }));
+  const atanacak = oneriler.filter((o) => o.tahmin);
+  if (!req.body.onizleme) {
+    db.exec('BEGIN');
+    try {
+      const ekle = db.prepare('INSERT OR IGNORE INTO ilac_bilgi (ilac_id) VALUES (?)');
+      const yaz = db.prepare("UPDATE ilac_bilgi SET derma_ana = ?, derma_alt = ?, guncelleme = datetime('now') WHERE ilac_id = ?");
+      for (const o of atanacak) {
+        ekle.run(o.id);
+        yaz.run(o.tahmin.ana, o.tahmin.alt, o.id);
+      }
+      db.exec('COMMIT');
+    } catch (err) {
+      db.exec('ROLLBACK');
+      return res.status(500).json({ error: 'Sınıflandırma kaydedilemedi' });
+    }
+  }
+  res.json({ atanan: atanacak.length, atanamayan: oneriler.length - atanacak.length, oneriler });
+});
+
+// ---- Mustahzar karsilastirma (2-4 urun yan yana) ----
+router.get('/karsilastir', (req, res) => {
+  const idler = [...new Set((Array.isArray(req.query.id) ? req.query.id : [req.query.id]).map(Number).filter((n) => Number.isInteger(n) && n > 0))];
+  if (idler.length < 2 || idler.length > 4) return res.status(400).json({ error: 'Karşılaştırmak için 2 ile 4 arasında ürün seçin' });
+  const urunler = [];
+  for (const id of idler) {
+    const r = stoklu(req.user.sube_id, 'WHERE i.id = ?', [id])[0];
+    if (!r) return res.status(404).json({ error: `Ürün bulunamadı: ${id}` });
+    const t = r.barkod ? db.prepare('SELECT durum, atc_kodu, atc_adi, recete_turu FROM titck_ilaclar WHERE barkod = ?').get(r.barkod) : null;
+    const hm = B.hastaMaliyeti({ psf: r.satis_fiyati, kamuFiyati: r.kamu_fiyati, kamuOdenecek: r.kamu_odenecek, hasta: 'aktif' });
+    urunler.push({
+      id: r.id, ad: r.ad, barkod: r.barkod, firma: r.uretici, kategori: r.kategori, urun_tipi: r.urun_tipi,
+      etken_madde: r.etken_madde, atc_kodu: r.atc_kodu || (t && t.atc_kodu) || null, atc_adi: t && t.atc_adi,
+      satis_fiyati: r.satis_fiyati, kamu_fiyati: r.kamu_fiyati, fiyat_farki: r.kamu_fiyati ? Math.max(0, B.yuvarla(r.satis_fiyati - r.kamu_fiyati)) : null,
+      hasta_oder: hm ? hm.hasta_oder : null, stok: r.stok, receteli: r.receteli, titck_durum: t ? t.durum : null,
+      sgk: r.sgk_kapsaminda ? 1 : 0, gorunum: [r.tablet_renk, r.tablet_sekil, r.tablet_yazi].filter(Boolean).join(' · ') || null
+    });
+  }
+  const enUcuz = Math.min(...urunler.map((u) => u.satis_fiyati));
+  res.json(urunler.map((u) => ({ ...u, en_ucuz: u.satis_fiyati === enUcuz })));
 });
 
 // ---- Kamu fiyati / tablet bilgisi CSV ice aktarma (barkod ile eslesir) ----
@@ -258,6 +329,8 @@ router.get('/:id', (req, res) => {
   const satisDegisimleri = db.prepare('SELECT tarih, yeni_fiyat FROM fiyat_gecmisi WHERE ilac_id = ? ORDER BY tarih DESC, id DESC').all(ilac.id);
   for (const g of satisDegisimleri) hareketler.push({ tarih: g.tarih.slice(0, 10), isf: null, dsf: null, psf: g.yeni_fiyat, kf: null, ko: null, ki: null, kaynak: 'satış fiyatı' });
   hareketler.sort((a, b) => b.tarih.localeCompare(a.tarih));
+  // FF: fiyat farki (PSF'nin kamu fiyatini asan kismi); ayni satirda ikisi de varsa hesaplanir
+  for (const h of hareketler) h.ff = h.psf != null && h.kf != null ? Math.max(0, Math.round((h.psf - h.kf) * 100) / 100) : null;
   // Bir onceki kayda gore artis/dusus
   const psfSerisi = hareketler.filter((h) => h.psf != null);
   hareketler.forEach((h) => {
@@ -307,7 +380,45 @@ router.get('/:id', (req, res) => {
     titck_esdegerler: titckEsdegerler,
     atc_kodu: atc,
     hasta_maliyeti: B.hastaMaliyeti({ psf: ilac.satis_fiyati, kamuFiyati: bilgi.kamu_fiyati, kamuOdenecek: bilgi.kamu_odenecek, hasta: 'aktif' }),
-    secenekler: { renkler: B.RENKLER, sekiller: B.SEKILLER, centikler: B.CENTIKLER }
+    secenekler: { renkler: B.RENKLER, sekiller: B.SEKILLER, centikler: B.CENTIKLER, derma: B.DERMA_AGACI }
+  });
+});
+
+// Urun ailesi: ayni markanin hat -> doz -> ambalaj agaci (katalog + TITCK listesi)
+router.get('/:id/aile', (req, res) => {
+  const ilac = db.prepare('SELECT id, ad, barkod FROM ilaclar WHERE id = ?').get(req.params.id);
+  if (!ilac) return res.status(404).json({ error: 'İlaç bulunamadı' });
+  const marka = B.urunAdiCoz(ilac.ad).marka;
+  const anahtar = B.sadelestir(marka);
+  if (!anahtar) return res.json({ marka, hatlar: [] });
+  const ilk = (ad) => B.sadelestir(String(ad).split(/\s+/)[0].replace(/[()]/g, ''));
+  const katalog = stoklu(req.user.sube_id).filter((r) => ilk(r.ad) === anahtar);
+  const titck = db
+    .prepare('SELECT barkod, ad, durum, recete_turu FROM titck_ilaclar WHERE ad LIKE ?')
+    .all(marka.replace(/[%_]/g, '') + '%')
+    .filter((t) => ilk(t.ad) === anahtar && t.durum === 'aktif');
+  const kayitlar = new Map();
+  for (const r of katalog) kayitlar.set(r.barkod || 'id:' + r.id, { id: r.id, barkod: r.barkod, ad: r.ad, stok: r.stok, satis_fiyati: r.satis_fiyati, katalogda: true, sgk: Boolean(r.sgk_kapsaminda), secili: r.id === ilac.id });
+  for (const t of titck) if (!kayitlar.has(t.barkod)) kayitlar.set(t.barkod, { id: null, barkod: t.barkod, ad: t.ad, stok: 0, katalogda: false, sgk: false, secili: false });
+  const hatlar = new Map();
+  for (const k of kayitlar.values()) {
+    const c = B.urunAdiCoz(k.ad);
+    const hatAnahtar = B.sadelestir(c.hat);
+    if (!hatlar.has(hatAnahtar)) hatlar.set(hatAnahtar, { hat: c.hat, dozlar: new Map() });
+    const dozlar = hatlar.get(hatAnahtar).dozlar;
+    const doz = c.doz || '—';
+    if (!dozlar.has(doz)) dozlar.set(doz, []);
+    dozlar.get(doz).push({ ...k, ambalaj: c.ambalaj || k.ad });
+  }
+  const sirala = (a, b) => a.localeCompare(b, 'tr', { numeric: true });
+  res.json({
+    marka,
+    hatlar: [...hatlar.values()]
+      .sort((a, b) => sirala(a.hat, b.hat))
+      .map((h) => ({
+        hat: h.hat,
+        dozlar: [...h.dozlar.entries()].sort((a, b) => sirala(a[0], b[0])).map(([doz, urunler]) => ({ doz, urunler: urunler.sort((a, b) => sirala(a.ambalaj, b.ambalaj)) }))
+      }))
   });
 });
 
@@ -367,6 +478,14 @@ router.put('/:id', yonetici, (req, res) => {
     if (!/^[A-Z]\d{2}([A-Z]([A-Z]\d{0,2})?)?$/.test(yeni.atc_kodu) && !/^[A-Z]\d{2}[A-Z]{2}\d{2}$/.test(yeni.atc_kodu)) return hata('ATC kodu geçersiz (örn. N02BE01)');
   }
   for (const alan of ['tablet_seffaf', 'sgk_kapsaminda']) if (alan in b) yeni[alan] = b[alan] ? 1 : 0;
+  if ('derma_ana' in b || 'derma_alt' in b) {
+    const ana = b.derma_ana || null;
+    const alt = b.derma_alt || null;
+    if (ana && !B.DERMA_AGACI[ana]) return hata('Geçersiz dermokozmetik kategorisi');
+    if (alt && (!ana || !B.DERMA_AGACI[ana].includes(alt))) return hata('Alt kategori seçilen ana kategoriye ait değil');
+    yeni.derma_ana = ana;
+    yeni.derma_alt = alt;
+  }
 
   db.exec('BEGIN');
   try {
