@@ -907,4 +907,4 @@ kbd {
 .oneri-link:hover { filter: brightness(0.95); }
 
 /* Muhasebe sekmeleri */
-#mh-sekmeler button.active, #its-sekmeler button.active, #kart-sekmeler button.active, #gz-tipler button.active, #gz-derma button.active { background: var(--ink-2); color: #fff; border-color: var(--ink-2); }
+#mh-sekmeler button.active, #its-sekmeler button.active, #kart-sekmeler button.active, #gz-tipler button.active, #gz-derma button.active, #ht-sekmeler button.active { background: var(--ink-2); color: #fff; border-color: var(--ink-2); }

@@ -209,6 +209,7 @@
                   <td class="actions-col">
                     <button class="secondary" data-action="kart" data-id="${m.id}">Kullanım Kartı</button>
                     <button class="secondary" data-action="gecmis" data-id="${m.id}">Satış Geçmişi</button>
+                    <button class="secondary" data-action="takip" data-id="${m.id}">Takip</button>
                     <button class="secondary" data-action="duzenle" data-id="${m.id}">Düzenle</button>
                     <button class="danger" data-action="sil" data-id="${m.id}">Sil</button>
                   </td>
@@ -269,6 +270,13 @@
         if (btn.dataset.action === 'duzenle') {
           const modal = UI.openModal(formHtml(m));
           formuBagla(modal, m, () => yenile(document.getElementById('musteri-ara').value));
+        } else if (btn.dataset.action === 'takip') {
+          try {
+            sessionStorage.setItem('eczam:takip-musteri', String(btn.dataset.id));
+          } catch (e) {
+            /* secim olmadan acilir */
+          }
+          location.hash = '#hasta-takip';
         } else if (btn.dataset.action === 'gecmis') {
           satisGecmisiGoster(m);
         } else if (btn.dataset.action === 'sil') {

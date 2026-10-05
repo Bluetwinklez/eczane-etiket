@@ -110,6 +110,8 @@ Eczane yönetim ve otomasyon sistemi. Node.js + Express + yerleşik `node:sqlite
 
 **Hesaplamalar** (tarayıcıda çalışır, sunucuya veri gitmez): kiloya göre çocuk şurubu dozu (parasetamol, ibuprofen, amoksisilin hazır ayarları; mg ve ml, günlük üst sınır, yetişkin tek doz sınırı), kutu bitiş tarihi ("2x1", "3x5", "günde 2 kez 1"), şişe kaç gün yeter, VKİ ve vücut yüzey alanı (Mosteller), kreatinin klirensi (Cockcroft-Gault), mal fazlasıyla gerçek birim maliyet ve kâr marjı. Sonuçlar yardımcıdır; doz kararında KÜB ve eczacı değerlendirmesi esastır.
 
+**Hasta Takibi**: müşteri başına tansiyon, kan şekeri (açlık/tok), nabız, ateş, SpO2, kilo ve kolesterol ölçümü girilir; son değerler renkli yorumla (normal / yüksek / acil), geçmiş grafik ve tabloyla gösterilir. Raporlu ilaçlar (tanı, ilaç, rapor no, bitiş tarihi) kaydedilir; 15 gün içinde biten raporlar bildirim zilinde çıkar. Müşteriler sayfasındaki "Takip" düğmesiyle doğrudan açılır.
+
 **Ürün satış hızı** (`GET /api/ilaclar/:id/analiz`: son 30 gün, 4 haftalık kırılım, stoğun kaç gün yeteceği; mobil ürün kartında gösterilir).
 
 **Akıllı öneriler** (ana sayfa kartı ve `GET /api/oneriler`): son 30 günlük net satış hızından stoğun kaç gün yeteceğini, SKT'ye kadar satılamayacak fazla stoku (kademeli %10/20/30 indirim önerisiyle), satılmayan ölü stoku ve günün ciro/kâr özetini gösterir.
