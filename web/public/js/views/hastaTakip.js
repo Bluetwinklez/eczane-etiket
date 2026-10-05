@@ -18,6 +18,8 @@
       <text x="${sol}" y="${H - 4}" font-size="10" fill="var(--text-muted)">${UI.esc(n[0].tarih.slice(0, 10))}</text>
       <text x="${W - 10}" y="${H - 4}" text-anchor="end" font-size="10" fill="var(--text-muted)">${UI.esc(n[n.length - 1].tarih.slice(0, 10))}</text></svg>`;
   }
+  // Tani metninin basindaki ICD-10 kodu ("I10 Esansiyel hipertansiyon" → "I10")
+  const icdKodu = (t) => ((String(t || '').trim().match(/^([A-Za-z]\d{2}(?:\.\d{1,2})?)\b/) || [])[1] || '').toUpperCase();
   const degerMetni = (o, tipler) => `${o.deger1}${o.deger2 != null ? '/' + o.deger2 : ''} ${tipler[o.tip].birim}${o.aclik ? (o.aclik === 'ac' ? ' (açlık)' : ' (tokluk)') : ''}`;
 
   const view = {
@@ -125,7 +127,7 @@
           ${yazma ? '<div class="toolbar"><button id="ht-rapor-yeni">+ Yeni rapor</button></div>' : ''}
           <div class="card"><table><thead><tr><th>Hasta</th><th>Telefon</th><th>Tanı</th><th>İlaç</th><th>Rapor no</th><th>Bitiş</th><th>Durum</th>${yazma ? '<th></th>' : ''}</tr></thead>
           <tbody>${v.raporlar.length ? v.raporlar
-            .map((r) => `<tr><td>${UI.esc(r.musteri_adi)}</td><td>${UI.esc(r.telefon || '-')}</td><td>${UI.esc(r.tani || '-')}</td><td>${UI.esc(r.ilac || '-')}</td><td>${UI.esc(r.rapor_no || '-')}</td>
+            .map((r) => `<tr><td>${UI.esc(r.musteri_adi)}</td><td>${UI.esc(r.telefon || '-')}</td><td>${UI.esc(r.tani || '-')}${icdKodu(r.tani) ? ` <button class="secondary" data-sut="${UI.esc(icdKodu(r.tani))}" title="Bu tanıda katılım payından muaf ilaçlar (EK-4/D)">Muafiyet</button>` : ''}</td><td>${UI.esc(r.ilac || '-')}</td><td>${UI.esc(r.rapor_no || '-')}</td>
               <td>${UI.esc(r.bitis)}</td><td><span class="badge ${DURUM[r.durum][1]}">${DURUM[r.durum][0]}${r.durum === 'bitti' ? '' : ` · ${r.kalan_gun} gün`}</span></td>
               ${yazma ? `<td><button class="secondary" data-rapor-duzenle="${r.id}">Düzenle</button> <button class="danger" data-rapor-sil="${r.id}">Sil</button></td>` : ''}</tr>`)
             .join('') : `<tr><td colspan="${yazma ? 8 : 7}" class="empty-state">Kayıtlı rapor yok</td></tr>`}</tbody></table></div>`;
@@ -162,6 +164,12 @@
         const yeni = document.getElementById('ht-rapor-yeni');
         if (yeni) yeni.addEventListener('click', () => formAc(null));
         hedef.onclick = async (e) => {
+          const sut = e.target.closest('[data-sut]');
+          if (sut) {
+            try { sessionStorage.setItem('eczam:sut-ara', sut.dataset.sut); } catch (err) { /* arama bos acilir */ }
+            location.hash = '#sut';
+            return;
+          }
           const d = e.target.closest('[data-rapor-duzenle]');
           if (d) return formAc(v.raporlar.find((r) => r.id === Number(d.dataset.raporDuzenle)));
           const s = e.target.closest('[data-rapor-sil]');

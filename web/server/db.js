@@ -987,6 +987,57 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_musteri_olcumleri ON musteri_olcumleri (musteri_id, tip, tarih);
 `);
+// SGK SUT ilac listeleri (resmi dosyadan yuklenir, yeniden yuklenebilir oldugu icin yedege girmez)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS sgk_ek4a (
+    barkod TEXT PRIMARY KEY,
+    kamu_no TEXT,
+    ad TEXT NOT NULL,
+    eski_barkodlar TEXT,
+    esdeger_grup TEXT,
+    referans_grup TEXT,
+    giris_tarihi TEXT,
+    aktif_tarihi TEXT,
+    pasif_tarihi TEXT,
+    durum TEXT,
+    isk1 REAL,
+    isk2 REAL,
+    isk3 REAL,
+    isk4 REAL,
+    ozel_iskonto TEXT,
+    eczaci_iskonto TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_sgk_ek4a_esdeger ON sgk_ek4a (esdeger_grup);
+  CREATE TABLE IF NOT EXISTS sgk_ek4d_gruplar (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kod TEXT,
+    ana TEXT,
+    baslik TEXT NOT NULL,
+    araliklar TEXT,
+    ortak_not TEXT
+  );
+  CREATE TABLE IF NOT EXISTS sgk_ek4d_icd (
+    grup_id INTEGER NOT NULL REFERENCES sgk_ek4d_gruplar(id) ON DELETE CASCADE,
+    icd TEXT NOT NULL,
+    ad TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_sgk_ek4d_icd ON sgk_ek4d_icd (icd);
+  CREATE TABLE IF NOT EXISTS sgk_ek4d_ilaclar (
+    grup_id INTEGER NOT NULL REFERENCES sgk_ek4d_gruplar(id) ON DELETE CASCADE,
+    no TEXT,
+    ad TEXT NOT NULL,
+    endikasyon INTEGER NOT NULL DEFAULT 0,
+    kosul TEXT
+  );
+  CREATE TABLE IF NOT EXISTS sgk_kurallar (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    liste TEXT NOT NULL CHECK (liste IN ('EK-4E', 'EK-4F')),
+    grup TEXT,
+    no TEXT,
+    baslik TEXT,
+    metin TEXT NOT NULL
+  );
+`);
 // Dermokozmetik kategori agaci (ana kategori / alt kategori)
 sutunEkleGerekirse('ilac_bilgi', 'derma_ana', 'TEXT');
 sutunEkleGerekirse('ilac_bilgi', 'derma_alt', 'TEXT');
