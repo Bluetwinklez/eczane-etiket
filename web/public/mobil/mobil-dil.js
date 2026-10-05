@@ -68,6 +68,8 @@
     'Teslim bekleyen transfer': 'Transfer awaiting delivery', 'Başka şubeden gönderilen, teslim alınmamış transferler': 'Transfers sent from another branch that were not received', 'Geciken sipariş': 'Late order',
     '3 gündür teslim alınmamış bekleyen/gönderilmiş siparişler': 'Pending/sent orders not received for 3 days', 'Açık emanet': 'Open deposit', 'Kapanmamış emanet ilaç kayıtları': 'Deposited-medicine records not yet closed',
     'Açık stok sayımı': 'Open stock count', 'Başlatılmış ama tamamlanmamış sayım': 'A count that was started but not completed',
+    'Raporu bitmek üzere olan hasta': 'Patient whose prescription report is ending',
+    '15 gün içinde biten ilaç raporları; hastaya yenileme için haber verin': 'Drug reports ending within 15 days; remind the patient to renew',
     // Profil
     'Sunucuya bağlı': 'Connected to server', 'Sürüm': 'Version', 'Bekleyen kayıtlar': 'Pending entries', 'Bağlantı gelince gönderilir': 'Sent when back online', 'Bağlantı': 'Connection',
     'Bekleyenleri şimdi gönder': 'Send pending entries now', 'Gizlilik politikası': 'Privacy policy', 'Gizlilik politikasını oku': 'Read the privacy policy', 'Sunucuyu değiştir': 'Change server',
