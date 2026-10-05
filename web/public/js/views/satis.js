@@ -1,5 +1,6 @@
 (function () {
   let sepet = [];
+  let sepetKarekod = []; // okutulan karekodlar: { kod, ilac_id }
   let musteriler = [];
   let sonAramaSonuclari = [];
   let genelKisayolDinleyici = null;
@@ -204,6 +205,14 @@
   async function karekodIleEkle(metin, container) {
     try {
       const sonuc = await UI.karekodSorgula(metin);
+      if (sonuc.seri_durum === 'satis') {
+        UI.toast(`${sonuc.ilac ? sonuc.ilac.ad : 'Ürün'}: seri ${sonuc.karekod.seri_no} daha önce satılmış görünüyor!`, 'error');
+        return;
+      }
+      if (sepetKarekod.some((k) => k.kod === metin.trim())) {
+        UI.toast('Bu karekod sepete zaten eklendi', 'error');
+        return;
+      }
       if (!sonuc.ilac) {
         UI.toast(`Karekoddaki ürün kayıtlı değil (barkod ${sonuc.karekod.barkod})`, 'error');
         return;
@@ -213,6 +222,7 @@
         return;
       }
       sepeteEkle(sonuc.ilac, container);
+      if (sonuc.karekod.seri_no) sepetKarekod.push({ kod: metin.trim(), ilac_id: sonuc.ilac.id });
       const bilgi = [sonuc.karekod.parti_no && `Parti ${sonuc.karekod.parti_no}`, sonuc.karekod.skt && `SKT ${sonuc.karekod.skt}`]
         .filter(Boolean)
         .join(' · ');
@@ -290,6 +300,7 @@
       ]);
       const indirimLimiti = CURRENT_USER.rol === 'kasiyer' ? ayarlar.kasiyer_indirim_limiti : 100;
       sepet = [];
+      sepetKarekod = [];
 
       container.innerHTML = `
         <div class="pos-layout">
@@ -593,8 +604,10 @@
                   recete_tarihi: document.getElementById('pos-recete-tarihi').value || null,
                   hasta_tc: document.getElementById('pos-hasta-tc').value || null
                 }),
+            karekodlar: sepetKarekod.filter((k) => sepet.some((s) => s.ilac_id === k.ilac_id)).map((k) => k.kod),
             kalemler: sepet.map((k) => ({ ilac_id: k.ilac_id, adet: k.adet, kullanim: k.kullanim || null }))
           });
+          sepetKarekod = [];
 
           const uyariMetni = satis.kritik_stok_uyarisi.length
             ? '<p style="color:var(--warning)">Uyarı: ' +
