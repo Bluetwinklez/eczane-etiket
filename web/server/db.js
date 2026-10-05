@@ -389,6 +389,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_tedarikci_hareketleri ON tedarikci_hareketleri (tedarikci_id, sube_id);
 `);
 sutunEkleGerekirse('tedarikciler', 'vade_gun', 'INTEGER NOT NULL DEFAULT 30');
+sutunEkleGerekirse('tedarikciler', 'vergi_no', 'TEXT');
 sutunEkleGerekirse('kasa_kapanislari', 'kasa_giris_sistem', 'REAL NOT NULL DEFAULT 0');
 sutunEkleGerekirse('kasa_kapanislari', 'kasa_cikis_sistem', 'REAL NOT NULL DEFAULT 0');
 
