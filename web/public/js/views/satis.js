@@ -67,7 +67,7 @@
       sonEtkilesim = sonuc;
       const satirlar = [
         ...(sonuc.hasta || []).map(
-          (h) => `<div class="etkilesim ${h.seviye}"><b>${{ gebelik: 'Gebelik/emzirme', yas: 'Yaş sınırı', yasli: 'İleri yaş' }[h.tur]}:</b> ${UI.esc(h.urun)} — ${UI.esc(h.mesaj)}</div>`
+          (h) => `<div class="etkilesim ${h.seviye}"><b>${{ gebelik: 'Gebelik/emzirme', yas: 'Yaş sınırı', yasli: 'İleri yaş', doz: 'Çocuk dozu' }[h.tur]}:</b> ${UI.esc(h.urun)} — ${UI.esc(h.mesaj)}</div>`
         ),
         ...sonuc.alerji.map(
           (a) => `<div class="etkilesim ciddi"><b>Alerji/sağlık notu:</b> ${UI.esc(a.urun)} (${UI.esc(a.madde)}) — müşteri notunda "${UI.esc(a.eslesen)}" geçiyor.</div>`
