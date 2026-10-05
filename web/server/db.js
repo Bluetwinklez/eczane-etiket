@@ -956,6 +956,37 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_titck_atc ON titck_ilaclar (atc_kodu);
 `);
+// Hasta takibi: raporlu ilac (rapor bitis uyarisi) ve musteri olcumleri (tansiyon, seker...)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS hasta_raporlari (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    musteri_id INTEGER NOT NULL REFERENCES musteriler(id) ON DELETE CASCADE,
+    sube_id INTEGER REFERENCES subeler(id),
+    rapor_no TEXT,
+    tani TEXT,
+    ilac TEXT,
+    doktor TEXT,
+    baslangic TEXT,
+    bitis TEXT NOT NULL,
+    notlar TEXT,
+    kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    tarih TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_hasta_raporlari_bitis ON hasta_raporlari (bitis);
+  CREATE TABLE IF NOT EXISTS musteri_olcumleri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    musteri_id INTEGER NOT NULL REFERENCES musteriler(id) ON DELETE CASCADE,
+    sube_id INTEGER REFERENCES subeler(id),
+    tip TEXT NOT NULL CHECK (tip IN ('tansiyon', 'seker', 'nabiz', 'ates', 'spo2', 'kilo', 'kolesterol')),
+    deger1 REAL NOT NULL,
+    deger2 REAL,
+    aclik TEXT CHECK (aclik IN ('ac', 'tok')),
+    notlar TEXT,
+    kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    tarih TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_musteri_olcumleri ON musteri_olcumleri (musteri_id, tip, tarih);
+`);
 // Dermokozmetik kategori agaci (ana kategori / alt kategori)
 sutunEkleGerekirse('ilac_bilgi', 'derma_ana', 'TEXT');
 sutunEkleGerekirse('ilac_bilgi', 'derma_alt', 'TEXT');

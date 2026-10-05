@@ -3,6 +3,7 @@ const { db } = require('../db');
 const { bitisTahminleri } = require('./hatirlatmalar');
 const { acikFaturalar } = require('./tedarikciler');
 const { yaklasanDogumGunleri } = require('./musteriler');
+const { raporBitisSayisi } = require('./takip');
 
 const router = express.Router();
 
@@ -77,6 +78,15 @@ router.get('/', (req, res) => {
     sayi: yaklasanDogumGunleri(0).length,
     seviye: 'ok',
     link: '#musteriler'
+  });
+
+  ekle({
+    kod: 'rapor_bitiyor',
+    baslik: 'Raporu bitmek üzere olan hasta',
+    aciklama: '15 gün içinde biten ilaç raporları; hastaya yenileme için haber verin',
+    sayi: raporBitisSayisi(sube),
+    seviye: 'warn',
+    link: '#hasta-takip'
   });
 
   const bitenler = bitisTahminleri(sube).filter((r) => r.kalan_gun <= 3 && r.kalan_gun >= -30 && !r.hatirlatildi);
