@@ -10,9 +10,9 @@ const router = express.Router();
 
 // Kullanicinin rolune ve subesine gore dikkat gerektiren isleri tek listede toplar.
 // Her oge: kod, baslik, aciklama, sayi, seviye (danger/warn/info/ok), link (hash)
-router.get('/', (req, res) => {
-  const sube = req.user.sube_id;
-  const yonetici = req.user.rol === 'admin' || req.user.rol === 'eczaci';
+function bildirimOgeleri(user) {
+  const sube = user.sube_id;
+  const yonetici = user.rol === 'admin' || user.rol === 'eczaci';
   const ogeler = [];
   const ekle = (oge) => {
     if (oge.sayi > 0) ogeler.push(oge);
@@ -219,7 +219,10 @@ router.get('/', (req, res) => {
 
   const SIRA = { danger: 0, warn: 1, ok: 2, info: 3 };
   ogeler.sort((a, b) => SIRA[a.seviye] - SIRA[b.seviye]);
-  res.json({ toplam: ogeler.reduce((t, o) => t + o.sayi, 0), ogeler });
-});
+  return { toplam: ogeler.reduce((t, o) => t + o.sayi, 0), ogeler };
+}
+
+router.get('/', (req, res) => res.json(bildirimOgeleri(req.user)));
 
 module.exports = router;
+module.exports.bildirimOgeleri = bildirimOgeleri;
