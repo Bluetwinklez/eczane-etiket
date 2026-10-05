@@ -314,7 +314,10 @@
                       .join('')}</div>`
                   : ''
               }
-              <input id="pos-arama" placeholder="İlaç adı, barkod veya karekod okutun..." autofocus />
+              <div style="display:flex;gap:8px;align-items:center">
+                <input id="pos-arama" placeholder="İlaç adı, barkod veya karekod okutun..." autofocus style="flex:1" />
+                <a href="#recete-oku" title="Reçete fotoğrafından ürünleri sepete ekle"><button type="button" class="secondary">📷 Reçete oku</button></a>
+              </div>
               <table style="margin-top:12px">
                 <thead><tr><th>Ad</th><th>Barkod</th><th class="num">Stok</th><th class="num">Fiyat</th></tr></thead>
                 <tbody id="arama-tbody" class="pos-search-results"></tbody>

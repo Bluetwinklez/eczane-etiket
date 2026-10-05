@@ -117,7 +117,7 @@
         const yuklu = d.ek4a || d.ek4d_grup;
         const dugmeler = yazma
           ? ` <button class="secondary" id="sut-indir">${yuklu ? 'SGK’dan güncelle' : 'SGK’dan indir'}</button>
-              <label class="secondary" style="display:inline-block;cursor:pointer"><input type="file" id="sut-dosya" accept=".zip,.xlsx,.doc,.docx" hidden />Dosya yükle</label>`
+              <label class="dugme secondary"><input type="file" id="sut-dosya" accept=".zip,.xlsx,.doc,.docx" hidden />Dosya yükle</label>`
           : '';
         document.getElementById('sut-durum').innerHTML = yuklu
           ? `<b>SGK SUT listeleri</b>${d.liste_tarihi ? ` (${UI.esc(d.liste_tarihi)})` : ''}: EK-4/A ${sayi(d.ek4a)} ilaç · EK-4/D ${sayi(d.ek4d_grup)} hastalık, ${sayi(d.ek4d_icd)} ICD-10 kodu · EK-4/E ${sayi(d.ek4e)} kural · EK-4/F ${sayi(d.ek4f)} madde

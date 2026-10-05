@@ -2,6 +2,7 @@
 const NAV = [
   { key: 'anasayfa', label: 'Ana Sayfa', grup: '' },
   { key: 'satis', label: 'Satış (POS)', grup: 'Satış' },
+  { key: 'recete-oku', label: 'Reçete Oku', grup: 'Satış' },
   { key: 'iadeler', label: 'Satış İadeleri', grup: 'Satış', roles: ['admin', 'eczaci'] },
   { key: 'kasa-kapanisi', label: 'Kasa Kapanışı', grup: 'Satış' },
   { key: 'kampanyalar', label: 'Kampanyalar', grup: 'Satış' },
@@ -53,6 +54,7 @@ const TITLES = {
   etiketler: 'Raf / Fiyat Etiketleri',
   kalite: 'Kalite: Soğuk Zincir, Geri Çağırma, İmha',
   satis: 'Satış (POS)',
+  'recete-oku': 'Reçete Oku (fotoğraftan)',
   iadeler: 'Satış İadeleri',
   musteriler: 'Müşteriler',
   hatirlatmalar: 'İlaç Bitiş Hatırlatmaları',
@@ -193,6 +195,7 @@ const VIEW_MAP = {
   etiketler: () => Views.etiketler,
   kalite: () => Views.kalite,
   satis: () => Views.satis,
+  'recete-oku': () => Views.receteOku,
   iadeler: () => Views.iadeler,
   musteriler: () => Views.musteriler,
   hatirlatmalar: () => Views.hatirlatmalar,
