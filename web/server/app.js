@@ -35,6 +35,7 @@ const receteOkuRoutes = require('./routes/receteOku');
 const fiyatListesiRoutes = require('./routes/fiyatListesi');
 const depoIadeRoutes = require('./routes/depoIade');
 const gunSonuRoutes = require('./routes/gunSonu');
+const musteriEkrani = require('./routes/musteriEkrani');
 const siparislerRoutes = require('./routes/siparisler');
 const gorevlerRoutes = require('./routes/gorevler');
 const nobetlerRoutes = require('./routes/nobetler');
@@ -109,6 +110,9 @@ app.use('/api/recete-oku', requireLogin, receteOkuRoutes);
 app.use('/api/fiyat-listesi', requireLogin, fiyatListesiRoutes);
 app.use('/api/depo-iade', requireLogin, depoIadeRoutes);
 app.use('/api/gun-sonu', requireLogin, gunSonuRoutes);
+// Musteri ekrani: canli akis girissiz (gizli anahtarla), kasa tarafi girisli
+app.use('/api/musteri-ekrani/akis', musteriEkrani.akis);
+app.use('/api/musteri-ekrani', ...musteriEkrani.kasa);
 app.use('/api/its', requireLogin, requireRole('admin', 'eczaci'), itsRoutes);
 app.use('/api/muhasebe', requireLogin, requireRole('admin', 'eczaci'), muhasebeRoutes);
 app.use('/api/kampanyalar', requireLogin, kampanyalarRoutes);

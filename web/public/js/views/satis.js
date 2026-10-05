@@ -123,8 +123,37 @@
     el.style.color = kart < 0 ? 'var(--danger)' : '';
   }
 
+  // Musteri ekrani (ikinci monitor / tablet): sepet ve toplam canli gonderilir; kisisel bilgi gonderilmez
+  let ekranKanali = null;
+  try {
+    ekranKanali = 'BroadcastChannel' in window ? new BroadcastChannel('eczam-musteri-ekrani') : null;
+  } catch (e) {
+    ekranKanali = null;
+  }
+  let ekranZamanlayici = null;
+  let tesekkurZamani = 0;
+  function musteriEkraninaGonder(durum) {
+    if (ekranKanali) ekranKanali.postMessage(durum);
+    fetch('/api/musteri-ekrani', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(durum) }).catch(() => {});
+  }
+  function musteriEkraniGuncelle(h) {
+    clearTimeout(ekranZamanlayici);
+    ekranZamanlayici = setTimeout(() => {
+      // Satis bitince sepet bosalir; tesekkur ekrani birkac saniye kalsin
+      if (!sepet.length && Date.now() - tesekkurZamani < 8000) return;
+      musteriEkraninaGonder({
+        durum: sepet.length ? 'sepet' : 'bos',
+        kalemler: sepet.map((k) => ({ ad: k.ad, adet: k.adet, tutar: Math.round(k.satis_fiyati * k.adet * 100) / 100 })),
+        ara_toplam: h.ara_toplam,
+        indirim: Math.round(((h.kampanya_indirimi || 0) + (h.indirim_tutari || 0) + (h.puan_indirimi || 0)) * 100) / 100,
+        toplam: h.toplam_tutar
+      });
+    }, 150);
+  }
+
   function toplamlariYaz(h) {
     sonToplam = h.toplam_tutar;
+    musteriEkraniGuncelle(h);
     karmaGuncelle();
     document.getElementById('pos-ara-toplam').textContent = UI.tl(h.ara_toplam);
     const kampanyaSatiri = document.getElementById('pos-kampanya-satiri');
@@ -395,6 +424,7 @@
                 <div class="spacer"></div>
                 <button class="secondary" id="pos-beklet" title="Sepeti beklet (F8)">⏸ Beklet</button>
                 <button class="secondary" id="pos-bekleyenler">Bekleyenler <span class="badge muted" id="pos-bekleyen-sayi">0</span></button>
+                <button class="secondary" id="pos-musteri-ekrani" title="İkinci monitör ya da tabletteki müşteri ekranı">🖥️ Müşteri ekranı</button>
               </div>
               ${
                 aktifKampanyalar.length
@@ -753,6 +783,8 @@
             kullanimEtiketleriAc(satis.id);
           });
 
+          tesekkurZamani = Date.now();
+          musteriEkraninaGonder({ durum: 'tesekkur', kalemler: [], toplam: satis.toplam_tutar });
           UI.toast('Satış tamamlandı', 'success');
           view.render(container);
         } catch (err) {
@@ -770,6 +802,39 @@
         return liste;
       };
       bekleyenSayisiniGuncelle();
+
+      document.getElementById('pos-musteri-ekrani').addEventListener('click', async () => {
+        let a;
+        try {
+          a = await Api.get('/api/musteri-ekrani/anahtar');
+        } catch (err) {
+          return UI.toast('Müşteri ekranını yönetici ya da eczacı kurar: ' + err.message, 'error');
+        }
+        const adres = `${location.origin}/musteri-ekrani.html#${a.anahtar}`;
+        const modal = UI.openModal(`
+          <h3 style="margin-top:0">Müşteri ekranı</h3>
+          <p>İkinci monitör için <b>Bu bilgisayarda aç</b> deyin ve açılan pencereyi müşteriye dönük ekrana taşıyıp tam ekran yapın (F11). Tezgâhtaki tablette ise aşağıdaki adresi açın (tablet aynı ağda olmalı; adresteki <i>localhost</i> yerine bu bilgisayarın ağ adresi yazılır).</p>
+          <input id="me-adres" readonly value="${UI.esc(adres)}" style="width:100%" />
+          <p class="form-ipucu">Ekranda yalnızca ürünler ve tutar görünür; müşteri adı gösterilmez. Adres gizlidir; değiştirmek için "Yeni adres" deyin (eski ekranlar kapanır).</p>
+          <div class="modal-actions"><button class="secondary" data-a="yeni">Yeni adres</button><button class="secondary" data-a="kopyala">Adresi kopyala</button><button data-a="ac">Bu bilgisayarda aç</button></div>`);
+        modal.addEventListener('click', async (e) => {
+          const b = e.target.closest('[data-a]');
+          if (!b) return;
+          if (b.dataset.a === 'ac') window.open(modal.querySelector('#me-adres').value, 'eczam-musteri-ekrani', 'popup,width=1024,height=700');
+          if (b.dataset.a === 'kopyala') {
+            try {
+              await navigator.clipboard.writeText(modal.querySelector('#me-adres').value);
+              UI.toast('Adres kopyalandı', 'success');
+            } catch (err) {
+              modal.querySelector('#me-adres').select();
+            }
+          }
+          if (b.dataset.a === 'yeni') {
+            const y = await Api.get('/api/musteri-ekrani/anahtar?yenile=1');
+            modal.querySelector('#me-adres').value = `${location.origin}/musteri-ekrani.html#${y.anahtar}`;
+          }
+        });
+      });
 
       const sepetiBeklet = async () => {
         if (!sepet.length) {
