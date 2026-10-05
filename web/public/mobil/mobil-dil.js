@@ -110,12 +110,18 @@
     '+ Yeni görev': '+ New task', 'Yeni görev': 'New task', 'Başlık': 'Title', 'Not (isteğe bağlı)': 'Note (optional)', 'Öncelik': 'Priority', 'Yüksek': 'High', 'Orta': 'Medium', 'Düşük': 'Low',
     'Bekleyen görev yok 🎉': 'No pending tasks 🎉', 'Son tamamlananlar': 'Recently completed', 'Herkes': 'Everyone', 'Görev eklendi': 'Task added', 'Tamamla': 'Complete', 'Geri al': 'Undo',
     'Günün cirosu': "Today's revenue", 'Kasa kapatıldı ✓': 'Till closed ✓', 'Kasa henüz kapatılmadı': 'Till not closed yet', 'SGK': 'SGK (insurance)', 'Veresiye tahsilatı': 'Credit collections',
-    'Nakit/kart toplamına dahil': 'Included in cash/card totals', 'İadeler': 'Refunds', 'Kasa kapanışı bilgisayardan yapılır.': 'Till closing is done from the computer.', 'Aylık hedef': 'Monthly target'
+    'Nakit/kart toplamına dahil': 'Included in cash/card totals', 'İadeler': 'Refunds', 'Kasa kapanışı bilgisayardan yapılır.': 'Till closing is done from the computer.', 'Aylık hedef': 'Monthly target',
+    'Muhasebe': 'Accounting', 'Hasılat, kâr, borç': 'Revenue, profit, debt', 'Bu hafta': 'This week', 'Bu ay': 'This month', 'Net hasılat': 'Net revenue', 'Net kâr': 'Net profit',
+    'Brüt hasılat': 'Gross revenue', 'Müşteri iadeleri': 'Customer refunds', 'Satılan malın maliyeti': 'Cost of goods sold', 'İşletme giderleri': 'Operating expenses',
+    'Alış ve borç': 'Purchases and debt', 'Alış faturaları': 'Purchase invoices', 'Alış iadeleri': 'Purchase returns', 'Tedarikçi borcu': 'Supplier debt',
+    'Vadesi geçmiş borç': 'Overdue debt', 'Veresiye alacağı': 'Credit receivable', 'Ayrıntılı rapor, CSV ve PDF bilgisayardan alınır.': 'Detailed reports, CSV and PDF are available on the computer.'
   };
 
   // Birlesik / degiskenli metinler icin kurallar: [desen, uretici]
   const KURALLAR = [
     [/^Merhaba (.+)!$/, (m) => `Hello ${m[1]}!`],
+    [/^(\d+) satış · (\d+) iade$/, (m) => `${m[1]} sales · ${m[2]} refunds`],
+    [/^Brüt kâr (.+) · marj %(.+)$/, (m) => `Gross profit ${m[1]} · margin ${m[2]}%`],
     [/^(.+) satış · toplam (.+)$/, (m) => `${m[1]} sales · total ${m[2]}`],
     [/^(.+) satış · tahmini kâr (.+?)(?: · (.+))?$/, (m) => `${m[1]} sales · est. profit ${m[2]}${m[3] ? ' · ' + m[3] : ''}`],
     [/^([+−])(.+) fazla, (dünden|önceki 7 günden|geçen ayın aynı gününden)$/, (m) => `${m[1]}${m[2]} more than ${KARSI[m[3]]}`],
