@@ -1,6 +1,7 @@
 const express = require('express');
 const { db } = require('../db');
 const { partiGiris } = require('../partiler');
+const { gtinAnahtar, kodlariCoz, seriDurumu, hareketYaz } = require('../its');
 
 const router = express.Router();
 const TARIH = /^\d{4}-\d{2}-\d{2}$/;
@@ -78,7 +79,7 @@ router.post('/', (req, res) => {
   if (!kalemler.length) return res.status(400).json({ error: 'En az bir kalem girin' });
   const hazir = [];
   for (const k of kalemler) {
-    const ilac = db.prepare('SELECT id, ad FROM ilaclar WHERE id = ?').get(Number(k.ilac_id));
+    const ilac = db.prepare('SELECT id, ad, barkod FROM ilaclar WHERE id = ?').get(Number(k.ilac_id));
     if (!ilac) return res.status(404).json({ error: `Ürün bulunamadı: ${k.ilac_id}` });
     const adet = Number(k.adet);
     const mf = Number(k.mf || 0);
@@ -87,7 +88,19 @@ router.post('/', (req, res) => {
     if (!Number.isInteger(mf) || mf < 0) return res.status(400).json({ error: `${ilac.ad}: mal fazlası geçersiz` });
     if (!Number.isFinite(alis) || alis < 0) return res.status(400).json({ error: `${ilac.ad}: alış fiyatı geçersiz` });
     if (k.skt && !TARIH.test(k.skt)) return res.status(400).json({ error: `${ilac.ad}: SKT geçersiz` });
-    hazir.push({ ilac, adet, mf, alis, birim: yuvarla((alis * adet) / (adet + mf)), parti_no: k.parti_no || null, skt: k.skt || null });
+    // Karekodlu kutular: seri no urunle eslesmeli, zaten stokta olan kutu tekrar girilemez
+    const kc = kodlariCoz(k.karekodlar);
+    if (kc.hata) return res.status(400).json({ error: `${ilac.ad}: ${kc.hata}` });
+    for (const kod of kc.kayitlar) {
+      if (gtinAnahtar(kod.gtin) !== gtinAnahtar(ilac.barkod)) {
+        return res.status(400).json({ error: `${ilac.ad}: karekod (seri ${kod.seri_no}) başka bir ürüne ait` });
+      }
+      if (['giris', 'iade'].includes(seriDurumu(kod.gtin, kod.seri_no))) {
+        return res.status(409).json({ error: `${ilac.ad}: seri ${kod.seri_no} zaten stokta görünüyor` });
+      }
+    }
+    if (kc.kayitlar.length > adet + mf) return res.status(400).json({ error: `${ilac.ad}: karekod sayısı gelen adetten fazla` });
+    hazir.push({ ilac, adet, mf, alis, birim: yuvarla((alis * adet) / (adet + mf)), parti_no: k.parti_no || null, skt: k.skt || null, karekodlar: kc.kayitlar });
   }
   const toplam = yuvarla(hazir.reduce((t, k) => t + k.alis * k.adet, 0));
 
@@ -121,6 +134,9 @@ router.post('/', (req, res) => {
         giren,
         `Mal kabul #${kabulId}${fatura_no ? ` (fatura ${fatura_no})` : ''}${k.mf ? ` ${k.adet}+${k.mf} MF` : ''}`
       );
+      for (const kod of k.karekodlar) {
+        hareketYaz({ subeId, tip: 'giris', k: kod, ilacId: k.ilac.id, malKabulId: kabulId, kullaniciId: req.user.id });
+      }
       // Kar hesaplari icin urunun alis fiyati MF dahil gercek birim maliyete cekilir
       if (alisGuncelle) db.prepare('UPDATE ilaclar SET alis_fiyati = ? WHERE id = ?').run(k.birim, k.ilac.id);
     }

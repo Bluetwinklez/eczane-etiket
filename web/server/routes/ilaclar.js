@@ -5,6 +5,7 @@ const { requireRole } = require('../auth');
 const { URUN_TIPLERI, RECETE_TURLERI } = require('../sabitler');
 const { partiGiris, partiCikis, partiMiktariniKontrolEt, FEFO_SIRASI } = require('../partiler');
 const { karekodCoz } = require('../karekod');
+const { seriDurumu } = require('../its');
 const { maddeleriAyir } = require('../etkilesim');
 const { satirlariCoz, SABLON } = require('../csvIceAktar');
 const { urunAnalizi } = require('../stokAnaliz');
@@ -384,7 +385,9 @@ router.get('/karekod', (req, res) => {
     karekod,
     ilac,
     parti,
-    skt_gecmis: Boolean(karekod.skt && karekod.skt < bugun)
+    skt_gecmis: Boolean(karekod.skt && karekod.skt < bugun),
+    // 'giris' | 'satis' | 'iade' | null: bu seri no daha once defterde var mi?
+    seri_durum: karekod.seri_no ? seriDurumu(karekod.gtin, karekod.seri_no) : null
   });
 });
 
