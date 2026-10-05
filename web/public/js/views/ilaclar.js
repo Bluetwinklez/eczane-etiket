@@ -17,13 +17,15 @@
     const stokRozeti = ilac.stok <= ilac.kritik_stok ? '<span class="badge danger">Kritik</span>' : '<span class="badge ok">Normal</span>';
     const aksiyonlar = yazmaYetkisiVar(ctx)
       ? `
+        <button class="secondary" data-action="kart" data-id="${ilac.id}">Kart</button>
         <button class="secondary" data-action="duzenle" data-id="${ilac.id}">Düzenle</button>
         <button class="secondary" data-action="partiler" data-id="${ilac.id}">Partiler</button>
         <button class="secondary" data-action="fiyat-gecmisi" data-id="${ilac.id}">Fiyat Geçmişi</button>
         <button class="secondary" data-action="stok-hareketleri" data-id="${ilac.id}">Stok Geçmişi</button>
         ${ctx.user.rol === 'admin' ? `<button class="danger" data-action="sil" data-id="${ilac.id}">Sil</button>` : ''}
       `
-      : `<button class="secondary" data-action="partiler" data-id="${ilac.id}">Partiler</button>
+      : `<button class="secondary" data-action="kart" data-id="${ilac.id}">Kart</button>
+         <button class="secondary" data-action="partiler" data-id="${ilac.id}">Partiler</button>
          <button class="secondary" data-action="fiyat-gecmisi" data-id="${ilac.id}">Fiyat Geçmişi</button>
          <button class="secondary" data-action="stok-hareketleri" data-id="${ilac.id}">Stok Geçmişi</button>`;
 
@@ -446,7 +448,9 @@
         const id = Number(btn.dataset.id);
         const ilac = mevcutListe.find((i) => i.id === id);
 
-        if (btn.dataset.action === 'duzenle') {
+        if (btn.dataset.action === 'kart') {
+          window.IlacKartiAc(id);
+        } else if (btn.dataset.action === 'duzenle') {
           const modal = UI.openModal(formHtml(ilac));
           formuBagla(modal, ilac, () => yenile(document.getElementById('ilac-ara').value));
         } else if (btn.dataset.action === 'partiler') {
