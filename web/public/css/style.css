@@ -469,6 +469,24 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-sp
   .modal-actions, .app-shell > .sidebar, .toast-wrap, .alt-cubuk, .cekmece-perde { display: none !important; }
 }
 
+/* ---- Kullanim etiketleri (kutuya yapistirilan) ---- */
+.kullanim-etiketleri { display: grid; gap: 4px; margin-top: 12px; }
+.kullanim-etiketleri.ke-a4 { grid-template-columns: repeat(3, 70mm); }
+.kullanim-etiketleri.ke-termal { grid-template-columns: 50mm; }
+.kullanim-etiket { box-sizing: border-box; border: 1px dashed var(--border); border-radius: 4px; padding: 2mm 3mm; background: #fff; color: #000; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; break-inside: avoid; }
+.ke-a4 .kullanim-etiket { width: 70mm; height: 37mm; }
+.ke-termal .kullanim-etiket { width: 50mm; height: 30mm; padding: 1.5mm 2mm; }
+.ke-ilac { font-weight: 700; font-size: 10pt; line-height: 1.15; }
+.ke-kullanim { font-size: 11pt; font-weight: 700; line-height: 1.2; margin: 1mm 0; }
+.ke-termal .ke-ilac { font-size: 8pt; }
+.ke-termal .ke-kullanim { font-size: 9pt; }
+.ke-alt { display: flex; justify-content: space-between; font-size: 8pt; }
+.ke-eczane { font-size: 7pt; border-top: 0.3mm solid #000; padding-top: 0.5mm; }
+@media print {
+  .kullanim-etiket { border: none; }
+  .ke-termal .kullanim-etiket { break-after: page; }
+}
+
 /* ---- Nobetci eczane takvimi ---- */
 .nobet-haftabaslik { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 6px; }
 .nobet-haftabaslik div { text-align: center; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }

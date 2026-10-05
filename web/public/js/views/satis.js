@@ -177,6 +177,70 @@
     }
   }
 
+  // Satistaki ilaclar icin kutuya yapistirilacak kullanim etiketleri (A4 etiket kagidi ya da 50x30 mm termal)
+  async function kullanimEtiketleriAc(satisId) {
+    let v;
+    try {
+      v = await Api.get(`/api/satislar/${satisId}/kullanim-etiketleri`);
+    } catch (err) {
+      return UI.toast(err.message, 'error');
+    }
+    const KE = window.KullanimEtiketi;
+    const kalemler = v.kalemler.filter((k) => ['ilac', 'takviye', null, undefined].includes(k.urun_tipi));
+    const tarih = new Date(v.tarih.replace(' ', 'T')).toLocaleDateString('tr-TR');
+    const modal = UI.openModal(`
+      <div class="modal-genis">
+        <h3 style="margin-top:0">Kullanım etiketleri</h3>
+        <div class="form-grid" style="margin-bottom:8px">
+          <div><label>Etiket</label><select id="ke-boyut"><option value="a4">A4 etiket kâğıdı (3×8, 70×37 mm)</option><option value="termal">Termal etiket 50×30 mm</option></select></div>
+          <div><label>Hasta adı</label><input id="ke-hasta" value="${UI.esc(v.musteri_adi || '')}" placeholder="İsteğe bağlı" /></div>
+        </div>
+        <table><thead><tr><th></th><th>İlaç</th><th>Kullanım</th><th class="num">Etiket</th></tr></thead><tbody>
+          ${kalemler
+            .map(
+              (k, i) => `<tr><td><input type="checkbox" class="ke-sec" data-i="${i}" ${k.kullanim ? 'checked' : ''} style="width:auto" /></td><td>${UI.esc(k.ilac_adi)}</td>
+                <td><input class="ke-kullanim" data-i="${i}" value="${UI.esc(KE.kullanimMetni(k.kullanim, k.ilac_adi))}" placeholder="Örn. 2x1 tok" /></td>
+                <td class="num"><input type="number" class="ke-adet" data-i="${i}" min="1" max="10" value="${k.adet}" style="width:60px" /></td></tr>`
+            )
+            .join('') || '<tr><td colspan="4" class="empty-state">Etiket basılacak ilaç yok</td></tr>'}
+        </tbody></table>
+        <p class="form-ipucu">"2x1 tok", "3x5 ml", "1x1 sabah aç 7 gün" gibi kısaltmalar etikette açık cümleye çevrilir.</p>
+        <div id="ke-sayfa" class="yazdirilabilir"></div>
+      </div>
+      <div class="modal-actions"><button type="button" class="secondary" data-action="kapat">Kapat</button><button type="button" data-action="yazdir">🖨️ Yazdır</button></div>`);
+    const ciz = () => {
+      const boyut = modal.querySelector('#ke-boyut').value;
+      const etiketler = [];
+      modal.querySelectorAll('.ke-sec:checked').forEach((cb) => {
+        const i = cb.dataset.i;
+        const k = kalemler[Number(i)];
+        const kullanim = KE.kullanimMetni(modal.querySelector(`.ke-kullanim[data-i="${i}"]`).value, k.ilac_adi);
+        const adet = Math.min(10, Math.max(1, Number(modal.querySelector(`.ke-adet[data-i="${i}"]`).value) || 1));
+        for (let n = 0; n < adet; n++) etiketler.push(KE.etiketHtml({ ilac: k.ilac_adi, kullanim, hasta: modal.querySelector('#ke-hasta').value.trim(), tarih, eczane: v.sube_adi || '', telefon: v.sube_telefon }));
+      });
+      const sayfa = modal.querySelector('#ke-sayfa');
+      sayfa.className = `yazdirilabilir kullanim-etiketleri ke-${boyut}`;
+      sayfa.innerHTML = etiketler.join('') || '<p class="form-ipucu">Etiket seçin.</p>';
+    };
+    modal.addEventListener('input', ciz);
+    modal.addEventListener('change', (e) => {
+      if (e.target.classList.contains('ke-kullanim')) e.target.value = KE.kullanimMetni(e.target.value, kalemler[Number(e.target.dataset.i)].ilac_adi);
+      ciz();
+    });
+    modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));
+    modal.querySelector('[data-action="yazdir"]').addEventListener('click', () => {
+      if (!modal.querySelector('.ke-sec:checked')) return UI.toast('Etiket seçin', 'error');
+      // Termal yazicida her etiket ayri sayfa: gecici @page boyutu
+      const stil = document.createElement('style');
+      stil.textContent = modal.querySelector('#ke-boyut').value === 'termal' ? '@page { size: 50mm 30mm; margin: 0; }' : '@page { size: A4; margin: 10mm 5mm; }';
+      document.head.appendChild(stil);
+      window.print();
+      setTimeout(() => stil.remove(), 1000);
+    });
+    ciz();
+  }
+  window.KullanimEtiketleriAc = kullanimEtiketleriAc;
+
   function sepeteEkle(ilac, container) {
     const mevcut = sepet.find((k) => k.ilac_id === ilac.id);
     if (mevcut) {
@@ -680,10 +744,14 @@
               ${satis.kazanilan_puan > 0 ? `<p class="form-ipucu">Kazanılan puan: <b>${satis.kazanilan_puan}</b></p>` : ''}
               ${uyariMetni}
             </div>
-            <div class="modal-actions"><button class="secondary" data-action="yazdir">Fiş Yazdır</button><button data-action="kapat">Tamam</button></div>
+            <div class="modal-actions"><button class="secondary" data-action="etiket">🏷️ Kullanım etiketi</button><button class="secondary" data-action="yazdir">Fiş Yazdır</button><button data-action="kapat">Tamam</button></div>
           `);
           modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));
           modal.querySelector('[data-action="yazdir"]').addEventListener('click', () => window.print());
+          modal.querySelector('[data-action="etiket"]').addEventListener('click', () => {
+            UI.closeModal(modal);
+            kullanimEtiketleriAc(satis.id);
+          });
 
           UI.toast('Satış tamamlandı', 'success');
           view.render(container);
