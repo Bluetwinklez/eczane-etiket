@@ -58,9 +58,19 @@
   }
 
   const view = {
-    async render(container) {
+    async render(container, ctx) {
       secim.clear();
+      const yazma = ctx && ['admin', 'eczaci'].includes(ctx.user.rol);
       container.innerHTML = `
+        ${yazma ? `<div class="card no-print" id="fl-kart" style="margin-bottom:14px">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <b>Fiyat listesi</b>
+            <label class="dugme secondary"><input type="file" id="fl-dosya" accept=".xlsx,.csv,.txt" hidden />Excel / CSV yükle</label>
+            <label style="font-weight:400;margin:0"><input type="checkbox" id="fl-otomatik" style="width:auto" /> Satış fiyatlarına hemen uygula</label>
+            <span class="form-ipucu" style="margin:0">Depo, firma ya da TİTCK listesi: barkod + PSF (DSF, KF de olabilir) sütunları yeterli.</span>
+          </div>
+          <div id="fl-farklar" style="margin-top:10px"></div>
+        </div>` : ''}
         <div class="etiket-duzen">
           <div class="card etiket-panel">
             <h3>Ürün Seçimi</h3>
@@ -129,6 +139,64 @@
         listeCiz();
         onizlemeCiz();
       });
+      // Fiyat listesi: PSF'si satis fiyatindan farkli urunler → uygula → etiket secimine ekle
+      const farklariCiz = async () => {
+        const hedef = document.getElementById('fl-farklar');
+        if (!hedef) return;
+        const farklar = await Api.get('/api/fiyat-listesi/farklar');
+        hedef.innerHTML = farklar.length
+          ? `<p style="margin:0 0 6px"><b>${farklar.length} üründe</b> liste fiyatı satış fiyatından farklı.</p>
+            <div class="tablo-kaydir" style="max-height:40vh;overflow-y:auto"><table><thead><tr><th><input type="checkbox" id="fl-hepsi" checked style="width:auto" /></th><th>Ürün</th><th class="num">Satış</th><th class="num">Liste (PSF)</th><th class="num">Fark</th><th>Liste tarihi</th></tr></thead><tbody>
+            ${farklar.map((f) => `<tr><td><input type="checkbox" class="fl-sec" value="${f.id}" checked style="width:auto" /></td><td>${UI.esc(f.ad)}</td><td class="num">${UI.tl(f.satis_fiyati)}</td><td class="num"><b>${UI.tl(f.liste_psf)}</b></td>
+              <td class="num"><span class="badge ${f.fark > 0 ? 'warn' : 'ok'}">${f.fark > 0 ? '+' : ''}${UI.tl(f.fark)}${f.yuzde != null ? ` (%${f.yuzde.toLocaleString('tr-TR')})` : ''}</span></td><td>${UI.esc(f.tarih)}</td></tr>`).join('')}
+            </tbody></table></div>
+            <div style="margin-top:8px"><button id="fl-uygula">Seçilenleri satış fiyatına uygula ve etiketlerini seç</button></div>`
+          : '<p class="form-ipucu" style="margin:0">Satış fiyatları yüklenen liste ile uyumlu.</p>';
+      };
+      const uygulandi = async (idler) => {
+        ilaclar = await Api.get('/api/ilaclar');
+        await degisenleriYukle();
+        for (const id of idler) secim.set(id, secim.get(id) || 1);
+        document.getElementById('et-degisen').checked = true;
+        listeCiz();
+        onizlemeCiz();
+        await farklariCiz();
+      };
+      if (yazma) {
+        await farklariCiz();
+        document.getElementById('fl-dosya').addEventListener('change', async (e) => {
+          const f = e.target.files[0];
+          if (!f) return;
+          try {
+            const otomatik = document.getElementById('fl-otomatik').checked ? '?otomatik=1' : '';
+            const yanit = await fetch('/api/fiyat-listesi/yukle' + otomatik, { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: await f.arrayBuffer() });
+            const v = await yanit.json();
+            if (!yanit.ok) throw new Error(v.error || 'Yüklenemedi');
+            UI.toast(`${v.satir} satır okundu, ${v.eslesen} ürün eşleşti, ${v.degisen} üründe fiyat değişti${v.uygulanan.length ? `, ${v.uygulanan.length} satış fiyatı güncellendi` : ''}`, 'success');
+            if (v.uygulanan.length) await uygulandi(v.uygulanan);
+            else await farklariCiz();
+          } catch (err) {
+            UI.toast(err.message, 'error');
+          }
+          e.target.value = '';
+        });
+        document.getElementById('fl-farklar').addEventListener('change', (e) => {
+          if (e.target.id === 'fl-hepsi') container.querySelectorAll('.fl-sec').forEach((cb) => (cb.checked = e.target.checked));
+        });
+        document.getElementById('fl-farklar').addEventListener('click', async (e) => {
+          if (e.target.id !== 'fl-uygula') return;
+          const idler = [...container.querySelectorAll('.fl-sec:checked')].map((cb) => Number(cb.value));
+          if (!idler.length) return UI.toast('Ürün seçin', 'error');
+          try {
+            const r = await Api.post('/api/fiyat-listesi/uygula', { idler });
+            UI.toast(`${r.uygulanan.length} ürünün satış fiyatı güncellendi; etiketleri seçildi`, 'success');
+            await uygulandi(r.uygulanan);
+          } catch (err) {
+            UI.toast(err.message, 'error');
+          }
+        });
+      }
+
       document.getElementById('et-yazdir').addEventListener('click', () => {
         if (!secim.size) {
           UI.toast('Önce ürün seçin', 'error');

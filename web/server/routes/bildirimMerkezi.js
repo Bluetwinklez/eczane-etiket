@@ -1,4 +1,5 @@
 const express = require('express');
+const { fiyatFarklari } = require('./fiyatListesi');
 const { db } = require('../db');
 const { bitisTahminleri } = require('./hatirlatmalar');
 const { acikFaturalar } = require('./tedarikciler');
@@ -78,6 +79,17 @@ router.get('/', (req, res) => {
     sayi: yaklasanDogumGunleri(0).length,
     seviye: 'ok',
     link: '#musteriler'
+  });
+
+  // Son 30 gunde yuklenen fiyat listesinde PSF'si satis fiyatindan farkli urunler
+  const otuzGunOnce = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  ekle({
+    kod: 'fiyat_farki',
+    baslik: 'Fiyat listesiyle uyuşmayan ürün',
+    aciklama: 'Yüklenen fiyat listesindeki PSF satış fiyatından farklı; uygulayıp etiketleri yeniden basın',
+    sayi: fiyatFarklari().filter((f) => f.tarih >= otuzGunOnce).length,
+    seviye: 'warn',
+    link: '#etiketler'
   });
 
   ekle({
