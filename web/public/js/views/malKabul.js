@@ -129,9 +129,17 @@
           let barkod = metin;
           let ek = {};
           if (UI.karekodaBenziyor(metin)) {
-            const k = (await UI.karekodSorgula(metin)).karekod;
+            const sonuc = await UI.karekodSorgula(metin);
+            const k = sonuc.karekod;
             barkod = k.barkod;
             ek = { parti_no: k.parti_no || '', skt: k.skt || '' };
+            if (k.seri_no) {
+              if (['giris', 'iade'].includes(sonuc.seri_durum) || satirlar.some((s) => (s.karekodlar || []).includes(metin))) {
+                UI.toast(`Seri ${k.seri_no} zaten stokta / bu listede görünüyor`, 'error');
+                return;
+              }
+              ek.karekodlar = [metin];
+            }
           }
           const ilac = ilaclar.find((i) => i.barkod === barkod);
           if (!ilac) {
@@ -142,6 +150,7 @@
           const mevcut = satirlar.find((s) => s.ilac_id === ilac.id && (s.parti_no || '') === (ek.parti_no || '') && (s.skt || '') === (ek.skt || ''));
           if (mevcut) {
             mevcut.adet = Number(mevcut.adet) + 1;
+            if (ek.karekodlar) mevcut.karekodlar = (mevcut.karekodlar || []).concat(ek.karekodlar);
             satirlariCiz();
           } else {
             satirEkle(ilac, ek);

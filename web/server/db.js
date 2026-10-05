@@ -891,6 +891,26 @@ function seedIfEmpty() {
   }
 }
 
+// Karekod (seri no) hareket defteri: kutu bazli takip. Gercek ITS bildirimi icin hazirlik kaydidir.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS karekod_hareketleri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    tip TEXT NOT NULL CHECK (tip IN ('giris', 'satis', 'iade')),
+    ilac_id INTEGER REFERENCES ilaclar(id) ON DELETE SET NULL,
+    gtin TEXT NOT NULL,
+    seri_no TEXT NOT NULL,
+    parti_no TEXT,
+    skt TEXT,
+    satis_id INTEGER REFERENCES satislar(id) ON DELETE SET NULL,
+    mal_kabul_id INTEGER REFERENCES mal_kabulleri(id) ON DELETE SET NULL,
+    iade_id INTEGER REFERENCES iadeler(id) ON DELETE SET NULL,
+    kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    tarih TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_karekod_seri ON karekod_hareketleri (gtin, seri_no, id);
+`);
+
 seedIfEmpty();
 ornekEtkenMaddeleriDoldur();
 ornekKutuGunleriniDoldur();

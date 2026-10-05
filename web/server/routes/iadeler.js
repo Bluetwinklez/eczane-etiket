@@ -3,6 +3,7 @@ const { db } = require('../db');
 const { partiGiris, partiyeGeriEkle } = require('../partiler');
 const { cariHareketEkle, yuvarla } = require('../cari');
 const { puanHareketi } = require('../sadakat');
+const { kodlariCoz, seriDurumu, gtinAnahtar, hareketYaz } = require('../its');
 
 const router = express.Router();
 
@@ -107,6 +108,22 @@ router.post('/', (req, res) => {
 
   const toplam = yuvarla(secilen.reduce((t, s) => t + s.tutar, 0));
 
+  // Karekodlu iade: seri bu satisla satilmis olmali; kutu stoga donerse ITS defterinde 'iade' olur
+  const karekod = kodlariCoz(req.body.karekodlar);
+  if (karekod.hata) return res.status(400).json({ error: karekod.hata });
+  const karekodIlac = [];
+  for (const k of karekod.kayitlar) {
+    const satirlar = db.prepare("SELECT gtin, satis_id, ilac_id FROM karekod_hareketleri WHERE seri_no = ? AND tip = 'satis' ORDER BY id DESC").all(k.seri_no);
+    const kayit = satirlar.find((r) => gtinAnahtar(r.gtin) === gtinAnahtar(k.gtin));
+    if (!kayit || kayit.satis_id !== satis.id || seriDurumu(k.gtin, k.seri_no) !== 'satis') {
+      return res.status(400).json({ error: `Seri ${k.seri_no} bu satışta satılmış görünmüyor` });
+    }
+    if (!secilen.some((s) => s.kalem.ilac_id === kayit.ilac_id)) {
+      return res.status(400).json({ error: `Seri ${k.seri_no} iade edilen kalemlerle eşleşmiyor` });
+    }
+    karekodIlac.push(kayit.ilac_id);
+  }
+
   db.exec('BEGIN');
   try {
     const iadeId = Number(
@@ -152,6 +169,12 @@ router.post('/', (req, res) => {
       }
       // Parti kaydi bulunamayan kisim (eski satis veya silinmis parti) yeni bir iade partisi olur
       if (kalan > 0) partiGiris(kalem.ilac_id, satis.sube_id, kalan, { kaynak: `iade #${iadeId}` });
+    }
+
+    if (stogaAl) {
+      karekod.kayitlar.forEach((k, i) =>
+        hareketYaz({ subeId: satis.sube_id, tip: 'iade', k, ilacId: karekodIlac[i], satisId: satis.id, iadeId, kullaniciId: req.user.id })
+      );
     }
 
     // Sadakat puani: kazanilan puan iade oraninda geri alinir, kullanilan puan geri yuklenir
