@@ -7,6 +7,7 @@ const { puanUygula, puanHareketi } = require('../sadakat');
 const { RECETE_TURLERI, KONTROLLU_TURLER } = require('../sabitler');
 const { sqlSaatFarki, yerelSimdi } = require('../zaman');
 const { isletmeAyarlari } = require('./ayarlar');
+const { gtinAnahtar, kodlariCoz, seriDurumu, hareketYaz } = require('../its');
 
 const ODEME_TIPLERI = ['nakit', 'kredi_karti', 'sgk', 'veresiye', 'karma'];
 
@@ -171,6 +172,19 @@ router.post('/', (req, res) => {
     }
   }
 
+  // Karekodlu satis: seri no sepetteki urunle eslesmeli ve ayni kutu ikinci kez satilamaz
+  const karekod = kodlariCoz(req.body.karekodlar);
+  if (karekod.hata) return res.status(400).json({ error: karekod.hata });
+  const karekodIlac = [];
+  for (const k of karekod.kayitlar) {
+    const eslesen = hazirlanmis.find((h) => gtinAnahtar(h.ilac.barkod) === gtinAnahtar(k.gtin));
+    if (!eslesen) return res.status(400).json({ error: `Karekod (seri ${k.seri_no}) sepetteki hiçbir ürünle eşleşmiyor` });
+    if (seriDurumu(k.gtin, k.seri_no) === 'satis') {
+      return res.status(409).json({ error: `${eslesen.ilac.ad}: seri ${k.seri_no} daha önce satılmış görünüyor` });
+    }
+    karekodIlac.push(eslesen.ilac.id);
+  }
+
   // Sadakat puani: kullanilan puan toplamdan duser, kazanilacak puan hesaplanir
   const puan = puanUygula(hesap, { musteri, puanKullan: req.body.puan_kullan, sgk: odemeTipi === 'sgk' || sgk_recete });
   if (puan.puan_hatasi) return res.status(400).json({ error: puan.puan_hatasi });
@@ -269,6 +283,10 @@ router.post('/', (req, res) => {
       }
       insertHareket.run(ilac.id, subeId, adet, `Satış #${satisId}`);
     });
+
+    karekod.kayitlar.forEach((k, i) =>
+      hareketYaz({ subeId, tip: 'satis', k, ilacId: karekodIlac[i], satisId, kullaniciId: req.user.id })
+    );
 
     if (musteri) {
       puanHareketi(musteri.id, -puan.kullanilan_puan, `Satış #${satisId} puan kullanımı`, satisId);
