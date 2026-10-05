@@ -30,6 +30,7 @@ const itsRoutes = require('./routes/its');
 const ilacBilgiRoutes = require('./routes/ilacBilgi');
 const titckRoutes = require('./routes/titck');
 const takipRoutes = require('./routes/takip');
+const sgkRoutes = require('./routes/sgk');
 const siparislerRoutes = require('./routes/siparisler');
 const gorevlerRoutes = require('./routes/gorevler');
 const nobetlerRoutes = require('./routes/nobetler');
@@ -99,6 +100,7 @@ app.use('/api/giderler', requireLogin, requireRole('admin', 'eczaci'), giderlerR
 app.use('/api/ilac-bilgi', requireLogin, ilacBilgiRoutes);
 app.use('/api/titck', requireLogin, titckRoutes);
 app.use('/api/takip', requireLogin, takipRoutes);
+app.use('/api/sgk', requireLogin, sgkRoutes);
 app.use('/api/its', requireLogin, requireRole('admin', 'eczaci'), itsRoutes);
 app.use('/api/muhasebe', requireLogin, requireRole('admin', 'eczaci'), muhasebeRoutes);
 app.use('/api/kampanyalar', requireLogin, kampanyalarRoutes);
