@@ -114,6 +114,8 @@ Eczane yönetim ve otomasyon sistemi. Node.js + Express + yerleşik `node:sqlite
 
 **SUT / ICD-10** (SGK listeleri): SGK sitesindeki "Güncel 2013 SUT" zip dosyası tek tıkla indirilir ya da elle yüklenir (EK-4A .xlsx, EK-4D/EK-4F .doc, EK-4E .docx tek tek de olur; ek program gerekmez). ICD-10 kodu (I10, E11.9) veya hastalık adıyla arama: katılım payından muaf ilaçlar (EK-4/D) ve kataloğunuzdaki uygun ürünler listelenir. İlaç kartındaki "SUT / SGK / KÜB" sekmesinde: SGK ödeme listesinde mi (EK-4/A), kamu kurum iskontosu (DSF bandına göre), aynı eşdeğer gruptaki ürünler, muaf olduğu hastalıklar ve ICD kodları, antibiyotik reçeteleme kuralı (EK-4/E) ve rapor şartı (EK-4/F). Hasta Takibi'nde tanısı ICD koduyla başlayan raporlarda "Muafiyet" düğmesi bu aramayı açar. Eşleştirme etken madde ve ATC sınıfına göre yapılır (ATC için TİTCK listesinin yüklü olması önerilir); kesin karar için güncel SUT ve Medula esastır.
 
+**WhatsApp ile haber verme** (anahtar gerekmez): Müşteriler, İlaç Hatırlatmaları, İstek / Eksik Defteri, Veresiye ve Hasta Takibi (biten rapor) sayfalarındaki "WhatsApp" düğmesi, müşterinin numarasıyla hazır mesajı WhatsApp'ta açar (bilgisayarda WhatsApp Desktop/Web, telefonda uygulama). Mesaj gönderilmeden önce görülür ve eczanenin kendi WhatsApp hesabından gider. Türkiye numaraları (0532…, 532…, +90…) otomatik çevrilir.
+
 **Ürün satış hızı** (`GET /api/ilaclar/:id/analiz`: son 30 gün, 4 haftalık kırılım, stoğun kaç gün yeteceği; mobil ürün kartında gösterilir).
 
 **Akıllı öneriler** (ana sayfa kartı ve `GET /api/oneriler`): son 30 günlük net satış hızından stoğun kaç gün yeteceğini, SKT'ye kadar satılamayacak fazla stoku (kademeli %10/20/30 indirim önerisiyle), satılmayan ölü stoku ve günün ciro/kâr özetini gösterir.

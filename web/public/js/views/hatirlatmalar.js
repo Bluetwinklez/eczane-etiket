@@ -63,7 +63,7 @@
                   <td class="num">${r.adet} × ${r.kutu_gun} gün</td>
                   <td>${r.bitis_tarihi}</td>
                   <td>${kalanRozeti(r)} ${r.hatirlatildi ? `<span class="badge ok" title="${UI.tarih(r.hatirlatildi)}">Hatırlatıldı</span>` : ''}</td>
-                  <td class="actions-col">${
+                  <td class="actions-col">${EczamWA.dugme(r.telefon, EczamWA.SABLONLAR.ilacBitis({ ad: r.ad_soyad, ilac: r.ilac_adi, tarih: r.bitis_tarihi, gecti: r.kalan_gun < 0 }))} ${
                     r.hatirlatildi
                       ? ''
                       : `<button class="secondary" data-idx="${idx}" data-kanal="sms" ${r.telefon ? '' : 'disabled title="Telefon yok"'}>SMS</button>
