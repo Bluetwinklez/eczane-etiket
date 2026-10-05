@@ -6,7 +6,7 @@
 [![Build & Release](https://github.com/Bluetwinklez/eczane-etiket/actions/workflows/release.yml/badge.svg)](https://github.com/Bluetwinklez/eczane-etiket/actions/workflows/release.yml)
 [![Sürüm](https://img.shields.io/badge/Sürüm-v1.9.0-blueviolet.svg)](CHANGELOG.md)
 [![Python Sürümü](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
-[![Testler](https://img.shields.io/badge/Testler-122%20Geçti%20(%25100)-brightgreen.svg)]()
+[![Testler](https://img.shields.io/badge/Testler-145%20Geçti%20(%25100)-brightgreen.svg)]()
 [![Lisans: MIT](https://img.shields.io/badge/Lisans-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)]()
 [![Veri Gizliliği](https://img.shields.io/badge/Veri%20Gizliliği-%25100%20Yerel%20%2F%20Çevrimdışı-emerald.svg)](SECURITY.md)
@@ -24,8 +24,8 @@ Bu depoda birbirinden bağımsız çalışan iki eczane uygulaması bulunur:
 | Uygulama | Klasör | Ne işe yarar? | Teknoloji |
 |---|---|---|---|
 | **Eczane Etiket** (bu sayfa) | [`eczane_etiket/`](eczane_etiket/) | Banko bilgisayarında çalışan masaüstü programı: Medula reçete aktarımı, ilaç etiketi ve hasta kullanım çizelgesi basımı | Python / Tkinter |
-| **Eczam Programı (Web)** | [`web/`](web/) | Tarayıcıdan kullanılan eczane yönetim sistemi: POS satış, stok ve parti/SKT (FEFO), karekod okuma, kampanya, iade, veresiye defteri, ilaç etkileşim uyarısı, kasa kapanışı, raporlar, çoklu şube ve kullanıcı rolleri | Node.js / Express / SQLite |
-| **Eczam Mobil** | [`web/public/mobil/`](web/public/mobil/), [`mobil-uygulama/`](mobil-uygulama/) | Telefon uygulaması (PWA) ve App Store için iOS kabuğu: özet, ürün sorgu, kamerayla barkod okuma, bildirimler, çevrimdışı çalışma | Vanilla JS / Capacitor |
+| **Eczam Programı (Web)** | [`web/`](web/) | Tarayıcıdan kullanılan eczane yönetim sistemi: POS satış, stok ve parti/SKT (FEFO), karekod okuma, kampanya, iade, veresiye defteri, ilaç etkileşim uyarısı, kasa kapanışı, **muhasebe** (hasılat, gider, alış faturası, kâr, kasa raporu), **İTS / karekod hareket defteri**, **ilaç kartı + ilaç tespit + TİTCK resmî ilaç listesi**, raporlar, çoklu şube ve kullanıcı rolleri | Node.js / Express / SQLite |
+| **Eczam Mobil** | [`web/public/mobil/`](web/public/mobil/), [`mobil-uygulama/`](mobil-uygulama/) | Telefon uygulaması (PWA) ve App Store için iOS kabuğu: özet, ürün sorgu, kamerayla barkod okuma, hızlı satış, müşteri/veresiye, mal kabul, muhasebe özeti, bildirimler, Türkçe/İngilizce, çevrimdışı çalışma | Vanilla JS / Capacitor |
 
 Masaüstü programının gösterge paneli artık haftalık kıyas (ciro/etiket), en yoğun saat tahmini, otomatik öngörü cümleleri en çok basılan ilaçlar listesi ve "Dikkat Gerektiren Stoklar" tablosunu (SKT'si geçen, yaklaşan, düşük stok) de gösterir ([ekran görüntüsü](docs/masaustu-gosterge.png)).
 
