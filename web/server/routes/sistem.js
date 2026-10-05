@@ -4,6 +4,8 @@ const { db } = require('../db');
 const { requireRole } = require('../auth');
 const { TABLO_SIRASI, otomatikYedekleriListele } = require('../yedek');
 const paket = require('../../package.json');
+const { surumBilgisi, guncellemeKontrol } = require('../surum');
+const { hataKaydet, sonHatalar } = require('../hataGunlugu');
 
 const router = express.Router();
 const BASLANGIC = Date.now();
@@ -56,6 +58,7 @@ router.get('/durum', requireRole('admin'), (req, res) => {
   }
   res.json({
     surum: paket.version,
+    commit: surumBilgisi().kisa,
     node: process.version,
     platform: process.platform,
     calisma_suresi_sn: Math.floor((Date.now() - BASLANGIC) / 1000),
@@ -71,6 +74,26 @@ router.get('/durum', requireRole('admin'), (req, res) => {
     aktif_oturum: db.prepare("SELECT COUNT(*) AS c FROM oturumlar WHERE bitis > ?").get(Date.now()).c,
     smtp: Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS)
   });
+});
+
+// ---- Destek: hata raporu, tarayici hatasi kaydi, guncelleme kontrolu ----
+router.get('/surum', (req, res) => res.json({ ...surumBilgisi(), node: process.version, platform: process.platform }));
+
+// Tarayicida yakalanan hata (kullanici bildirmeden de kaydedilir); her istek kisa tutulur
+router.post('/istemci-hata', (req, res) => {
+  const b = req.body || {};
+  if (!b.mesaj) return res.status(400).json({ error: 'Mesaj gerekli' });
+  hataKaydet('tarayici', b.mesaj, { sayfa: b.sayfa || '', yigin: b.yigin || '', kullanici: req.user.kullanici_adi });
+  res.status(201).json({ ok: true });
+});
+
+router.get('/hata-raporu', requireRole('admin', 'eczaci'), (req, res) => {
+  const adet = Math.min(100, Math.max(1, Number(req.query.adet) || 30));
+  res.json({ ...surumBilgisi(), node: process.version, platform: process.platform, sunucu_saati: new Date().toISOString(), hatalar: sonHatalar(adet) });
+});
+
+router.get('/guncelleme', requireRole('admin', 'eczaci'), async (req, res) => {
+  res.json(await guncellemeKontrol());
 });
 
 module.exports = router;

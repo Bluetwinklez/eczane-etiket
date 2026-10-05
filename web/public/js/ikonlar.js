@@ -23,6 +23,7 @@ const Ikon = (() => {
     bildirimler: '<path d="M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-6.4A8 8 0 1 1 21 12Z"/>',
     raporlar: '<path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/>',
     analiz: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+    destek: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17h.01"/>',
     'ilac-karti': '<path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5"/>',
     gezgin: '<path d="M3 4h7v7H3zM14 4h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/>',
     'ilac-tespit': '<circle cx="11" cy="11" r="6"/><path d="m20 20-4-4"/>',

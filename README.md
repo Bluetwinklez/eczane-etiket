@@ -29,7 +29,7 @@ Bu depoda birbirinden bağımsız çalışan iki eczane uygulaması bulunur:
 
 Masaüstü programının gösterge paneli artık haftalık kıyas (ciro/etiket), en yoğun saat tahmini, otomatik öngörü cümleleri en çok basılan ilaçlar listesi ve "Dikkat Gerektiren Stoklar" tablosunu (SKT'si geçen, yaklaşan, düşük stok) de gösterir ([ekran görüntüsü](docs/masaustu-gosterge.png)).
 
-Web uygulamasının kurulumu ve özellikleri için: **[web/README.md](web/README.md)**. Bu sayfanın geri kalanı masaüstü Eczane Etiket uygulamasını anlatır.
+Web uygulamasını Windows bilgisayara tek komutla kurmak için: **[Eczam Programını Bilgisayara Kurma](#-eczam-programını-bilgisayara-kurma-windows)**. Özellikler ve geliştirici kurulumu: **[web/README.md](web/README.md)**. Bu sayfanın geri kalanı masaüstü Eczane Etiket uygulamasını anlatır.
 
 ---
 
@@ -41,6 +41,34 @@ Web uygulamasının kurulumu ve özellikleri için: **[web/README.md](web/README
 <div align="center">
   <img src="docs/screenshot-hizli-etiket.png" alt="Eczane İlaç Etiketi v1.7.0 Arayüz Önizlemesi" width="880" style="border-radius: 8px; box-shadow: 0 4px 24px rgba(0,0,0,0.18);"/>
 </div>
+
+---
+
+## 💻 Eczam Programını Bilgisayara Kurma (Windows)
+
+Eczam web programı bilgisayarınızda çalışır; tarayıcıdan ve aynı ağdaki telefondan (Eczam Mobil) kullanılır. Veriler yalnızca bu bilgisayarda tutulur.
+
+**Kurulum (bir kez):** Başlat menüsünde **PowerShell** açın, aşağıdaki iki satırı yapıştırıp Enter'a basın:
+
+```powershell
+irm https://raw.githubusercontent.com/Bluetwinklez/eczane-etiket/main/kurulum/eczam-kur.ps1 -OutFile $env:TEMP\eczam-kur.ps1
+powershell -ExecutionPolicy Bypass -File $env:TEMP\eczam-kur.ps1
+```
+
+Betik şunları yapar: Node.js ve Git yoksa kurar (winget ile), programı `Kullanıcı klasörü\Eczam` altına indirir, gerekli paketleri kurar, masaüstüne **Eczam** ve **Eczam Güncelle** kısayollarını koyar ve bilgisayar açılınca sunucunun arka planda başlamasını ayarlar. İlk açılışta Windows Güvenlik Duvarı izin sorarsa **İzin ver** deyin (telefondan bağlanmak için gerekir). Varsayılan giriş: `admin / admin123` (ilk girişte şifre değiştirilir).
+
+| Kısayol / dosya | Ne yapar |
+|---|---|
+| **Eczam** (masaüstü) | Sunucu kapalıysa başlatır ve programı tarayıcıda açar (`http://localhost:3000`) |
+| **Eczam Güncelle** (masaüstü) | Sunucuyu durdurur, veritabanını `web\data\yedekler` altına yedekler, son sürümü indirir, paketleri günceller ve programı yeniden açar |
+| `kurulum\eczam-durdur.bat` | Sunucuyu durdurur |
+| `web\data\sunucu.log`, `web\data\hatalar.log` | Sunucu çıktısı ve hata günlüğü |
+
+**Güncelleme:** Program içinde **Destek / Hata Bildir** sayfası yeni sürüm olup olmadığını gösterir; varsa **Eczam Güncelle** kısayoluna çift tıklayın. Güncelleme veritabanınıza dokunmaz.
+
+**Hata olursa:** Programda **Destek / Hata Bildir** sayfasını açın, ne olduğunu kısaca yazıp **Raporu kopyala**'ya basın ve metni destek sohbetine yapıştırın. Rapor sürüm bilgisini ve son hataları içerir; şifre ve müşteri bilgisi eklenmez. Program hiç açılmıyorsa `web\data\sunucu.log` dosyasının son satırlarını gönderin.
+
+**Telefondan bağlanma:** Bilgisayarın yerel IP adresini öğrenin (`ipconfig` → IPv4) ve telefon aynı Wi-Fi'deyken tarayıcıda `http://192.168.1.20:3000/mobil` gibi açın (IP'yi kendi adresinizle değiştirin). iPhone uygulamasında da sunucu adresi olarak `http://192.168.1.20:3000` girilir.
 
 ---
 

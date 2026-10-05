@@ -18,6 +18,7 @@
     { key: 'raporlar', etiket: 'Raporlar', ikon: '📊', roller: ['admin', 'eczaci'] },
     { key: 'analiz', etiket: 'Satış Analizi & Hedef', ikon: '🎯' },
     { key: 'kasa-kapanisi', etiket: 'Kasa Kapanışı', ikon: '💰' },
+    { key: 'destek', etiket: 'Destek / Hata Bildir', ikon: '🛟' },
     { key: 'ilac-karti', etiket: 'İlaç Kartı', ikon: '💊' },
     { key: 'gezgin', etiket: 'Kategori Gezgini', ikon: '🗂️' },
     { key: 'ilac-tespit', etiket: 'İlaç Tespit', ikon: '🔍' },
