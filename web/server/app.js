@@ -46,6 +46,8 @@ const emanetlerRoutes = require('./routes/emanetler');
 const hedeflerRoutes = require('./routes/hedefler');
 const vardiyalarRoutes = require('./routes/vardiyalar');
 const bildirimMerkeziRoutes = require('./routes/bildirimMerkezi');
+const asistanRoutes = require('./routes/asistan');
+const whatsapp = require('./whatsapp');
 
 // Parti kayitlari ile toplam stoklari baslangicta esitle (eski veritabanlari icin)
 partileriEsitle();
@@ -65,7 +67,15 @@ function oturumAnahtari() {
 }
 
 app.set('trust proxy', process.env.TRUST_PROXY === '1');
-app.use(express.json({ limit: '10mb' }));
+// WhatsApp webhook imzasi ham govde uzerinden dogrulanir
+app.use(
+  express.json({
+    limit: '10mb',
+    verify: (req, res, buf) => {
+      if (req.originalUrl.startsWith('/webhook/whatsapp')) req.rawBody = buf;
+    }
+  })
+);
 app.use(
   session({
     name: 'eczanem.sid',
@@ -83,6 +93,7 @@ app.use(
 );
 
 app.use('/api', islemKaydiMiddleware);
+app.use('/webhook/whatsapp', whatsapp.router);
 app.use('/api/auth', authRoutes);
 app.use('/api/ilaclar', requireLogin, ilaclarRoutes);
 app.use('/api/satislar', requireLogin, satislarRoutes);
@@ -122,6 +133,7 @@ app.use('/api/ayarlar', requireLogin, ayarlarRoutes);
 app.use('/api/sistem', requireLogin, sistemRoutes);
 app.use('/api/mobil', requireLogin, mobilRoutes);
 app.use('/api/oneriler', requireLogin, onerilerRoutes);
+app.use('/api/asistan', requireLogin, asistanRoutes);
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 

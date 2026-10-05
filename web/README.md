@@ -139,6 +139,27 @@ Sunucu varsayılan olarak `http://localhost:3000` adresinde çalışır. Veritab
 
 SMTP ayarları tanımlanmazsa e-posta bildirimleri ve tüm SMS bildirimleri "simüle" durumuyla kayda geçer, gerçek gönderim yapılmaz.
 
+## İlaç Bilgi ve Sağlık Asistanı (WhatsApp)
+
+Hastalar ve eczane ekibi eczanenin WhatsApp Business numarasına yazarak ilaç/sağlık sorusu sorabilir. Cevapları Claude üretir; eczanenin kendi ilaç verisi (etken madde, ilaç kartı, etkileşim listesi, gebelik/yaş uyarısı) soruya bağlam olarak eklenir.
+
+- **Hasta modu** (varsayılan): sade dil; teşhis, kişiye özel doz ve tedavi değişikliği önerisi yok; fiyat/stok verilmez; her cevabın sonunda "doktor/eczacı yerine geçmez" notu eklenir. Göğüs ağrısı, nefes darlığı, aşırı doz gibi acil ifadeler **modele gitmeden** 112/114 yönlendirmesi alır. Hasta başına günlük soru limiti vardır.
+- **Eczacı modu**: ayarlarda tanımlı eczacı/personel numaraları teknik cevap (etkileşim mekanizması, kontrendikasyon, stok) alır. Aynı asistana giriş yapmış kullanıcılar `POST /api/asistan/sor` ile web ve mobilden de ulaşır.
+- **Gizlilik**: sohbetler yalnızca asistan bağlamı için 30 gün saklanıp silinir, yedeğe dahil edilmez, işlem kaydında maskelenir. Mesaj metni Claude API'ye gönderilir; hastalara bunu bildirmek ve aydınlatma metninizi buna göre güncellemek eczanenin sorumluluğundadır. Müşterinin eczanede kayıtlı alerji/gebelik notu ancak yönetici `musteri_notlarini_kullan` seçeneğini açarsa asistana verilir.
+
+Kurulum: Meta for Developers'ta bir WhatsApp Business uygulaması açın; webhook adresi `https://<sunucunuz>/webhook/whatsapp`, abonelik alanı `messages`. Aşağıdaki değişkenleri tanımlayın, sonra yönetici olarak `PUT /api/asistan/ayarlar` ile `aktif: true` ve `eczaci_telefonlari` değerlerini girin.
+
+| Değişken | Açıklama |
+|---|---|
+| `ANTHROPIC_API_KEY` | Claude API anahtarı |
+| `ANTHROPIC_MODEL` | Kullanılacak model (varsayılan `claude-sonnet-5-5`) |
+| `WHATSAPP_TOKEN` | WhatsApp Cloud API erişim anahtarı |
+| `WHATSAPP_PHONE_NUMBER_ID` | Gönderen telefon numarası kimliği |
+| `WHATSAPP_VERIFY_TOKEN` | Webhook doğrulaması için belirlediğiniz gizli metin |
+| `WHATSAPP_APP_SECRET` | Uygulama gizli anahtarı (webhook imzası bununla doğrulanır; yoksa webhook istekleri reddedilir) |
+
+> Asistan genel bilgilendirme amaçlıdır ve klinik karar desteği yerine geçmez. Yerel ilaç/etkileşim verisi sınırlı bir örnek kümedir.
+
 ## Rol Yetkileri
 
 - **Admin**: tüm modüller + kullanıcı/şube yönetimi + yedekleme + işlem kaydı.
