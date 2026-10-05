@@ -905,3 +905,6 @@ kbd {
 .oneri-etiket.iyi { background: color-mix(in srgb, var(--success) 18%, transparent); color: var(--success); }
 .oneri-link { text-decoration: none; cursor: pointer; }
 .oneri-link:hover { filter: brightness(0.95); }
+
+/* Muhasebe sekmeleri */
+#mh-sekmeler button.active { background: var(--ink-2); color: #fff; border-color: var(--ink-2); }
