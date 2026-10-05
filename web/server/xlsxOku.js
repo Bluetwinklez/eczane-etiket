@@ -34,7 +34,7 @@ function zipDosyalari(tampon) {
   return dosyalar;
 }
 
-function dosyaOku(tampon, dosyalar, ad) {
+function dosyaOkuIkili(tampon, dosyalar, ad) {
   const d = dosyalar.get(ad);
   if (!d) return null;
   if (d.boyut > MAKS_DOSYA) throw new Error(`${ad} çok büyük`);
@@ -42,9 +42,14 @@ function dosyaOku(tampon, dosyalar, ad) {
   const ekUzunluk = tampon.readUInt16LE(d.yerel + 28);
   const bas = d.yerel + 30 + adUzunluk + ekUzunluk;
   const ham = tampon.subarray(bas, bas + d.sikisik);
-  if (d.yontem === 0) return ham.toString('utf8');
-  if (d.yontem === 8) return zlib.inflateRawSync(ham, { maxOutputLength: MAKS_DOSYA }).toString('utf8');
+  if (d.yontem === 0) return ham;
+  if (d.yontem === 8) return zlib.inflateRawSync(ham, { maxOutputLength: MAKS_DOSYA });
   throw new Error('Desteklenmeyen sıkıştırma yöntemi');
+}
+
+function dosyaOku(tampon, dosyalar, ad) {
+  const b = dosyaOkuIkili(tampon, dosyalar, ad);
+  return b == null ? null : b.toString('utf8');
 }
 
 const XML_VARLIKLARI = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&apos;': "'" };
@@ -117,4 +122,4 @@ function xlsxOku(tampon) {
   return sayfalar;
 }
 
-module.exports = { xlsxOku, zipDosyalari, dosyaOku };
+module.exports = { xlsxOku, zipDosyalari, dosyaOku, dosyaOkuIkili };

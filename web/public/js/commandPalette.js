@@ -21,6 +21,7 @@
     { key: 'destek', etiket: 'Destek / Hata Bildir', ikon: '🛟' },
     { key: 'ilac-karti', etiket: 'İlaç Kartı', ikon: '💊' },
     { key: 'hasta-takip', etiket: 'Hasta Takibi (rapor, tansiyon, şeker)', ikon: '🩺' },
+    { key: 'sut', etiket: 'SUT / ICD-10 muafiyet, EK-4 listeleri', ikon: '📑' },
     { key: 'hesaplamalar', etiket: 'Hesaplamalar (doz, kutu bitiş, VKİ…)', ikon: '🧮' },
     { key: 'karsilastir', etiket: 'Müstahzar Karşılaştırma', ikon: '⚖️' },
     { key: 'gezgin', etiket: 'Kategori Gezgini', ikon: '🗂️' },
