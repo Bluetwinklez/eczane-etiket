@@ -36,7 +36,8 @@ const NAV = [
   { key: 'subeler', label: 'Şubeler', grup: 'Yönetim', roles: ['admin'] },
   { key: 'yedekleme', label: 'Yedekleme', grup: 'Yönetim', roles: ['admin'] },
   { key: 'islem-kaydi', label: 'İşlem Kaydı', grup: 'Yönetim', roles: ['admin'] },
-  { key: 'sistem', label: 'Sistem Durumu', grup: 'Yönetim', roles: ['admin'] }
+  { key: 'sistem', label: 'Sistem Durumu', grup: 'Yönetim', roles: ['admin'] },
+  { key: 'destek', label: 'Destek / Hata Bildir', grup: 'Yönetim' }
 ];
 
 const TITLES = {
@@ -76,7 +77,8 @@ const TITLES = {
   subeler: 'Şubeler',
   yedekleme: 'Yedekleme',
   'islem-kaydi': 'İşlem Kaydı',
-  sistem: 'Sistem Durumu'
+  sistem: 'Sistem Durumu',
+  destek: 'Destek / Hata Bildir'
 };
 
 let CURRENT_USER = null;
@@ -211,7 +213,8 @@ const VIEW_MAP = {
   subeler: () => Views.subeler,
   yedekleme: () => Views.yedekleme,
   'islem-kaydi': () => Views.islemKaydi,
-  sistem: () => Views.sistem
+  sistem: () => Views.sistem,
+  destek: () => Views.destek
 };
 
 async function rotayiRenderEt() {
