@@ -25,6 +25,7 @@ const Ikon = (() => {
     analiz: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
     destek: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17h.01"/>',
     'ilac-karti': '<path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5"/>',
+    hesaplamalar: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h2M14 11h2M8 15h2M14 15h2"/>',
     karsilastir: '<path d="M12 3v18M5 7h14M5 7l-3 7h6zM19 7l-3 7h6z"/>',
     gezgin: '<path d="M3 4h7v7H3zM14 4h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/>',
     'ilac-tespit': '<circle cx="11" cy="11" r="6"/><path d="m20 20-4-4"/>',
