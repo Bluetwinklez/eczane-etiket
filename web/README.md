@@ -108,6 +108,8 @@ Eczane yönetim ve otomasyon sistemi. Node.js + Express + yerleşik `node:sqlite
 - TİTCK listesinden **tek tıkla ürün ekleme** (ad, firma, ATC ana grubu, reçete türü dolar) ve stokta duran **pasif ürün** uyarısı.
 - Kamu fiyatı ve tablet bilgisi **CSV ile** toplu yüklenir (barkodla eşleşir, önizlemeli). Tablet görünümü, SUT maddeleri ve KÜB metinleri pakette hazır gelmez; eczane girer veya yükler.
 
+**Hesaplamalar** (tarayıcıda çalışır, sunucuya veri gitmez): kiloya göre çocuk şurubu dozu (parasetamol, ibuprofen, amoksisilin hazır ayarları; mg ve ml, günlük üst sınır, yetişkin tek doz sınırı), kutu bitiş tarihi ("2x1", "3x5", "günde 2 kez 1"), şişe kaç gün yeter, VKİ ve vücut yüzey alanı (Mosteller), kreatinin klirensi (Cockcroft-Gault), mal fazlasıyla gerçek birim maliyet ve kâr marjı. Sonuçlar yardımcıdır; doz kararında KÜB ve eczacı değerlendirmesi esastır.
+
 **Ürün satış hızı** (`GET /api/ilaclar/:id/analiz`: son 30 gün, 4 haftalık kırılım, stoğun kaç gün yeteceği; mobil ürün kartında gösterilir).
 
 **Akıllı öneriler** (ana sayfa kartı ve `GET /api/oneriler`): son 30 günlük net satış hızından stoğun kaç gün yeteceğini, SKT'ye kadar satılamayacak fazla stoku (kademeli %10/20/30 indirim önerisiyle), satılmayan ölü stoku ve günün ciro/kâr özetini gösterir.
