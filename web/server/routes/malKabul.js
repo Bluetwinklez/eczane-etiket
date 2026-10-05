@@ -2,6 +2,8 @@ const express = require('express');
 const { db } = require('../db');
 const { partiGiris } = require('../partiler');
 const { gtinAnahtar, kodlariCoz, seriDurumu, hareketYaz } = require('../its');
+const { dosyadanFatura } = require('../eFatura');
+const { sadelestir } = require('../ilacBilgi');
 
 const router = express.Router();
 const TARIH = /^\d{4}-\d{2}-\d{2}$/;
@@ -46,6 +48,47 @@ router.get('/', (req, res) => {
   }
   sql += ' ORDER BY mk.id DESC LIMIT 200';
   res.json(db.prepare(sql).all(...params));
+});
+
+// e-Fatura (UBL-TR XML veya XML iceren ZIP): mal kabul formunu doldurmak icin onizleme
+router.post('/e-fatura', express.raw({ type: () => true, limit: '10mb' }), (req, res) => {
+  if (!Buffer.isBuffer(req.body) || !req.body.length) return res.status(400).json({ error: 'Dosya gönderilmedi' });
+  let sonuc;
+  try {
+    sonuc = dosyadanFatura(req.body);
+  } catch (err) {
+    return res.status(400).json({ error: 'e-Fatura okunamadı: ' + err.message });
+  }
+  const { fatura, satirlar, uyarilar } = sonuc;
+
+  // Tedarikci: once vergi no, sonra ad benzerligi (ilk iki kelime)
+  const tedarikciler = db.prepare('SELECT id, firma_adi, vergi_no FROM tedarikciler').all();
+  const vkn = (fatura.tedarikci.vkn || '').replace(/\D/g, '');
+  const adAnahtar = sadelestir(fatura.tedarikci.ad).split(' ').slice(0, 2).join(' ');
+  const ted =
+    (vkn && tedarikciler.find((t) => t.vergi_no === vkn)) ||
+    (adAnahtar && tedarikciler.find((t) => sadelestir(t.firma_adi).startsWith(adAnahtar) || adAnahtar.startsWith(sadelestir(t.firma_adi)))) ||
+    null;
+  fatura.tedarikci.eslesen = ted ? { id: ted.id, firma_adi: ted.firma_adi, vkn_ile: Boolean(vkn && ted.vergi_no === vkn) } : null;
+
+  const mukerrer = fatura.no
+    ? db.prepare('SELECT id, tarih FROM mal_kabulleri WHERE sube_id = ? AND fatura_no = ? AND (? IS NULL OR tedarikci_id = ?)').get(req.user.sube_id, fatura.no, ted ? ted.id : null, ted ? ted.id : null)
+    : null;
+  if (mukerrer) uyarilar.unshift(`Bu fatura (${fatura.no}) daha önce mal kabul #${mukerrer.id} ile işlenmiş.`);
+
+  const katalog = db.prepare("SELECT id, ad, barkod, alis_fiyati FROM ilaclar").all();
+  const barkodla = new Map(katalog.filter((i) => i.barkod).map((i) => [gtinAnahtar(i.barkod), i]));
+  const adla = new Map(katalog.map((i) => [sadelestir(i.ad), i]));
+  const titckBul = db.prepare('SELECT barkod, ad, durum FROM titck_ilaclar WHERE barkod = ?');
+  for (const s of satirlar) {
+    const ilac = (s.barkod && barkodla.get(gtinAnahtar(s.barkod))) || adla.get(sadelestir(s.ad)) || null;
+    s.ilac_id = ilac ? ilac.id : null;
+    s.ilac_adi = ilac ? ilac.ad : null;
+    s.eslesme = ilac ? (s.barkod && barkodla.get(gtinAnahtar(s.barkod)) ? 'barkod' : 'ad') : null;
+    s.onceki_alis = ilac ? ilac.alis_fiyati : null;
+    s.titck = !ilac && s.barkod ? titckBul.get(s.barkod.padStart(13, '0').slice(-13)) || titckBul.get(s.barkod) || null : null;
+  }
+  res.json({ fatura, satirlar, uyarilar, mukerrer: mukerrer ? mukerrer.id : null, ozet: { satir: satirlar.length, eslesen: satirlar.filter((s) => s.ilac_id).length } });
 });
 
 router.get('/:id', (req, res) => {
@@ -139,6 +182,11 @@ router.post('/', (req, res) => {
       }
       // Kar hesaplari icin urunun alis fiyati MF dahil gercek birim maliyete cekilir
       if (alisGuncelle) db.prepare('UPDATE ilaclar SET alis_fiyati = ? WHERE id = ?').run(k.birim, k.ilac.id);
+    }
+    // e-faturadan gelen vergi no, tedarikci kaydinda yoksa eklenir (sonraki faturalarda otomatik eslesir)
+    const vknYeni = String(req.body.tedarikci_vkn || '').replace(/\D/g, '');
+    if (tedarikci_id && /^\d{10,11}$/.test(vknYeni)) {
+      db.prepare("UPDATE tedarikciler SET vergi_no = ? WHERE id = ? AND (vergi_no IS NULL OR vergi_no = '')").run(vknYeni, tedarikci_id);
     }
     if (siparis) {
       db.prepare("UPDATE siparisler SET durum = 'teslim_alindi', teslim_tarihi = datetime('now') WHERE id = ?").run(siparis.id);
