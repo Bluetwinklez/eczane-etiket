@@ -49,6 +49,8 @@ const TABLO_SIRASI = [
   'kasa_hareketleri',
   'tedarikci_hareketleri',
   'karekod_hareketleri',
+  'ilac_bilgi',
+  'fiyat_hareketleri',
   'duyurular'
 ];
 
