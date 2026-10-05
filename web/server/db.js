@@ -911,6 +911,51 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_karekod_seri ON karekod_hareketleri (gtin, seri_no, id);
 `);
 
+// Ilac karti bilgileri: tablet gorunumu (ilac tespit), ATC/endikasyon, kamu fiyatlari, SUT/KUB/KT notlari.
+// Veriyi eczane girer veya CSV ile iceri aktarir; hazir bir ilac veritabani paketlenmez.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS ilac_bilgi (
+    ilac_id INTEGER PRIMARY KEY REFERENCES ilaclar(id) ON DELETE CASCADE,
+    atc_kodu TEXT,
+    endikasyon TEXT,
+    tablet_renk TEXT,
+    tablet_sekil TEXT,
+    tablet_yazi TEXT,
+    tablet_centik TEXT,
+    tablet_seffaf INTEGER NOT NULL DEFAULT 0,
+    imalatci_fiyati REAL,
+    depocu_fiyati REAL,
+    kamu_fiyati REAL,
+    kamu_odenecek REAL,
+    kurum_iskontosu REAL,
+    sgk_kapsaminda INTEGER NOT NULL DEFAULT 0,
+    sut_notu TEXT,
+    kub_url TEXT,
+    kt_url TEXT,
+    guncelleme TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE TABLE IF NOT EXISTS fiyat_hareketleri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ilac_id INTEGER NOT NULL REFERENCES ilaclar(id) ON DELETE CASCADE,
+    tarih TEXT NOT NULL,
+    isf REAL, dsf REAL, psf REAL, kf REAL, ko REAL, ki REAL,
+    kaynak TEXT NOT NULL DEFAULT 'kayit'
+  );
+  CREATE INDEX IF NOT EXISTS idx_fiyat_hareketleri ON fiyat_hareketleri (ilac_id, tarih);
+  -- TITCK (SKRS e-recete) resmi ilac listesi: barkod, ATC, firma, recete turu, aktif/pasif durumu
+  CREATE TABLE IF NOT EXISTS titck_ilaclar (
+    barkod TEXT PRIMARY KEY,
+    ad TEXT NOT NULL,
+    atc_kodu TEXT,
+    atc_adi TEXT,
+    firma TEXT,
+    recete_turu TEXT,
+    durum TEXT NOT NULL CHECK (durum IN ('aktif', 'pasif', 'pasife_alinacak')),
+    temel_ilac INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE INDEX IF NOT EXISTS idx_titck_atc ON titck_ilaclar (atc_kodu);
+`);
+
 seedIfEmpty();
 ornekEtkenMaddeleriDoldur();
 ornekKutuGunleriniDoldur();
