@@ -111,11 +111,11 @@ test('mobil işlem ekranları: eklenti dosyası mobil.js’ten önce yüklenir v
   const sw = fs.readFileSync(path.join(kok, 'sw.js'), 'utf8');
   assert.match(sw.match(/const KABUK = \[([\s\S]*?)\];/)[1], /\/mobil\/mobil-islemler\.js/);
   const eklenti = fs.readFileSync(path.join(kok, 'mobil-islemler.js'), 'utf8');
-  for (const ekran of ['oneri', "'hizli-satis'", 'musteriler', 'siparisler', "'mal-kabul'", 'gorevler', 'kasa', 'iade']) assert.ok(eklenti.includes(ekran), ekran);
+  for (const ekran of ['oneri', "'hizli-satis'", 'musteriler', 'siparisler', "'mal-kabul'", 'gorevler', 'kasa', 'iade', 'muhasebe']) assert.ok(eklenti.includes(ekran), ekran);
   assert.ok(eklenti.includes('o-siparis') && eklenti.includes('/api/siparisler') && eklenti.includes('EczamSepet'), 'öneriden sipariş ve sepete ekleme köprüsü');
   assert.ok(eklenti.includes('ym-form') && eklenti.includes('/api/musteriler') && eklenti.includes('ileti_izni'), 'yeni müşteri formu (iletişim izni onayıyla)');
   // Cekirdek hala ekranlari yonlendiriyor
   const cekirdek = fs.readFileSync(path.join(kok, 'mobil.js'), 'utf8');
   assert.match(cekirdek, /window\.EczamEklenti/);
-  for (const yol of ['#/hizli-satis', '#/musteriler', '#/mal-kabul', '#/siparisler', '#/oneri', '#/gorevler', '#/kasa', '#/iade']) assert.ok(cekirdek.includes(yol), yol);
+  for (const yol of ['#/hizli-satis', '#/musteriler', '#/mal-kabul', '#/siparisler', '#/oneri', '#/gorevler', '#/kasa', '#/iade', '#/muhasebe']) assert.ok(cekirdek.includes(yol), yol);
 });

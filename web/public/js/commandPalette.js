@@ -18,6 +18,7 @@
     { key: 'raporlar', etiket: 'Raporlar', ikon: '📊', roller: ['admin', 'eczaci'] },
     { key: 'analiz', etiket: 'Satış Analizi & Hedef', ikon: '🎯' },
     { key: 'kasa-kapanisi', etiket: 'Kasa Kapanışı', ikon: '💰' },
+    { key: 'muhasebe', etiket: 'Muhasebe', ikon: '🧾', roller: ['admin', 'eczaci'] },
     { key: 'giderler', etiket: 'Giderler', ikon: '💸', roller: ['admin', 'eczaci'] },
     { key: 'kampanyalar', etiket: 'Kampanyalar', ikon: '🏷️' },
     { key: 'veresiye', etiket: 'Veresiye Defteri', ikon: '📒' },
