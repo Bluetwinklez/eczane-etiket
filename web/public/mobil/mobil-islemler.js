@@ -728,6 +728,51 @@ window.EczamEklenti = (M) => {
     );
   }
 
+  // ---------- Muhasebe ozeti (salt okunur, eczaci/yonetici) ----------
+  let muhasebeDonem = 'ay';
+  async function muhasebeEkrani() {
+    if (!yonetici()) return cerceve('Muhasebe', 'satis', hataKutusu({ message: 'Bu ekran eczacı ve yöneticiler içindir.' }), { geri: true });
+    cerceve('Muhasebe', 'satis', '<div class="yukleniyor">Yükleniyor…</div>', { geri: true });
+    const yerel = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    const simdi = new Date();
+    const bas = new Date(simdi);
+    if (muhasebeDonem === 'hafta') bas.setDate(simdi.getDate() - ((simdi.getDay() + 6) % 7));
+    else if (muhasebeDonem === 'ay') bas.setDate(1);
+    let o;
+    try {
+      o = await get(`/api/muhasebe/ozet?baslangic=${yerel(bas)}&bitis=${yerel(simdi)}`, { onbellek: true });
+    } catch (e) {
+      return cerceve('Muhasebe', 'satis', hataKutusu(e), { geri: true });
+    }
+    const satir = (ad, v, renk) => `<div class="satir"><div class="ad">${ad}</div><span class="rozet${renk ? ' ' + renk : ''}">${tl(v)}</span></div>`;
+    const sekme = (k, ad) => `<button class="hap${muhasebeDonem === k ? " secili" : ""}" data-donem="${k}">${ad}</button>`;
+    cerceve(
+      'Muhasebe',
+      'satis',
+      `${cevrimdisiNot(o)}
+       <div style="display:flex;gap:8px;margin-bottom:12px">${sekme('gun', 'Bugün')}${sekme('hafta', 'Bu hafta')}${sekme('ay', 'Bu ay')}</div>
+       <div class="kart bg-yesil"><h2>Net hasılat</h2><div class="tutar">${tl(o.net_hasilat)}</div>
+         <div class="fark">${o.satis_adedi} satış · ${o.iade_adedi} iade</div></div>
+       <div class="kart bg-mor"><h2>Net kâr</h2><div class="tutar">${tl(o.net_kar)}</div>
+         <div class="fark">Brüt kâr ${tl(o.brut_kar)} · marj %${o.brut_marj}</div></div>
+       <div class="kart bg-krem" style="padding:8px 16px">
+         ${satir('Brüt hasılat', o.brut_hasilat)}${satir('Müşteri iadeleri', o.iade_tutari, 'kirmizi')}${satir('Satılan malın maliyeti', o.maliyet)}${satir('İşletme giderleri', o.isletme_giderleri, 'kirmizi')}
+       </div>
+       <h3 class="bolum-baslik">Alış ve borç</h3>
+       <div class="kart bg-krem" style="padding:8px 16px">
+         ${satir('Alış faturaları', o.alis_faturalari)}${satir('Alış iadeleri', o.alis_iadeleri)}${satir('Tedarikçi borcu', o.tedarikci_borcu)}${satir('Vadesi geçmiş borç', o.vadesi_gecmis_borc, o.vadesi_gecmis_borc > 0 ? 'kirmizi' : '')}${satir('Veresiye alacağı', o.veresiye_alacagi)}
+       </div>
+       <p class="alt-yazi">Ayrıntılı rapor, CSV ve PDF bilgisayardan alınır.</p>`,
+      { geri: true }
+    );
+    document.querySelectorAll('[data-donem]').forEach((b) => {
+      b.onclick = () => {
+        muhasebeDonem = b.dataset.donem;
+        muhasebeEkrani();
+      };
+    });
+  }
+
   // ---------- Iade ----------
   const ODEME_ADI = { nakit: 'Nakit', kredi_karti: 'Kart', sgk: 'SGK', veresiye: 'Veresiye', karma: 'Karma' };
   async function iadeEkrani() {
@@ -826,6 +871,7 @@ window.EczamEklenti = (M) => {
     'mal-kabul': malKabulEkrani,
     gorevler: gorevlerEkrani,
     kasa: kasaEkrani,
+    muhasebe: muhasebeEkrani,
     iade: iadeEkrani
   };
 };

@@ -335,7 +335,7 @@
         <a class="kart kart-dokun bg-yesil" href="#/kasa"><h2>Günün kasası</h2><div class="fark" style="max-width:none">Nakit, kart, veresiye</div></a>
         ${
           ['admin', 'eczaci'].includes(oturum.kullanici.rol)
-            ? '<a class="kart kart-dokun bg-mercan" href="#/iade"><h2>İade</h2><div class="fark" style="max-width:none">Satıştan iade al</div></a>'
+            ? '<a class="kart kart-dokun bg-mercan" href="#/iade"><h2>İade</h2><div class="fark" style="max-width:none">Satıştan iade al</div></a><a class="kart kart-dokun bg-mor" href="#/muhasebe"><h2>Muhasebe</h2><div class="fark" style="max-width:none">Hasılat, kâr, borç</div></a>'
             : ''
         }
         ${

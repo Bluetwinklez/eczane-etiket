@@ -82,3 +82,10 @@ test('mobil arayüz kaynaklarında yerel ayar sabit değil ve dil dosyası önbe
   const html = fs.readFileSync(path.join(kok, 'index.html'), 'utf8');
   assert.ok(html.indexOf('mobil-dil.js') < html.indexOf('mobil-islemler.js'), 'dil dosyası ilk yüklenir');
 });
+
+test('muhasebe ekranı metinleri İngilizceye çevrilir', () => {
+  const { t } = yukle('en').EczamDil;
+  assert.equal(t('Net hasılat'), 'Net revenue');
+  assert.equal(t('204 satış · 3 iade'), '204 sales · 3 refunds');
+  assert.equal(t('Brüt kâr 1.200,00 TL · marj %32.45'), 'Gross profit 1.200,00 TL · margin 32.45%');
+});
