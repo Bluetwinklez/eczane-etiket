@@ -117,4 +117,4 @@ function xlsxOku(tampon) {
   return sayfalar;
 }
 
-module.exports = { xlsxOku };
+module.exports = { xlsxOku, zipDosyalari, dosyaOku };
