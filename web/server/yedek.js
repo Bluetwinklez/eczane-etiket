@@ -53,6 +53,8 @@ const TABLO_SIRASI = [
   'fiyat_hareketleri',
   'hasta_raporlari',
   'musteri_olcumleri',
+  'depo_iadeleri',
+  'depo_iade_kalemleri',
   'duyurular'
 ];
 

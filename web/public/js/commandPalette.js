@@ -7,6 +7,7 @@
     { key: 'transferler', etiket: 'Şube Transferleri', ikon: '🚚', roller: ['admin', 'eczaci'] },
     { key: 'etiketler', etiket: 'Raf Etiketleri', ikon: '🏷️' },
     { key: 'satis', etiket: 'Satış (POS)', ikon: '🧾' },
+    { key: 'depo-iade', etiket: 'Depoya iade (miadı yaklaşan ürünler, iade formu)', ikon: '↩️' },
     { key: 'recete-oku', etiket: 'Reçete oku (fotoğraftan sepete)', ikon: '📷' },
     { key: 'iadeler', etiket: 'Satış İadeleri', ikon: '↩️', roller: ['admin', 'eczaci'] },
     { key: 'musteriler', etiket: 'Müşteriler', ikon: '👤' },
