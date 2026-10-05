@@ -1,6 +1,7 @@
 (function () {
   const SEKMELER = [
     ['ozet', 'Özet'],
+    ['aile', 'Ürün ailesi'],
     ['fiyat', 'Fiyat hareketleri'],
     ['etkin', 'Etkin madde / ATC'],
     ['esdeger', 'Eşdeğer'],
@@ -56,19 +57,19 @@
     fiyat(k) {
       const h = k.hareketler;
       return `${grafik(h)}
-        <table style="margin-top:12px"><thead><tr><th>Tarih</th><th class="num">İSF</th><th class="num">DSF</th><th class="num">PSF</th><th class="num">KF</th><th class="num">KÖ</th><th class="num">Kİ</th><th>Kaynak</th></tr></thead>
+        <table style="margin-top:12px"><thead><tr><th>Tarih</th><th class="num">İSF</th><th class="num">DSF</th><th class="num">PSF</th><th class="num">KF</th><th class="num">KÖ</th><th class="num">FF</th><th class="num">Kİ</th><th>İşlem</th></tr></thead>
         <tbody>${
           h.length
             ? h
                 .map(
                   (x) => `<tr><td>${UI.esc(x.tarih)}</td><td class="num">${sayi(x.isf)}</td><td class="num">${sayi(x.dsf)}</td>
                   <td class="num">${sayi(x.psf)} ${x.psf_yon === 'artis' ? '<span style="color:var(--danger)">▲</span>' : x.psf_yon === 'dusus' ? '<span style="color:var(--success)">▼</span>' : ''}</td>
-                  <td class="num">${sayi(x.kf)}</td><td class="num">${sayi(x.ko)}</td><td class="num">${x.ki == null ? '-' : '%' + x.ki}</td><td>${UI.esc(x.kaynak || '')}</td></tr>`
+                  <td class="num">${sayi(x.kf)}</td><td class="num">${sayi(x.ko)}</td><td class="num">${sayi(x.ff)}</td><td class="num">${x.ki == null ? '-' : '%' + x.ki}</td><td>${UI.esc(x.kaynak || '')}</td></tr>`
                 )
                 .join('')
-            : '<tr><td colspan="8" class="empty-state">Fiyat kaydı yok. Bilgileri “Tablet bilgisi” sekmesinden girin veya CSV ile yükleyin.</td></tr>'
+            : '<tr><td colspan="9" class="empty-state">Fiyat kaydı yok. Bilgileri “Tablet bilgisi” sekmesinden girin veya CSV ile yükleyin.</td></tr>'
         }</tbody></table>
-        <p class="form-ipucu">İSF: imalatçı, DSF: depocu, PSF: perakende satış, KF: kamu fiyatı, KÖ: kamu ödenecek, Kİ: kurum iskontosu.</p>`;
+        <p class="form-ipucu">İSF: imalatçı, DSF: depocu, PSF: perakende satış, KF: kamu fiyatı, KÖ: kamu ödenecek, FF: fiyat farkı (PSF − KF), Kİ: kurum iskontosu.</p>`;
     },
     etkin(k) {
       const t = k.titck;
@@ -83,9 +84,10 @@
     },
     esdeger(k) {
       const tb = k.esdegerler.length
-        ? `<table><thead><tr><th>Ürün</th><th>Firma</th><th class="num">Stok</th><th class="num">Fiyat</th><th class="num">Fark</th><th></th></tr></thead><tbody>${k.esdegerler
+        ? `<div class="toolbar" style="margin:6px 0"><button class="secondary" data-secili="karsilastir">Seçilenleri karşılaştır</button><button class="secondary" data-secili="sepet">Seçilenleri sepete ekle</button></div>
+           <table><thead><tr><th></th><th>Ürün</th><th>Firma</th><th class="num">Stok</th><th class="num">Fiyat</th><th class="num">Fark</th><th></th></tr></thead><tbody>${k.esdegerler
             .map(
-              (e) => `<tr><td>${UI.esc(e.ad)}</td><td>${UI.esc(e.uretici || '-')}</td><td class="num">${e.stok}</td><td class="num">${UI.tl(e.satis_fiyati)}</td>
+              (e) => `<tr><td><input type="checkbox" class="kart-sec" value="${e.id}" aria-label="Seç" /></td><td>${UI.esc(e.ad)}</td><td>${UI.esc(e.uretici || '-')}</td><td class="num">${e.stok}</td><td class="num">${UI.tl(e.satis_fiyati)}</td>
               <td class="num" style="color:${e.fiyat_farki < 0 ? 'var(--success)' : e.fiyat_farki > 0 ? 'var(--danger)' : 'inherit'}">${e.fiyat_farki > 0 ? '+' : ''}${UI.tl(e.fiyat_farki)}</td>
               <td><button class="secondary" data-kart="${e.id}">Kart</button></td></tr>`
             )
@@ -98,6 +100,9 @@
              .join('')}</tbody></table>`
         : '';
       return `<p class="form-ipucu">Eşleşme ölçütü: <b>${UI.esc(k.esdeger_kaynagi || 'yok')}</b>. Muadil değişimi reçete ve hekim kuralına uygun olmalıdır.</p>${tb}${tt}`;
+    },
+    aile() {
+      return '<div id="kart-aile"><span class="form-ipucu">Yükleniyor…</span></div>';
     },
     sut(k) {
       const b = k.bilgi;
@@ -137,6 +142,8 @@
           <div><label>KÜB bağlantısı</label><input name="kub_url" value="${UI.esc(b.kub_url || '')}" placeholder="https://" ${d}/></div>
           <div><label>KT bağlantısı</label><input name="kt_url" value="${UI.esc(b.kt_url || '')}" placeholder="https://" ${d}/></div>
           <div><label><input type="checkbox" name="sgk_kapsaminda" ${b.sgk_kapsaminda ? 'checked' : ''} ${d}/> SGK kapsamında</label></div>
+          <div><label>Dermokozmetik kategori</label><select name="derma_ana" ${d}><option value=""></option>${Object.keys(s.derma).map((a) => `<option ${b.derma_ana === a ? 'selected' : ''}>${UI.esc(a)}</option>`).join('')}</select></div>
+          <div><label>Alt kategori</label><select name="derma_alt" ${d}><option value=""></option>${(s.derma[b.derma_ana] || []).map((a) => `<option ${b.derma_alt === a ? 'selected' : ''}>${UI.esc(a)}</option>`).join('')}</select></div>
         </div>
         <div><label>SUT / ödeme notu</label><textarea name="sut_notu" rows="4" ${d}>${UI.esc(b.sut_notu || '')}</textarea></div>
         ${yazma ? '<div class="modal-actions"><button type="submit">Kaydet</button></div>' : '<p class="form-ipucu">Düzenleme eczacı ve yönetici içindir.</p>'}
@@ -239,12 +246,44 @@
         if (!kart) return;
         hedef.innerHTML = `
           <div class="card">
-            <h3 style="margin:0 0 10px">${UI.esc(kart.ilac.ad)}</h3>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+              <h3 style="margin:0;flex:1 1 260px">${UI.esc(kart.ilac.ad)}</h3>
+              <button class="secondary" data-islem="sepet">Sepete ekle</button>
+              <button class="secondary" data-islem="karsilastir">Karşılaştırmaya ekle</button>
+            </div>
             <div class="toolbar" id="kart-sekmeler">${SEKMELER.map(([k, e]) => `<button class="secondary${sekme === k ? ' active' : ''}" data-sekme="${k}">${e}</button>`).join('')}</div>
             <div id="kart-icerik">${sekmeHtml[sekme](kart, yazma)}</div>
           </div>`;
         if (sekme === 'maliyet') maliyetBagla();
+        if (sekme === 'aile') aileCiz();
         if (sekme === 'tablet' && yazma) formBagla();
+      };
+
+      const aileCiz = async () => {
+        const hedef = document.getElementById('kart-aile');
+        try {
+          const a = await Api.get(`/api/ilac-bilgi/${secili}/aile`);
+          hedef.innerHTML = a.hatlar.length
+            ? a.hatlar
+                .map(
+                  (h) => `<div style="margin-bottom:14px"><h4 style="margin:0 0 6px">${UI.esc(h.hat)}</h4>${h.dozlar
+                    .map(
+                      (d) => `<div style="margin:0 0 6px 10px"><span class="badge muted">${UI.esc(d.doz)}</span>
+                        <ul style="margin:4px 0 0 0;padding-left:18px">${d.urunler
+                          .map(
+                            (u) => `<li style="margin:3px 0;${u.secili ? 'font-weight:700' : ''}">${UI.esc(u.ambalaj)}
+                              ${u.sgk ? '<span class="badge ok">SGK</span>' : ''}
+                              ${u.katalogda ? `<small style="color:var(--text-muted)"> · stok ${u.stok}</small> ${u.secili ? '' : `<button class="secondary" data-kart="${u.id}">Kart</button>`}` : `<small style="color:var(--text-muted)"> · katalogda yok</small> ${yazma ? `<button class="secondary" data-ekle="${UI.esc(u.barkod)}">Kataloğa ekle</button>` : ''}`}</li>`
+                          )
+                          .join('')}</ul></div>`
+                    )
+                    .join('')}</div>`
+                )
+                .join('') + '<p class="form-ipucu">Aile, ürün adının ilk kelimesine (marka) göre katalog ve TİTCK listesinden oluşturulur; doz ve ambalaj addan ayrıştırılır.</p>'
+            : '<p class="empty-state">Bu markada başka ürün bulunamadı.</p>';
+        } catch (err) {
+          hedef.innerHTML = `<p class="form-ipucu">${UI.esc(err.message)}</p>`;
+        }
       };
 
       const maliyetBagla = () => {
@@ -267,7 +306,12 @@
       };
 
       const formBagla = () => {
-        document.getElementById('kart-form').addEventListener('submit', async (e) => {
+        const form = document.getElementById('kart-form');
+        form.derma_ana.addEventListener('change', () => {
+          const altlar = kart.secenekler.derma[form.derma_ana.value] || [];
+          form.derma_alt.innerHTML = '<option value=""></option>' + altlar.map((a) => `<option>${UI.esc(a)}</option>`).join('');
+        });
+        form.addEventListener('submit', async (e) => {
           e.preventDefault();
           const fd = new FormData(e.target);
           const veri = {
@@ -275,7 +319,8 @@
             tablet_sekil: fd.get('tablet_sekil'), tablet_yazi: fd.get('tablet_yazi'), tablet_centik: fd.get('tablet_centik'),
             tablet_seffaf: fd.get('tablet_seffaf') === 'on', sgk_kapsaminda: fd.get('sgk_kapsaminda') === 'on',
             imalatci_fiyati: fd.get('imalatci_fiyati'), depocu_fiyati: fd.get('depocu_fiyati'), kamu_fiyati: fd.get('kamu_fiyati'), kamu_odenecek: fd.get('kamu_odenecek'),
-            kub_url: fd.get('kub_url'), kt_url: fd.get('kt_url'), sut_notu: fd.get('sut_notu')
+            kub_url: fd.get('kub_url'), kt_url: fd.get('kt_url'), sut_notu: fd.get('sut_notu'),
+            derma_ana: fd.get('derma_ana') || null, derma_alt: fd.get('derma_alt') || null
           };
           try {
             await Api.put(`/api/ilac-bilgi/${secili}`, veri);
@@ -301,6 +346,21 @@
       }
 
       container.addEventListener('click', async (e) => {
+        const islem = e.target.closest('button[data-islem]');
+        if (islem && secili) {
+          if (islem.dataset.islem === 'sepet') return EczamSecim.sepeteGonder([secili]);
+          const l = EczamSecim.karsilastirmayaEkle([secili]);
+          return UI.toast(`Karşılaştırma listesinde ${l.length} ürün var` + (l.length >= 2 ? ' — Müstahzar Karşılaştırma sayfasından açın' : ''), 'success');
+        }
+        const toplu = e.target.closest('button[data-secili]');
+        if (toplu) {
+          const idler = [...container.querySelectorAll('.kart-sec:checked')].map((c) => Number(c.value));
+          if (!idler.length) return UI.toast('Önce ürün seçin', 'error');
+          if (toplu.dataset.secili === 'sepet') return EczamSecim.sepeteGonder(idler);
+          EczamSecim.karsilastirmayaEkle([secili, ...idler]);
+          location.hash = '#karsilastir';
+          return;
+        }
         const sek = e.target.closest('button[data-sekme]');
         if (sek) {
           sekme = sek.dataset.sekme;
