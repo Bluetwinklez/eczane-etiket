@@ -4,7 +4,7 @@ const { db } = require('./db');
 // sonuc ne oldu" olarak kaydeder. Basarisiz istekler de kaydedilir;
 // yetkisiz deneme izlerini gormek icin onemlidir.
 const DEGISTIREN_YONTEMLER = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
-const GIZLI_ALANLAR = new Set(['sifre', 'mevcut_sifre', 'yeni_sifre', 'sifre_hash', 'sifre_salt']);
+const GIZLI_ALANLAR = new Set(['sifre', 'mevcut_sifre', 'yeni_sifre', 'sifre_hash', 'sifre_salt', 'soru']);
 const MAKS_DETAY = 1000;
 
 function detayOzetle(yol, body) {
