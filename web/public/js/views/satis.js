@@ -408,6 +408,14 @@
 
       sepetiCiz(container);
       aramaSonuclariniCiz('');
+      // Ilac karti / kategori gezgininden "Sepete ekle" ile gelen urunler
+      for (const id of window.EczamSecim ? window.EczamSecim.sepetBekleyenleriAl() : []) {
+        try {
+          sepeteEkle(await Api.get('/api/ilaclar/' + id), container);
+        } catch (err) {
+          UI.toast(err.message, 'error');
+        }
+      }
 
       let aramaTimer;
       const aramaInput = document.getElementById('pos-arama');
