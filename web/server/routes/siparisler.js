@@ -4,12 +4,19 @@ const { partiGiris } = require('../partiler');
 const { sendPdf } = require('../export');
 const { stokYeterlilik } = require('../stokAnaliz');
 
+const { mevsimselTahmin } = require('../mevsimsel');
 const router = express.Router();
 
 // Akilli siparis onerisi: son 30 gunun net satis hizina (iadeler dusulur) gore
 // stogun kac gun yetecegi hesaplanir (bkz. ../stokAnaliz.js). Kritik stok altinda
 // olan ya da temin suresinden (varsayilan 7 gun) once bitecek urunler onerilir;
 // onerilen adet stogu hedef gun sayisina (varsayilan 30) tamamlar.
+// Mevsimsel tahmin: gecen yilin ayni donemi ya da sezon takvimine gore onumuzdeki gunlerin talebi
+router.get('/mevsimsel', (req, res) => {
+  const gun = Math.min(90, Math.max(7, Number(req.query.gun) || 30));
+  res.json(mevsimselTahmin(req.user.sube_id, { gun }));
+});
+
 router.get('/oneriler', (req, res) => {
   const hedefGun = Math.min(120, Math.max(7, Number(req.query.hedef_gun) || 30));
   const teminGun = Math.min(60, Math.max(1, Number(req.query.temin_gun) || 7));

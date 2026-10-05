@@ -2,6 +2,7 @@
   let liste = [];
   let tedarikciler = [];
   let oneriler = [];
+  let mevsimsel = { urunler: [], kategoriler: [], sezonlar: [] };
   let sepet = [];
 
   const DURUM_ROZETI = {
@@ -11,7 +12,15 @@
     iptal: '<span class="badge danger">İptal</span>'
   };
 
-  function yeniSiparisModalGoster(onKaydedildi) {
+  function yeniSiparisModalGoster(onKaydedildi, ekler = []) {
+    // Mevsimsel tahminden secilenler: akilli oneride olmayanlar listeye eklenir, hepsi isaretli gelir
+    const ekIdler = new Set(ekler.map((e) => e.id));
+    const satirlar = oneriler.map((o) => ({ ...o, secili: ekIdler.has(o.ilac_id) }));
+    for (const e of ekler) {
+      const var_ = satirlar.find((o) => o.ilac_id === e.id);
+      if (var_) var_.onerilen_adet = Math.max(var_.onerilen_adet, e.oneri);
+      else satirlar.push({ ilac_id: e.id, ad: e.ad, stok: e.stok, son_satis: e.son_satis, yetecek_gun: null, onerilen_adet: Math.max(1, e.oneri), neden: 'mevsimsel', secili: true });
+    }
     const modal = UI.openModal(`
       <h3>Yeni Sipariş Oluştur</h3>
       <div class="form-grid">
@@ -26,11 +35,11 @@
       <table>
         <thead><tr><th></th><th>İlaç</th><th class="num">Stok</th><th class="num">30 Gün Satış</th><th class="num">Yeter</th><th class="num">Sipariş Adedi</th></tr></thead>
         <tbody id="sp-oneri-tbody">
-          ${oneriler
+          ${satirlar
             .map(
               (o) => `<tr>
-                <td><input type="checkbox" class="sp-sec" data-id="${o.ilac_id}" style="width:auto" /></td>
-                <td>${UI.esc(o.ad)} ${o.neden === 'hizli_tukeniyor' ? '<span class="badge warn">Hızlı tükeniyor</span>' : '<span class="badge danger">Kritik</span>'}</td>
+                <td><input type="checkbox" class="sp-sec" data-id="${o.ilac_id}" style="width:auto" ${o.secili ? 'checked' : ''} /></td>
+                <td>${UI.esc(o.ad)} ${o.neden === 'mevsimsel' ? '<span class="badge muted">Mevsimsel</span>' : o.neden === 'hizli_tukeniyor' ? '<span class="badge warn">Hızlı tükeniyor</span>' : '<span class="badge danger">Kritik</span>'}</td>
                 <td class="num">${o.stok}</td>
                 <td class="num">${o.son_satis}</td>
                 <td class="num">${o.yetecek_gun === null ? '-' : o.yetecek_gun + ' gün'}</td>
@@ -137,11 +146,13 @@
 
   const view = {
     async render(container) {
-      [liste, tedarikciler, oneriler] = await Promise.all([
+      [liste, tedarikciler, oneriler, mevsimsel] = await Promise.all([
         Api.get('/api/siparisler'),
         Api.get('/api/tedarikciler'),
-        Api.get('/api/siparisler/oneriler')
+        Api.get('/api/siparisler/oneriler'),
+        Api.get('/api/siparisler/mevsimsel?gun=30').catch(() => ({ urunler: [], kategoriler: [], sezonlar: [] }))
       ]);
+      const KAYNAK = { gecen_yil: 'geçen yıl aynı dönem', takvim: 'sezon takvimi' };
 
       container.innerHTML = `
         ${
@@ -152,6 +163,19 @@
               </div>`
             : ''
         }
+        <div class="card" id="mev-kart">
+          <h3 style="margin-top:0">📈 Mevsimsel tahmin — önümüzdeki 30 gün</h3>
+          <p class="form-ipucu" style="margin-top:0">${mevsimsel.sezonlar.length ? `Bu dönemin sezonu: <b>${mevsimsel.sezonlar.map(UI.esc).join(', ')}</b>. ` : ''}Son 30 günlük satış, geçen yılın aynı döneminde görülen artışla (yoksa sezon takvimiyle) çarpılır; stoğu yetmeyecek ürünler önerilir.</p>
+          ${mevsimsel.kategoriler.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${mevsimsel.kategoriler.slice(0, 8).map((k) => `<span class="badge ${k.degisim > 10 ? 'warn' : k.degisim < -10 ? 'muted' : 'ok'}">${UI.esc(k.kategori)} ${k.degisim == null ? 'yeni' : (k.degisim > 0 ? '+' : '') + k.degisim.toLocaleString('tr-TR') + '%'}</span>`).join('')}</div>` : ''}
+          ${
+            mevsimsel.urunler.length
+              ? `<div class="tablo-kaydir" style="max-height:45vh;overflow-y:auto"><table><thead><tr><th></th><th>Ürün</th><th class="num">Stok</th><th class="num">Son 30 gün</th><th class="num">Çarpan</th><th class="num">Tahmin</th><th class="num">Öneri</th><th>Dayanak</th></tr></thead><tbody>
+                ${mevsimsel.urunler.slice(0, 60).map((u) => `<tr><td><input type="checkbox" class="mev-sec" value="${u.id}" ${u.oneri > 0 ? 'checked' : ''} style="width:auto" /></td><td>${UI.esc(u.ad)}${u.sezon ? `<br><small class="form-ipucu">${UI.esc(u.sezon)}</small>` : ''}</td><td class="num">${u.stok}</td><td class="num">${u.son_satis}</td><td class="num">×${u.carpan.toLocaleString('tr-TR')}</td><td class="num">${u.tahmin}</td><td class="num"><b>${u.oneri}</b></td><td><small>${KAYNAK[u.kaynak] || '-'}${u.kaynak === 'gecen_yil' ? ` (${u.gecen_yil_onceki} → ${u.gecen_yil_sonraki})` : ''}</small></td></tr>`).join('')}
+                </tbody></table></div>
+                <div style="margin-top:8px"><button id="mev-siparis">Seçilenlerle sipariş oluştur</button></div>`
+              : '<p class="form-ipucu" style="margin:0">Bu dönem için belirgin bir mevsimsel artış beklenmiyor.</p>'
+          }
+        </div>
         <div class="toolbar">
           <div class="spacer"></div>
           <button id="yeni-siparis-btn">+ Yeni Sipariş</button>
@@ -187,6 +211,17 @@
         }
         yeniSiparisModalGoster(() => view.render(container));
       });
+
+      const mevBtn = document.getElementById('mev-siparis');
+      if (mevBtn) {
+        mevBtn.addEventListener('click', () => {
+          if (tedarikciler.length === 0) return UI.toast('Önce bir tedarikçi ekleyin', 'error');
+          const idler = new Set([...container.querySelectorAll('.mev-sec:checked')].map((c) => Number(c.value)));
+          const secilen = mevsimsel.urunler.filter((u) => idler.has(u.id));
+          if (!secilen.length) return UI.toast('Ürün seçin', 'error');
+          yeniSiparisModalGoster(() => view.render(container), secilen);
+        });
+      }
 
       tbody.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-action="detay"]');
