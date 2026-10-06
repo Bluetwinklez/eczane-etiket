@@ -1,3 +1,4 @@
+const { kuralUyarilari } = require('./hastaGuvenligi');
 const { db } = require('./db');
 
 const SEVIYE_SIRASI = { ciddi: 0, orta: 1, hafif: 2 };
@@ -114,7 +115,7 @@ function yasHesapla(dogumTarihi, bugun = new Date()) {
 
 const YASLI_ESIGI = 65;
 // Musterinin gebelik/emzirme durumu ve yasina gore sepetteki urunler icin uyarilar.
-// urunler: [{ ad, gebelik_uyari, min_yas, yasli_uyari }]
+// urunler: [{ ad, gebelik_uyari, min_yas, yasli_uyari, atc_kodu, etken_madde }]; musteri.kilo: son kilo olcumu
 function hastaUyarilari(musteri, urunler, bugun = new Date()) {
   if (!musteri) return [];
   const yas = yasHesapla(musteri.dogum_tarihi, bugun);
@@ -137,6 +138,8 @@ function hastaUyarilari(musteri, urunler, bugun = new Date()) {
     if (yas !== null && yas >= YASLI_ESIGI && u.yasli_uyari) {
       uyarilar.push({ tur: 'yasli', seviye: 'orta', urun: u.ad, mesaj: `Müşteri ${yas} yaşında; ürün ileri yaşta dikkat gerektirir (doz/yan etki).` });
     }
+    // Elle bayrak girilmemisse etken madde / ATC sinifina gore hazir kurallar
+    uyarilar.push(...kuralUyarilari({ yas, durum: durumAdi || null, kilo: musteri.kilo || null }, u, YASLI_ESIGI));
   }
   return uyarilar.sort((a, b) => SEVIYE_SIRASI[a.seviye] - SEVIYE_SIRASI[b.seviye]);
 }

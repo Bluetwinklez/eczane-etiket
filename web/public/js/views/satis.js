@@ -67,7 +67,7 @@
       sonEtkilesim = sonuc;
       const satirlar = [
         ...(sonuc.hasta || []).map(
-          (h) => `<div class="etkilesim ${h.seviye}"><b>${{ gebelik: 'Gebelik/emzirme', yas: 'Yaş sınırı', yasli: 'İleri yaş' }[h.tur]}:</b> ${UI.esc(h.urun)} — ${UI.esc(h.mesaj)}</div>`
+          (h) => `<div class="etkilesim ${h.seviye}"><b>${{ gebelik: 'Gebelik/emzirme', yas: 'Yaş sınırı', yasli: 'İleri yaş', doz: 'Çocuk dozu' }[h.tur]}:</b> ${UI.esc(h.urun)} — ${UI.esc(h.mesaj)}</div>`
         ),
         ...sonuc.alerji.map(
           (a) => `<div class="etkilesim ciddi"><b>Alerji/sağlık notu:</b> ${UI.esc(a.urun)} (${UI.esc(a.madde)}) — müşteri notunda "${UI.esc(a.eslesen)}" geçiyor.</div>`
@@ -123,8 +123,37 @@
     el.style.color = kart < 0 ? 'var(--danger)' : '';
   }
 
+  // Musteri ekrani (ikinci monitor / tablet): sepet ve toplam canli gonderilir; kisisel bilgi gonderilmez
+  let ekranKanali = null;
+  try {
+    ekranKanali = 'BroadcastChannel' in window ? new BroadcastChannel('eczam-musteri-ekrani') : null;
+  } catch (e) {
+    ekranKanali = null;
+  }
+  let ekranZamanlayici = null;
+  let tesekkurZamani = 0;
+  function musteriEkraninaGonder(durum) {
+    if (ekranKanali) ekranKanali.postMessage(durum);
+    fetch('/api/musteri-ekrani', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(durum) }).catch(() => {});
+  }
+  function musteriEkraniGuncelle(h) {
+    clearTimeout(ekranZamanlayici);
+    ekranZamanlayici = setTimeout(() => {
+      // Satis bitince sepet bosalir; tesekkur ekrani birkac saniye kalsin
+      if (!sepet.length && Date.now() - tesekkurZamani < 8000) return;
+      musteriEkraninaGonder({
+        durum: sepet.length ? 'sepet' : 'bos',
+        kalemler: sepet.map((k) => ({ ad: k.ad, adet: k.adet, tutar: Math.round(k.satis_fiyati * k.adet * 100) / 100 })),
+        ara_toplam: h.ara_toplam,
+        indirim: Math.round(((h.kampanya_indirimi || 0) + (h.indirim_tutari || 0) + (h.puan_indirimi || 0)) * 100) / 100,
+        toplam: h.toplam_tutar
+      });
+    }, 150);
+  }
+
   function toplamlariYaz(h) {
     sonToplam = h.toplam_tutar;
+    musteriEkraniGuncelle(h);
     karmaGuncelle();
     document.getElementById('pos-ara-toplam').textContent = UI.tl(h.ara_toplam);
     const kampanyaSatiri = document.getElementById('pos-kampanya-satiri');
@@ -176,6 +205,70 @@
       // Onizleme hatasi satisi engellemez; satis sirasinda sunucu yine dogrular
     }
   }
+
+  // Satistaki ilaclar icin kutuya yapistirilacak kullanim etiketleri (A4 etiket kagidi ya da 50x30 mm termal)
+  async function kullanimEtiketleriAc(satisId) {
+    let v;
+    try {
+      v = await Api.get(`/api/satislar/${satisId}/kullanim-etiketleri`);
+    } catch (err) {
+      return UI.toast(err.message, 'error');
+    }
+    const KE = window.KullanimEtiketi;
+    const kalemler = v.kalemler.filter((k) => ['ilac', 'takviye', null, undefined].includes(k.urun_tipi));
+    const tarih = new Date(v.tarih.replace(' ', 'T')).toLocaleDateString('tr-TR');
+    const modal = UI.openModal(`
+      <div class="modal-genis">
+        <h3 style="margin-top:0">Kullanım etiketleri</h3>
+        <div class="form-grid" style="margin-bottom:8px">
+          <div><label>Etiket</label><select id="ke-boyut"><option value="a4">A4 etiket kâğıdı (3×8, 70×37 mm)</option><option value="termal">Termal etiket 50×30 mm</option></select></div>
+          <div><label>Hasta adı</label><input id="ke-hasta" value="${UI.esc(v.musteri_adi || '')}" placeholder="İsteğe bağlı" /></div>
+        </div>
+        <table><thead><tr><th></th><th>İlaç</th><th>Kullanım</th><th class="num">Etiket</th></tr></thead><tbody>
+          ${kalemler
+            .map(
+              (k, i) => `<tr><td><input type="checkbox" class="ke-sec" data-i="${i}" ${k.kullanim ? 'checked' : ''} style="width:auto" /></td><td>${UI.esc(k.ilac_adi)}</td>
+                <td><input class="ke-kullanim" data-i="${i}" value="${UI.esc(KE.kullanimMetni(k.kullanim, k.ilac_adi))}" placeholder="Örn. 2x1 tok" /></td>
+                <td class="num"><input type="number" class="ke-adet" data-i="${i}" min="1" max="10" value="${k.adet}" style="width:60px" /></td></tr>`
+            )
+            .join('') || '<tr><td colspan="4" class="empty-state">Etiket basılacak ilaç yok</td></tr>'}
+        </tbody></table>
+        <p class="form-ipucu">"2x1 tok", "3x5 ml", "1x1 sabah aç 7 gün" gibi kısaltmalar etikette açık cümleye çevrilir.</p>
+        <div id="ke-sayfa" class="yazdirilabilir"></div>
+      </div>
+      <div class="modal-actions"><button type="button" class="secondary" data-action="kapat">Kapat</button><button type="button" data-action="yazdir">🖨️ Yazdır</button></div>`);
+    const ciz = () => {
+      const boyut = modal.querySelector('#ke-boyut').value;
+      const etiketler = [];
+      modal.querySelectorAll('.ke-sec:checked').forEach((cb) => {
+        const i = cb.dataset.i;
+        const k = kalemler[Number(i)];
+        const kullanim = KE.kullanimMetni(modal.querySelector(`.ke-kullanim[data-i="${i}"]`).value, k.ilac_adi);
+        const adet = Math.min(10, Math.max(1, Number(modal.querySelector(`.ke-adet[data-i="${i}"]`).value) || 1));
+        for (let n = 0; n < adet; n++) etiketler.push(KE.etiketHtml({ ilac: k.ilac_adi, kullanim, hasta: modal.querySelector('#ke-hasta').value.trim(), tarih, eczane: v.sube_adi || '', telefon: v.sube_telefon }));
+      });
+      const sayfa = modal.querySelector('#ke-sayfa');
+      sayfa.className = `yazdirilabilir kullanim-etiketleri ke-${boyut}`;
+      sayfa.innerHTML = etiketler.join('') || '<p class="form-ipucu">Etiket seçin.</p>';
+    };
+    modal.addEventListener('input', ciz);
+    modal.addEventListener('change', (e) => {
+      if (e.target.classList.contains('ke-kullanim')) e.target.value = KE.kullanimMetni(e.target.value, kalemler[Number(e.target.dataset.i)].ilac_adi);
+      ciz();
+    });
+    modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));
+    modal.querySelector('[data-action="yazdir"]').addEventListener('click', () => {
+      if (!modal.querySelector('.ke-sec:checked')) return UI.toast('Etiket seçin', 'error');
+      // Termal yazicida her etiket ayri sayfa: gecici @page boyutu
+      const stil = document.createElement('style');
+      stil.textContent = modal.querySelector('#ke-boyut').value === 'termal' ? '@page { size: 50mm 30mm; margin: 0; }' : '@page { size: A4; margin: 10mm 5mm; }';
+      document.head.appendChild(stil);
+      window.print();
+      setTimeout(() => stil.remove(), 1000);
+    });
+    ciz();
+  }
+  window.KullanimEtiketleriAc = kullanimEtiketleriAc;
 
   function sepeteEkle(ilac, container) {
     const mevcut = sepet.find((k) => k.ilac_id === ilac.id);
@@ -314,7 +407,10 @@
                       .join('')}</div>`
                   : ''
               }
-              <input id="pos-arama" placeholder="İlaç adı, barkod veya karekod okutun..." autofocus />
+              <div style="display:flex;gap:8px;align-items:center">
+                <input id="pos-arama" placeholder="İlaç adı, barkod veya karekod okutun..." autofocus style="flex:1" />
+                <a href="#recete-oku" title="Reçete fotoğrafından ürünleri sepete ekle"><button type="button" class="secondary">📷 Reçete oku</button></a>
+              </div>
               <table style="margin-top:12px">
                 <thead><tr><th>Ad</th><th>Barkod</th><th class="num">Stok</th><th class="num">Fiyat</th></tr></thead>
                 <tbody id="arama-tbody" class="pos-search-results"></tbody>
@@ -328,6 +424,7 @@
                 <div class="spacer"></div>
                 <button class="secondary" id="pos-beklet" title="Sepeti beklet (F8)">⏸ Beklet</button>
                 <button class="secondary" id="pos-bekleyenler">Bekleyenler <span class="badge muted" id="pos-bekleyen-sayi">0</span></button>
+                <button class="secondary" id="pos-musteri-ekrani" title="İkinci monitör ya da tabletteki müşteri ekranı">🖥️ Müşteri ekranı</button>
               </div>
               ${
                 aktifKampanyalar.length
@@ -677,11 +774,17 @@
               ${satis.kazanilan_puan > 0 ? `<p class="form-ipucu">Kazanılan puan: <b>${satis.kazanilan_puan}</b></p>` : ''}
               ${uyariMetni}
             </div>
-            <div class="modal-actions"><button class="secondary" data-action="yazdir">Fiş Yazdır</button><button data-action="kapat">Tamam</button></div>
+            <div class="modal-actions"><button class="secondary" data-action="etiket">🏷️ Kullanım etiketi</button><button class="secondary" data-action="yazdir">Fiş Yazdır</button><button data-action="kapat">Tamam</button></div>
           `);
           modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));
           modal.querySelector('[data-action="yazdir"]').addEventListener('click', () => window.print());
+          modal.querySelector('[data-action="etiket"]').addEventListener('click', () => {
+            UI.closeModal(modal);
+            kullanimEtiketleriAc(satis.id);
+          });
 
+          tesekkurZamani = Date.now();
+          musteriEkraninaGonder({ durum: 'tesekkur', kalemler: [], toplam: satis.toplam_tutar });
           UI.toast('Satış tamamlandı', 'success');
           view.render(container);
         } catch (err) {
@@ -699,6 +802,39 @@
         return liste;
       };
       bekleyenSayisiniGuncelle();
+
+      document.getElementById('pos-musteri-ekrani').addEventListener('click', async () => {
+        let a;
+        try {
+          a = await Api.get('/api/musteri-ekrani/anahtar');
+        } catch (err) {
+          return UI.toast('Müşteri ekranını yönetici ya da eczacı kurar: ' + err.message, 'error');
+        }
+        const adres = `${location.origin}/musteri-ekrani.html#${a.anahtar}`;
+        const modal = UI.openModal(`
+          <h3 style="margin-top:0">Müşteri ekranı</h3>
+          <p>İkinci monitör için <b>Bu bilgisayarda aç</b> deyin ve açılan pencereyi müşteriye dönük ekrana taşıyıp tam ekran yapın (F11). Tezgâhtaki tablette ise aşağıdaki adresi açın (tablet aynı ağda olmalı; adresteki <i>localhost</i> yerine bu bilgisayarın ağ adresi yazılır).</p>
+          <input id="me-adres" readonly value="${UI.esc(adres)}" style="width:100%" />
+          <p class="form-ipucu">Ekranda yalnızca ürünler ve tutar görünür; müşteri adı gösterilmez. Adres gizlidir; değiştirmek için "Yeni adres" deyin (eski ekranlar kapanır).</p>
+          <div class="modal-actions"><button class="secondary" data-a="yeni">Yeni adres</button><button class="secondary" data-a="kopyala">Adresi kopyala</button><button data-a="ac">Bu bilgisayarda aç</button></div>`);
+        modal.addEventListener('click', async (e) => {
+          const b = e.target.closest('[data-a]');
+          if (!b) return;
+          if (b.dataset.a === 'ac') window.open(modal.querySelector('#me-adres').value, 'eczam-musteri-ekrani', 'popup,width=1024,height=700');
+          if (b.dataset.a === 'kopyala') {
+            try {
+              await navigator.clipboard.writeText(modal.querySelector('#me-adres').value);
+              UI.toast('Adres kopyalandı', 'success');
+            } catch (err) {
+              modal.querySelector('#me-adres').select();
+            }
+          }
+          if (b.dataset.a === 'yeni') {
+            const y = await Api.get('/api/musteri-ekrani/anahtar?yenile=1');
+            modal.querySelector('#me-adres').value = `${location.origin}/musteri-ekrani.html#${y.anahtar}`;
+          }
+        });
+      });
 
       const sepetiBeklet = async () => {
         if (!sepet.length) {

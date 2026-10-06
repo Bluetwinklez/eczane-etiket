@@ -46,6 +46,8 @@ const kullaniciBul = db.prepare('SELECT id, kullanici_adi, sube_id FROM kullanic
 
 function islemKaydiMiddleware(req, res, next) {
   if (!DEGISTIREN_YONTEMLER.has(req.method)) return next();
+  // Musteri ekrani her sepet degisiminde durum gonderir; veri degistirmez, kayda girmez
+  if (req.originalUrl.startsWith('/api/musteri-ekrani')) return next();
 
   const yol = req.originalUrl;
   // Detay, route govdeyi degistirmeden once alinir.
