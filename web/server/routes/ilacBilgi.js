@@ -506,3 +506,4 @@ router.put('/:id', yonetici, (req, res) => {
 });
 
 module.exports = router;
+module.exports.fiyatHareketiYaz = fiyatHareketiYaz;
