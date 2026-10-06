@@ -55,6 +55,7 @@ const TABLO_SIRASI = [
   'musteri_olcumleri',
   'depo_iadeleri',
   'depo_iade_kalemleri',
+  'e_arsiv_faturalari',
   'duyurular'
 ];
 

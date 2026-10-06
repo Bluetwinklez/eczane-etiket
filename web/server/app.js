@@ -34,6 +34,7 @@ const sgkRoutes = require('./routes/sgk');
 const receteOkuRoutes = require('./routes/receteOku');
 const fiyatListesiRoutes = require('./routes/fiyatListesi');
 const depoIadeRoutes = require('./routes/depoIade');
+const eArsivRoutes = require('./routes/eArsiv');
 const gunSonuRoutes = require('./routes/gunSonu');
 const musteriEkrani = require('./routes/musteriEkrani');
 const siparislerRoutes = require('./routes/siparisler');
@@ -109,6 +110,7 @@ app.use('/api/sgk', requireLogin, sgkRoutes);
 app.use('/api/recete-oku', requireLogin, receteOkuRoutes);
 app.use('/api/fiyat-listesi', requireLogin, fiyatListesiRoutes);
 app.use('/api/depo-iade', requireLogin, depoIadeRoutes);
+app.use('/api/e-arsiv', requireLogin, eArsivRoutes);
 app.use('/api/gun-sonu', requireLogin, gunSonuRoutes);
 // Musteri ekrani: canli akis girissiz (gizli anahtarla), kasa tarafi girisli
 app.use('/api/musteri-ekrani/akis', musteriEkrani.akis);
