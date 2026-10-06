@@ -115,10 +115,37 @@
       </table>
       ${teslimAlinabilir ? '<p class="form-ipucu">Parti No ve SKT boş bırakılırsa ilacın varsayılan SKT\'si kullanılır.</p>' : ''}
       <div class="cart-total"><span>Tahmini Toplam</span><span>${UI.tl(toplam)}</span></div>
-      <div class="modal-actions"><a class="hap-link" href="/api/siparisler/${detay.id}/form" target="_blank" rel="noopener">Sipariş Formu (PDF) ${Ikon.svg('ok')}</a>${aksiyonlar.join('')}<button class="secondary" data-action="kapat">Kapat</button></div>
+      <div class="sp-gonder"><span class="form-ipucu">Depoya gönder:</span><a class="hap-link" href="/api/siparisler/${detay.id}/form" target="_blank" rel="noopener">Sipariş formu (PDF) ${Ikon.svg('ok')}</a><a class="hap-link" href="/api/siparisler/${detay.id}/csv" download title="Depo B2B portalındaki dosyadan sipariş ekranına yüklenir (barkod + adet)">Depo dosyası (CSV)</a>${detay.durum !== 'iptal' ? `<button class="secondary" data-action="eposta" title="${UI.esc(detay.tedarikci_email || 'Tedarikçide e-posta yok')}">✉️ E-postayla gönder</button>` : ''}</div>
+      <div class="modal-actions">${aksiyonlar.join('')}<button class="secondary" data-action="kapat">Kapat</button></div>
     `);
 
     modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));
+    const epostaBtn = modal.querySelector('[data-action="eposta"]');
+    if (epostaBtn)
+      epostaBtn.addEventListener('click', async () => {
+        let adres = detay.tedarikci_email || '';
+        if (!adres) {
+          adres = (window.prompt(`${detay.firma_adi || 'Tedarikçi'} için e-posta adresi:`) || '').trim();
+          if (!adres) return;
+        }
+        epostaBtn.disabled = true;
+        try {
+          const r = await Api.post(`/api/siparisler/${detay.id}/eposta`, { adres });
+          if (r.durum === 'gonderildi') {
+            UI.toast(`Sipariş ${r.adres} adresine gönderildi`, 'success');
+            UI.closeModal(modal);
+            view.render(document.getElementById('content'));
+          } else {
+            // SMTP ayarli degil: e-posta programinda hazir taslak acilir; CSV elle eklenir
+            window.location.href = r.mailto;
+            UI.toast('E-posta programında taslak açıldı. "Depo dosyası (CSV)"yı indirip ekleyebilirsiniz.', 'info');
+          }
+        } catch (err) {
+          UI.toast(err.message, 'error');
+        } finally {
+          epostaBtn.disabled = false;
+        }
+      });
     ['gonderildi', 'teslim_alindi', 'iptal'].forEach((durum) => {
       const btn = modal.querySelector(`[data-action="${durum}"]`);
       if (!btn) return;

@@ -1,7 +1,9 @@
 const express = require('express');
 const { db } = require('../db');
 const { partiGiris } = require('../partiler');
-const { sendPdf } = require('../export');
+const { sendPdf, sendCsv, toCsv } = require('../export');
+// Modul nesnesi uzerinden cagrilir: testlerde gonderici degistirilebilir
+const bildirim = require('../bildirim');
 const { stokYeterlilik } = require('../stokAnaliz');
 
 const { mevsimselTahmin } = require('../mevsimsel');
@@ -60,16 +62,16 @@ router.get('/', (req, res) => {
   res.json(db.prepare(sql).all(...params));
 });
 
-// Tedarikciye gonderilecek siparis formu (PDF): barkod, urun, adet, tahmini tutar
-router.get('/:id/form', (req, res) => {
+// Tedarikciye gonderilecek siparisin baslik ve kalemleri (PDF, CSV ve e-posta ortak)
+function siparisFormu(id) {
   const siparis = db
     .prepare(
-      `SELECT s.*, t.firma_adi, t.telefon AS tedarikci_tel, sb.ad AS sube_adi, sb.telefon AS sube_tel
+      `SELECT s.*, t.firma_adi, t.telefon AS tedarikci_tel, t.email AS tedarikci_email, sb.ad AS sube_adi, sb.telefon AS sube_tel
        FROM siparisler s JOIN tedarikciler t ON t.id = s.tedarikci_id JOIN subeler sb ON sb.id = s.sube_id
        WHERE s.id = ?`
     )
-    .get(req.params.id);
-  if (!siparis) return res.status(404).json({ error: 'Sipariş bulunamadı' });
+    .get(id);
+  if (!siparis) return null;
   const kalemler = db
     .prepare(
       `SELECT k.ilac_adi, i.barkod, k.istenen_adet, k.tahmini_birim_fiyat,
@@ -77,13 +79,43 @@ router.get('/:id/form', (req, res) => {
        FROM siparis_kalemleri k LEFT JOIN ilaclar i ON i.id = k.ilac_id WHERE k.siparis_id = ? ORDER BY k.id`
     )
     .all(siparis.id);
-  const toplam = kalemler.reduce((t, k) => t + k.tutar, 0);
+  return { siparis, kalemler, toplam: Math.round(kalemler.reduce((t, k) => t + k.tutar, 0) * 100) / 100 };
+}
+
+// Depo B2B portallarinin "dosyadan siparis" ekranlari barkod + adet sutunlarini okur
+const CSV_SUTUNLARI = [
+  { alan: 'barkod', baslik: 'Barkod' },
+  { alan: 'ilac_adi', baslik: 'Ürün' },
+  { alan: 'istenen_adet', baslik: 'Adet' },
+  { alan: 'tahmini_birim_fiyat', baslik: 'Birim Fiyat' }
+];
+
+function epostaMetni(f) {
+  const { siparis, kalemler } = f;
+  return [
+    `Merhaba${siparis.firma_adi ? ' ' + siparis.firma_adi : ''},`,
+    '',
+    `${siparis.sube_adi} için sipariş #${siparis.id}:`,
+    '',
+    ...kalemler.map((k) => `${k.barkod || '-'}  ${k.ilac_adi}  x ${k.istenen_adet}`),
+    '',
+    `Toplam ${kalemler.reduce((t, k) => t + k.istenen_adet, 0)} kutu, ${kalemler.length} kalem.${siparis.notlar ? '\nNot: ' + siparis.notlar : ''}`,
+    'Barkod/adet listesi ektedir (CSV).',
+    '',
+    `İyi çalışmalar${siparis.sube_tel ? ' — ' + siparis.sube_tel : ''}`
+  ].join('\n');
+}
+
+router.get('/:id/form', (req, res) => {
+  const f = siparisFormu(req.params.id);
+  if (!f) return res.status(404).json({ error: 'Sipariş bulunamadı' });
+  const { siparis, kalemler, toplam } = f;
   const baslik = `Sipariş Formu #${siparis.id} — ${siparis.sube_adi} → ${siparis.firma_adi} — ${siparis.olusturma_tarihi.slice(0, 10)}`;
   sendPdf(
     res,
     `siparis-${siparis.id}.pdf`,
     baslik,
-    [...kalemler, { ilac_adi: 'TOPLAM', istenen_adet: kalemler.reduce((t, k) => t + k.istenen_adet, 0), tutar: Math.round(toplam * 100) / 100 }],
+    [...kalemler, { ilac_adi: 'TOPLAM', istenen_adet: kalemler.reduce((t, k) => t + k.istenen_adet, 0), tutar: toplam }],
     [
       { alan: 'ilac_adi', baslik: 'Ürün' },
       { alan: 'barkod', baslik: 'Barkod' },
@@ -94,8 +126,42 @@ router.get('/:id/form', (req, res) => {
   );
 });
 
+router.get('/:id/csv', (req, res) => {
+  const f = siparisFormu(req.params.id);
+  if (!f) return res.status(404).json({ error: 'Sipariş bulunamadı' });
+  sendCsv(res, `siparis-${f.siparis.id}.csv`, f.kalemler, CSV_SUTUNLARI);
+});
+
+// Siparisi tedarikcinin e-postasina CSV ekiyle gonderir. SMTP yoksa e-posta programinda acilacak mailto baglantisi doner.
+router.post('/:id/eposta', async (req, res) => {
+  const f = siparisFormu(req.params.id);
+  if (!f) return res.status(404).json({ error: 'Sipariş bulunamadı' });
+  if (!f.kalemler.length) return res.status(400).json({ error: 'Siparişte ürün yok' });
+  const adres = String((req.body && req.body.adres) || f.siparis.tedarikci_email || '').trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adres)) return res.status(400).json({ error: 'Tedarikçinin geçerli bir e-posta adresi yok' });
+  const konu = `Sipariş #${f.siparis.id} — ${f.siparis.sube_adi}`;
+  const metin = epostaMetni(f);
+  const sonuc = { adres, konu, metin, mailto: `mailto:${encodeURIComponent(adres)}?subject=${encodeURIComponent(konu)}&body=${encodeURIComponent(metin)}` };
+  if (!bildirim.smtpYapilandirilmisMi()) return res.json({ ...sonuc, durum: 'simule' });
+  try {
+    await bildirim.getTransporter().sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to: adres,
+      subject: konu,
+      text: metin,
+      attachments: [{ filename: `siparis-${f.siparis.id}.csv`, content: '\ufeff' + toCsv(f.kalemler, CSV_SUTUNLARI), contentType: 'text/csv; charset=utf-8' }]
+    });
+  } catch (err) {
+    return res.status(502).json({ error: `E-posta gönderilemedi: ${String(err.message).slice(0, 200)}` });
+  }
+  if (f.siparis.durum === 'beklemede') db.prepare("UPDATE siparisler SET durum = 'gonderildi' WHERE id = ?").run(f.siparis.id);
+  res.json({ ...sonuc, durum: 'gonderildi' });
+});
+
 router.get('/:id', (req, res) => {
-  const siparis = db.prepare('SELECT * FROM siparisler WHERE id = ?').get(req.params.id);
+  const siparis = db
+    .prepare('SELECT s.*, t.firma_adi, t.email AS tedarikci_email FROM siparisler s LEFT JOIN tedarikciler t ON t.id = s.tedarikci_id WHERE s.id = ?')
+    .get(req.params.id);
   if (!siparis) return res.status(404).json({ error: 'Sipariş bulunamadı' });
   const kalemler = db.prepare('SELECT * FROM siparis_kalemleri WHERE siparis_id = ?').all(req.params.id);
   res.json({ ...siparis, kalemler });

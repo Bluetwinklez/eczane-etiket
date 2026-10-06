@@ -932,3 +932,7 @@ kbd {
 
 /* Muhasebe sekmeleri */
 #mh-sekmeler button.active, #its-sekmeler button.active, #kart-sekmeler button.active, #gz-tipler button.active, #gz-derma button.active, #ht-sekmeler button.active { background: var(--ink-2); color: #fff; border-color: var(--ink-2); }
+
+/* Siparis detayinda depoya gonderme secenekleri */
+.sp-gonder { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.sp-gonder .form-ipucu { margin: 0 4px 0 0; }
