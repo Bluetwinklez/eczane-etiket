@@ -95,7 +95,7 @@ router.post('/ilac-bitis/gonder', async (req, res) => {
   const musteriId = Number(req.body.musteri_id);
   const ilacId = Number(req.body.ilac_id);
   const kanal = req.body.kanal || 'sms';
-  if (!['sms', 'email'].includes(kanal)) return res.status(400).json({ error: 'Kanal sms veya email olmalı' });
+  if (!['sms', 'email', 'whatsapp'].includes(kanal)) return res.status(400).json({ error: 'Kanal sms, email veya whatsapp olmalı' });
 
   const kayit = bitisTahminleri(resolveSubeId(req, req.body.sube_id)).find(
     (r) => r.musteri_id === musteriId && r.ilac_id === ilacId
@@ -104,7 +104,7 @@ router.post('/ilac-bitis/gonder', async (req, res) => {
   if (kayit.hatirlatildi) {
     return res.status(409).json({ error: `Bu dönem için zaten hatırlatıldı (${kayit.hatirlatildi})` });
   }
-  if (kanal === 'sms' && !kayit.telefon) return res.status(400).json({ error: 'Müşterinin telefon numarası yok' });
+  if ((kanal === 'sms' || kanal === 'whatsapp') && !kayit.telefon) return res.status(400).json({ error: 'Müşterinin telefon numarası yok' });
   if (kanal === 'email' && !kayit.email) return res.status(400).json({ error: 'Müşterinin e-posta adresi yok' });
 
   const sube = db.prepare('SELECT ad FROM subeler WHERE id = ?').get(req.user.sube_id);
@@ -121,6 +121,8 @@ router.post('/ilac-bitis/gonder', async (req, res) => {
     if (String(err.message).includes('UNIQUE')) return res.status(409).json({ error: 'Bu dönem için zaten hatırlatıldı' });
     throw err;
   }
+  // WhatsApp mesaji eczanenin kendi WhatsApp'indan (wa.me) gonderilir; burada yalnizca hatirlatildi olarak isaretlenir
+  if (kanal === 'whatsapp') return res.status(201).json({ bildirim: { durum: 'whatsapp', kanal: 'whatsapp', mesaj }, bitis_tarihi: kayit.bitis_tarihi });
   const bildirim = await bildirimGonder(musteri, kanal, mesaj);
   db.prepare('UPDATE ilac_hatirlatmalari SET bildirim_id = ? WHERE id = ?').run(bildirim.id, isaretId);
   res.status(201).json({ bildirim, bitis_tarihi: kayit.bitis_tarihi });

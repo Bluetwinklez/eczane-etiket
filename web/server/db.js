@@ -987,6 +987,29 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_musteri_olcumleri ON musteri_olcumleri (musteri_id, tip, tarih);
 `);
+// Depoya iade: miadi yaklasan partilerin tedarikciye iadesi (iade formu icin kalemleriyle)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS depo_iadeleri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    tedarikci_id INTEGER REFERENCES tedarikciler(id) ON DELETE SET NULL,
+    belge_no TEXT,
+    toplam REAL NOT NULL DEFAULT 0,
+    aciklama TEXT,
+    kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    tarih TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE TABLE IF NOT EXISTS depo_iade_kalemleri (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    iade_id INTEGER NOT NULL REFERENCES depo_iadeleri(id) ON DELETE CASCADE,
+    ilac_id INTEGER NOT NULL REFERENCES ilaclar(id),
+    parti_id INTEGER REFERENCES ilac_partileri(id) ON DELETE SET NULL,
+    parti_no TEXT,
+    skt TEXT,
+    adet INTEGER NOT NULL,
+    birim_maliyet REAL NOT NULL DEFAULT 0
+  );
+`);
 // SGK SUT ilac listeleri (resmi dosyadan yuklenir, yeniden yuklenebilir oldugu icin yedege girmez)
 db.exec(`
   CREATE TABLE IF NOT EXISTS sgk_ek4a (

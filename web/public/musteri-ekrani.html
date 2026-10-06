@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>Müşteri Ekranı · Eczam</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <style>
+    :root { --bg: #f6f7f2; --kart: #fff; --yazi: #15171a; --soluk: #6b7076; --vurgu: #c6f432; --vurgu-yazi: #15171a; --cizgi: #e3e5de; }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--yazi); font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+    .ekran { display: grid; grid-template-rows: auto 1fr auto; height: 100vh; padding: 3vh 4vw; gap: 2vh; }
+    header { display: flex; justify-content: space-between; align-items: center; font-size: 2.4vh; color: var(--soluk); }
+    header b { color: var(--yazi); font-size: 3vh; }
+    .liste { background: var(--kart); border-radius: 2vh; padding: 2vh 3vw; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+    .satir { display: grid; grid-template-columns: 1fr auto auto; gap: 2vw; padding: 1.4vh 0; border-bottom: 1px solid var(--cizgi); font-size: 3vh; align-items: baseline; }
+    .satir:last-child { border-bottom: none; }
+    .satir .adet { color: var(--soluk); }
+    .satir .tutar { font-variant-numeric: tabular-nums; font-weight: 600; min-width: 18vw; text-align: right; }
+    .alt { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 2vw; }
+    .ara { font-size: 2.6vh; color: var(--soluk); }
+    .toplam { background: var(--vurgu); color: var(--vurgu-yazi); border-radius: 2vh; padding: 2vh 3vw; text-align: right; }
+    .toplam small { display: block; font-size: 2.4vh; font-weight: 600; }
+    .toplam span { font-size: 8vh; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+    .ortada { display: grid; place-items: center; text-align: center; height: 100%; }
+    .ortada h1 { font-size: 7vh; margin: 0 0 1vh; }
+    .ortada p { font-size: 3vh; color: var(--soluk); margin: 0; }
+    .hata { color: #b42318; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #111214; --kart: #1b1d20; --yazi: #f2f3f0; --soluk: #9a9fa5; --cizgi: #2a2d31; }
+    }
+  </style>
+</head>
+<body>
+  <div class="ekran">
+    <header><b id="sube">Eczam</b><span id="saat"></span></header>
+    <main class="liste" id="icerik"><div class="ortada"><div><h1>Hoş geldiniz</h1><p>Bağlanıyor…</p></div></div></main>
+    <footer class="alt" id="alt" hidden>
+      <div class="ara" id="ara"></div>
+      <div class="toplam"><small>Ödenecek tutar</small><span id="toplam">0,00 TL</span></div>
+    </footer>
+  </div>
+  <script>
+    (function () {
+      var anahtar = decodeURIComponent((location.hash || '').slice(1));
+      var tl = function (n) { return Number(n || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TL'; };
+      var esc = function (s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+      var icerik = document.getElementById('icerik');
+      var alt = document.getElementById('alt');
+      var bosTimer = null;
+      setInterval(function () { document.getElementById('saat').textContent = new Date().toLocaleString('tr-TR', { weekday: 'long', hour: '2-digit', minute: '2-digit' }); }, 1000);
+
+      function bekle(baslik, metin) {
+        alt.hidden = true;
+        icerik.innerHTML = '<div class="ortada"><div><h1>' + esc(baslik) + '</h1><p>' + esc(metin) + '</p></div></div>';
+      }
+      function ciz(d) {
+        if (d.sube) document.getElementById('sube').textContent = d.sube;
+        clearTimeout(bosTimer);
+        if (d.durum === 'tesekkur') {
+          bekle('Teşekkür ederiz', 'Ödenen tutar ' + tl(d.toplam) + ' · Sağlıklı günler dileriz');
+          bosTimer = setTimeout(function () { bekle('Hoş geldiniz', d.sube || ''); }, 10000);
+          return;
+        }
+        if (!d.kalemler || !d.kalemler.length) return bekle('Hoş geldiniz', d.sube || '');
+        icerik.innerHTML = d.kalemler.slice(-12).map(function (k) {
+          return '<div class="satir"><span>' + esc(k.ad) + '</span><span class="adet">× ' + k.adet + '</span><span class="tutar">' + tl(k.tutar) + '</span></div>';
+        }).join('');
+        document.getElementById('ara').textContent = d.indirim > 0 ? 'Ara toplam ' + tl(d.ara_toplam) + ' · İndirim −' + tl(d.indirim) : d.kalemler.length + ' ürün';
+        document.getElementById('toplam').textContent = tl(d.toplam);
+        alt.hidden = false;
+      }
+
+      if (!anahtar) {
+        icerik.innerHTML = '<div class="ortada"><div><h1 class="hata">Ekran anahtarı yok</h1><p>Bu sayfayı kasadaki "Müşteri ekranı" düğmesinden açın.</p></div></div>';
+        return;
+      }
+      // Ayni bilgisayarda (ikinci monitor) kasa sekmesinden aninda gelir
+      if ('BroadcastChannel' in window) new BroadcastChannel('eczam-musteri-ekrani').onmessage = function (e) { ciz(e.data); };
+      var kaynak = new EventSource('/api/musteri-ekrani/akis?anahtar=' + encodeURIComponent(anahtar));
+      kaynak.onmessage = function (e) { try { ciz(JSON.parse(e.data)); } catch (err) { /* bozuk mesaj atlanir */ } };
+      kaynak.onerror = function () { if (kaynak.readyState === 2) bekle('Bağlantı kurulamadı', 'Ekran anahtarı geçersiz olabilir; kasadan yeniden açın.'); };
+    })();
+  </script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 const app = require('./app');
 const { otomatikYedeklemeyiBaslat } = require('./yedek');
+const { gunSonuZamanlayiciBaslat } = require('./gunSonuOzeti');
 
 const { hataKaydet } = require('./hataGunlugu');
 
@@ -16,6 +17,7 @@ process.on('unhandledRejection', (err) => {
 });
 
 otomatikYedeklemeyiBaslat();
+gunSonuZamanlayiciBaslat();
 
 app.listen(PORT, () => {
   console.log(`Eczam Programi ${PORT} portunda calisiyor`);
