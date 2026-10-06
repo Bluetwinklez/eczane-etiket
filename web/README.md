@@ -134,6 +134,8 @@ Eczane yönetim ve otomasyon sistemi. Node.js + Express + yerleşik `node:sqlite
 
 **WhatsApp ile haber verme** (anahtar gerekmez): Müşteriler, İlaç Hatırlatmaları, İstek / Eksik Defteri, Veresiye ve Hasta Takibi (biten rapor) sayfalarındaki "WhatsApp" düğmesi, müşterinin numarasıyla hazır mesajı WhatsApp'ta açar (bilgisayarda WhatsApp Desktop/Web, telefonda uygulama). Mesaj gönderilmeden önce görülür ve eczanenin kendi WhatsApp hesabından gider. Türkiye numaraları (0532…, 532…, +90…) otomatik çevrilir.
 
+**Toplu WhatsApp hatırlatması**: İlaç Hatırlatmaları sayfasındaki "💬 Toplu WhatsApp" düğmesi, bu dönem henüz hatırlatılmamış ve geçerli telefonu olan müşterileri sıraya koyar. "Sıradakini aç" her basışta bir sonraki müşterinin mesajını WhatsApp'ta açar ve kaydı "hatırlatıldı" olarak işaretler; mesaj eczanenin kendi hesabından, her biri görülerek gönderilir (toplu otomatik gönderim yapılmaz, numara engellenme riski olmaz).
+
 **Ürün satış hızı** (`GET /api/ilaclar/:id/analiz`: son 30 gün, 4 haftalık kırılım, stoğun kaç gün yeteceği; mobil ürün kartında gösterilir).
 
 **Akıllı öneriler** (ana sayfa kartı ve `GET /api/oneriler`): son 30 günlük net satış hızından stoğun kaç gün yeteceğini, SKT'ye kadar satılamayacak fazla stoku (kademeli %10/20/30 indirim önerisiyle), satılmayan ölü stoku ve günün ciro/kâr özetini gösterir.
