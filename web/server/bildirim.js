@@ -45,4 +45,4 @@ async function bildirimGonder(musteri, kanal, mesaj) {
   return db.prepare('SELECT * FROM bildirimler WHERE id = ?').get(bildirimId);
 }
 
-module.exports = { bildirimGonder, smtpYapilandirilmisMi };
+module.exports = { bildirimGonder, smtpYapilandirilmisMi, getTransporter };

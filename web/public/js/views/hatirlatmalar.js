@@ -32,6 +32,7 @@
           </select>
           <label style="margin:0">içinde bitecek / bitmiş ilaçlar</label>
           <div class="spacer"></div>
+          <button class="secondary" id="hat-toplu-wa" title="Hatırlatılmamış müşterilere WhatsApp'ta hazır mesajı sırayla açar">💬 Toplu WhatsApp</button>
         </div>
         <div class="stat-row" id="hat-ozet"></div>
         <div class="card">
@@ -76,6 +77,38 @@
       };
 
       document.getElementById('hat-gun').addEventListener('change', yenile);
+      // Toplu WhatsApp: API anahtari olmadan, her musteri icin hazir mesaj sirayla acilir ve hatirlatildi isaretlenir
+      document.getElementById('hat-toplu-wa').addEventListener('click', () => {
+        const kuyruk = liste.filter((r) => !r.hatirlatildi && EczamWA.numara(r.telefon));
+        if (!kuyruk.length) return UI.toast('WhatsApp ile hatırlatılacak (telefonu olan, hatırlatılmamış) müşteri yok', 'error');
+        let sira = 0;
+        const mesajOf = (r) => EczamWA.SABLONLAR.ilacBitis({ ad: r.ad_soyad, ilac: r.ilac_adi, tarih: r.bitis_tarihi, gecti: r.kalan_gun < 0 });
+        const modal = UI.openModal(`
+          <h3 style="margin-top:0">Toplu WhatsApp hatırlatma</h3>
+          <p class="form-ipucu">Her tıklamada sıradaki müşterinin WhatsApp sohbeti hazır mesajla açılır; mesajı gönderip bu pencereye dönün. Açılan kişi "hatırlatıldı" olarak işaretlenir.</p>
+          <table><tbody id="wa-kuyruk">${kuyruk.map((r, i) => `<tr data-i="${i}"><td>${UI.esc(r.ad_soyad)}</td><td>${UI.esc(r.ilac_adi)}</td><td class="wa-durum"><span class="badge muted">bekliyor</span></td></tr>`).join('')}</tbody></table>
+          <div class="modal-actions"><button class="secondary" data-a="kapat">Kapat</button><button data-a="sonraki">Sıradakini aç (1/${kuyruk.length})</button></div>`);
+        const dugme = modal.querySelector('[data-a="sonraki"]');
+        modal.querySelector('[data-a="kapat"]').addEventListener('click', () => {
+          UI.closeModal(modal);
+          yenile();
+        });
+        dugme.addEventListener('click', async () => {
+          if (sira >= kuyruk.length) return;
+          const r = kuyruk[sira];
+          window.open(EczamWA.link(r.telefon, mesajOf(r)), '_blank', 'noopener');
+          const hucre = modal.querySelector(`tr[data-i="${sira}"] .wa-durum`);
+          try {
+            await Api.post('/api/hatirlatmalar/ilac-bitis/gonder', { musteri_id: r.musteri_id, ilac_id: r.ilac_id, kanal: 'whatsapp', mesaj: mesajOf(r) });
+            hucre.innerHTML = '<span class="badge ok">açıldı</span>';
+          } catch (err) {
+            hucre.innerHTML = `<span class="badge warn">${UI.esc(err.message)}</span>`;
+          }
+          sira += 1;
+          dugme.textContent = sira < kuyruk.length ? `Sıradakini aç (${sira + 1}/${kuyruk.length})` : 'Bitti';
+          dugme.disabled = sira >= kuyruk.length;
+        });
+      });
       container.addEventListener('click', (e) => {
         const btn = e.target.closest('button[data-kanal]');
         if (!btn) return;

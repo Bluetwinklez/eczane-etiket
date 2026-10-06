@@ -53,6 +53,8 @@ const TABLO_SIRASI = [
   'fiyat_hareketleri',
   'hasta_raporlari',
   'musteri_olcumleri',
+  'depo_iadeleri',
+  'depo_iade_kalemleri',
   'duyurular'
 ];
 
@@ -104,16 +106,19 @@ function otomatikYedekAl({ zorla = false } = {}) {
   const dosya = `eczanem-otomatik-${damga.slice(0, 4)}-${damga.slice(4, 6)}-${damga.slice(6, 8)}-${damga.slice(9, 15)}.json`;
   const gecici = path.join(dizin, dosya + '.tmp');
   // Yarim kalmis dosya birakmamak icin once gecici dosyaya yazilip yeniden adlandirilir
-  fs.writeFileSync(gecici, JSON.stringify(yedekVerisi()));
+  const metin = JSON.stringify(yedekVerisi());
+  fs.writeFileSync(gecici, metin);
   fs.renameSync(gecici, path.join(dizin, dosya));
   ayarYaz('son_otomatik_yedek', String(Date.now()));
+  // Ayarlandiysa sifreli kopya bulut esitleme klasorune (OneDrive / Google Drive / Dropbox)
+  const bulut = require('./bulutYedek').bulutaYaz(metin);
 
   const silinenler = [];
   for (const eski of otomatikYedekleriListele().slice(saklanacakSayi())) {
     fs.unlinkSync(path.join(dizin, eski.dosya));
     silinenler.push(eski.dosya);
   }
-  return { alindi: true, dosya, silinenler };
+  return { alindi: true, dosya, silinenler, bulut };
 }
 
 // Sunucu acikken saatte bir kontrol eder; gunde bir yedek alinir

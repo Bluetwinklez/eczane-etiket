@@ -69,6 +69,8 @@
     '3 gündür teslim alınmamış bekleyen/gönderilmiş siparişler': 'Pending/sent orders not received for 3 days', 'Açık emanet': 'Open deposit', 'Kapanmamış emanet ilaç kayıtları': 'Deposited-medicine records not yet closed',
     'Açık stok sayımı': 'Open stock count', 'Başlatılmış ama tamamlanmamış sayım': 'A count that was started but not completed',
     'Raporu bitmek üzere olan hasta': 'Patient whose prescription report is ending',
+    'Fiyat listesiyle uyuşmayan ürün': 'Product not matching the price list',
+    'Yüklenen fiyat listesindeki PSF satış fiyatından farklı; uygulayıp etiketleri yeniden basın': 'Retail price in the uploaded list differs from the selling price; apply it and reprint shelf labels',
     '15 gün içinde biten ilaç raporları; hastaya yenileme için haber verin': 'Drug reports ending within 15 days; remind the patient to renew',
     // Profil
     'Sunucuya bağlı': 'Connected to server', 'Sürüm': 'Version', 'Bekleyen kayıtlar': 'Pending entries', 'Bağlantı gelince gönderilir': 'Sent when back online', 'Bağlantı': 'Connection',

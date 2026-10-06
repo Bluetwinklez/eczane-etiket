@@ -428,6 +428,24 @@ router.get('/panel-ozet', (req, res) => {
   res.json({ gunluk, kategoriler, son_satislar: sonSatislar });
 });
 
+// Kutuya yapistirilacak kullanim etiketleri icin satis bilgisi (eczane, hasta, kalem kullanimlari)
+router.get('/:id/kullanim-etiketleri', (req, res) => {
+  const satis = db
+    .prepare(
+      `SELECT sa.id, sa.tarih, m.ad_soyad AS musteri_adi, s.ad AS sube_adi, s.telefon AS sube_telefon
+       FROM satislar sa LEFT JOIN musteriler m ON m.id = sa.musteri_id LEFT JOIN subeler s ON s.id = sa.sube_id WHERE sa.id = ?`
+    )
+    .get(req.params.id);
+  if (!satis) return res.status(404).json({ error: 'Satış bulunamadı' });
+  const kalemler = db
+    .prepare(
+      `SELECT k.ilac_id, k.ilac_adi, k.adet, k.kullanim, i.urun_tipi FROM satis_kalemleri k LEFT JOIN ilaclar i ON i.id = k.ilac_id
+       WHERE k.satis_id = ? ORDER BY k.id`
+    )
+    .all(req.params.id);
+  res.json({ ...satis, kalemler });
+});
+
 router.get('/:id', (req, res) => {
   const satis = db.prepare('SELECT * FROM satislar WHERE id = ?').get(req.params.id);
   if (!satis) return res.status(404).json({ error: 'Satış bulunamadı' });

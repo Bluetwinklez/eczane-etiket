@@ -1,4 +1,5 @@
 const express = require('express');
+const { fiyatFarklari } = require('./fiyatListesi');
 const { db } = require('../db');
 const { bitisTahminleri } = require('./hatirlatmalar');
 const { acikFaturalar } = require('./tedarikciler');
@@ -9,9 +10,9 @@ const router = express.Router();
 
 // Kullanicinin rolune ve subesine gore dikkat gerektiren isleri tek listede toplar.
 // Her oge: kod, baslik, aciklama, sayi, seviye (danger/warn/info/ok), link (hash)
-router.get('/', (req, res) => {
-  const sube = req.user.sube_id;
-  const yonetici = req.user.rol === 'admin' || req.user.rol === 'eczaci';
+function bildirimOgeleri(user) {
+  const sube = user.sube_id;
+  const yonetici = user.rol === 'admin' || user.rol === 'eczaci';
   const ogeler = [];
   const ekle = (oge) => {
     if (oge.sayi > 0) ogeler.push(oge);
@@ -78,6 +79,17 @@ router.get('/', (req, res) => {
     sayi: yaklasanDogumGunleri(0).length,
     seviye: 'ok',
     link: '#musteriler'
+  });
+
+  // Son 30 gunde yuklenen fiyat listesinde PSF'si satis fiyatindan farkli urunler
+  const otuzGunOnce = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  ekle({
+    kod: 'fiyat_farki',
+    baslik: 'Fiyat listesiyle uyuşmayan ürün',
+    aciklama: 'Yüklenen fiyat listesindeki PSF satış fiyatından farklı; uygulayıp etiketleri yeniden basın',
+    sayi: fiyatFarklari().filter((f) => f.tarih >= otuzGunOnce).length,
+    seviye: 'warn',
+    link: '#etiketler'
   });
 
   ekle({
@@ -207,7 +219,10 @@ router.get('/', (req, res) => {
 
   const SIRA = { danger: 0, warn: 1, ok: 2, info: 3 };
   ogeler.sort((a, b) => SIRA[a.seviye] - SIRA[b.seviye]);
-  res.json({ toplam: ogeler.reduce((t, o) => t + o.sayi, 0), ogeler });
-});
+  return { toplam: ogeler.reduce((t, o) => t + o.sayi, 0), ogeler };
+}
+
+router.get('/', (req, res) => res.json(bildirimOgeleri(req.user)));
 
 module.exports = router;
+module.exports.bildirimOgeleri = bildirimOgeleri;

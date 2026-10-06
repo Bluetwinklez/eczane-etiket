@@ -175,9 +175,9 @@
         const d = await Api.get('/api/titck/durum');
         document.getElementById('kart-titck').innerHTML = d.yuklu
           ? `<b>TİTCK ilaç listesi:</b> ${d.toplam.toLocaleString('tr-TR')} kayıt (${d.aktif.toLocaleString('tr-TR')} aktif, ${d.pasif.toLocaleString('tr-TR')} pasif) · liste tarihi ${UI.esc(d.liste_tarihi || '-')}
-             ${yazma ? ' <button class="secondary" id="titck-indir">İnternetten güncelle</button> <label class="secondary" style="display:inline-block;cursor:pointer"><input type="file" id="titck-dosya" accept=".xlsx" hidden />Dosya yükle</label>' : ''}`
+             ${yazma ? ' <button class="secondary" id="titck-indir">İnternetten güncelle</button> <label class="dugme secondary"><input type="file" id="titck-dosya" accept=".xlsx" hidden />Dosya yükle</label>' : ''}`
           : `<b>TİTCK ilaç listesi yüklü değil.</b> Yüklenince barkoddan ürün bilgisi, ATC kodu, eşdeğerler ve pasif ürün uyarısı çalışır.
-             ${yazma ? ' <button id="titck-indir">TİTCK’dan indir</button> <label class="secondary" style="display:inline-block;cursor:pointer"><input type="file" id="titck-dosya" accept=".xlsx" hidden />Dosya yükle (.xlsx)</label>' : ''}`;
+             ${yazma ? ' <button id="titck-indir">TİTCK’dan indir</button> <label class="dugme secondary"><input type="file" id="titck-dosya" accept=".xlsx" hidden />Dosya yükle (.xlsx)</label>' : ''}`;
         const bitti = (d2) => {
           UI.toast(`Liste güncellendi: ${d2.toplam} kayıt${d2.atc_doldurulan ? `, ${d2.atc_doldurulan} üründe ATC dolduruldu` : ''}`, 'success');
           titckDurum();
