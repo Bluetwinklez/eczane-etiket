@@ -1009,6 +1009,22 @@ db.exec(`
     adet INTEGER NOT NULL,
     birim_maliyet REAL NOT NULL DEFAULT 0
   );
+  CREATE TABLE IF NOT EXISTS e_arsiv_faturalari (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    satis_id INTEGER NOT NULL UNIQUE REFERENCES satislar(id) ON DELETE CASCADE,
+    sube_id INTEGER NOT NULL REFERENCES subeler(id),
+    fatura_no TEXT NOT NULL UNIQUE,
+    ettn TEXT NOT NULL,
+    tarih TEXT NOT NULL,
+    alici_ad TEXT,
+    alici_kimlik TEXT,
+    kdv_haric REAL NOT NULL DEFAULT 0,
+    kdv REAL NOT NULL DEFAULT 0,
+    toplam REAL NOT NULL DEFAULT 0,
+    xml TEXT NOT NULL,
+    kullanici_id INTEGER REFERENCES kullanicilar(id) ON DELETE SET NULL,
+    olusturma_tarihi TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `);
 // SGK SUT ilac listeleri (resmi dosyadan yuklenir, yeniden yuklenebilir oldugu icin yedege girmez)
 db.exec(`

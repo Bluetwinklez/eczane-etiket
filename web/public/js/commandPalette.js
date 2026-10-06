@@ -30,6 +30,7 @@
     { key: 'ilac-tespit', etiket: 'İlaç Tespit', ikon: '🔍' },
     { key: 'its', etiket: 'İTS / Karekod Defteri', ikon: '🔖', roller: ['admin', 'eczaci'] },
     { key: 'muhasebe', etiket: 'Muhasebe', ikon: '🧾', roller: ['admin', 'eczaci'] },
+    { key: 'e-arsiv', etiket: 'e-Arşiv fatura (satıştan UBL-TR XML)', ikon: '🧾', roller: ['admin', 'eczaci'] },
     { key: 'giderler', etiket: 'Giderler', ikon: '💸', roller: ['admin', 'eczaci'] },
     { key: 'kampanyalar', etiket: 'Kampanyalar', ikon: '🏷️' },
     { key: 'veresiye', etiket: 'Veresiye Defteri', ikon: '📒' },

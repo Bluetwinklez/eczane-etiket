@@ -774,10 +774,14 @@
               ${satis.kazanilan_puan > 0 ? `<p class="form-ipucu">Kazanılan puan: <b>${satis.kazanilan_puan}</b></p>` : ''}
               ${uyariMetni}
             </div>
-            <div class="modal-actions"><button class="secondary" data-action="etiket">🏷️ Kullanım etiketi</button><button class="secondary" data-action="yazdir">Fiş Yazdır</button><button data-action="kapat">Tamam</button></div>
+            <div class="modal-actions"><button class="secondary" data-action="fatura">🧾 e-Arşiv fatura</button><button class="secondary" data-action="etiket">🏷️ Kullanım etiketi</button><button class="secondary" data-action="yazdir">Fiş Yazdır</button><button data-action="kapat">Tamam</button></div>
           `);
           modal.querySelector('[data-action="kapat"]').addEventListener('click', () => UI.closeModal(modal));
           modal.querySelector('[data-action="yazdir"]').addEventListener('click', () => window.print());
+          modal.querySelector('[data-action="fatura"]').addEventListener('click', () => {
+            UI.closeModal(modal);
+            EczamEArsiv.faturaAc(satis.id, musteriler.find((m) => m.id === Number(satis.musteri_id)) || null).catch((err) => UI.toast(err.message, 'error'));
+          });
           modal.querySelector('[data-action="etiket"]').addEventListener('click', () => {
             UI.closeModal(modal);
             kullanimEtiketleriAc(satis.id);
