@@ -7,6 +7,8 @@ Admin Paneline erişimi kabaca kısıtlamak içindir.
 """
 
 import hashlib
+import hmac
+import secrets
 import uuid
 from dataclasses import asdict, dataclass
 from typing import Optional
@@ -40,21 +42,28 @@ class Profile:
         return asdict(self)
 
 
-def _hash_pin(pin: str) -> str:
-    return hashlib.sha256(pin.encode("utf-8")).hexdigest()
+_PIN_ITERATIONS = 310_000
 
+def _hash_pin(pin: str) -> str:
+    salt = secrets.token_bytes(16)
+    digest = hashlib.pbkdf2_hmac("sha256", pin.encode("utf-8"), salt, _PIN_ITERATIONS)
+    return "pbkdf2_sha256$%d$%s$%s" % (_PIN_ITERATIONS, salt.hex(), digest.hex())
 
 def verify_pin(profile: dict, pin: str) -> bool:
     pin_hash = profile.get("pin_hash")
-    if not pin_hash:
-        return True
-    return _hash_pin(pin) == pin_hash
-
+    if not pin_hash: return True
+    if pin_hash.startswith("pbkdf2_sha256$"):
+        try:
+            _, iterations, salt_hex, expected_hex = pin_hash.split("$", 3)
+            actual = hashlib.pbkdf2_hmac("sha256", pin.encode("utf-8"), bytes.fromhex(salt_hex), int(iterations))
+            return hmac.compare_digest(actual, bytes.fromhex(expected_hex))
+        except (ValueError, TypeError): return False
+    legacy = hashlib.sha256(pin.encode("utf-8")).hexdigest()
+    return hmac.compare_digest(legacy, pin_hash)
 
 def set_pin(profile: dict, pin: Optional[str]) -> dict:
     profile["pin_hash"] = _hash_pin(pin) if pin else None
     return profile
-
 
 def _default_state() -> dict:
     return {"active_id": None, "profiles": []}
