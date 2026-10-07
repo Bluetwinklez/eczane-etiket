@@ -34,6 +34,14 @@ def test_profiles_lifecycle(tmp_path, monkeypatch):
     profiles.set_pin(active3, "1234")
     assert profiles.verify_pin(active3, "1234") is True
     assert profiles.verify_pin(active3, "9999") is False
+    assert active3["pin_hash"].startswith("pbkdf2_sha256$")
+    assert "1234" not in active3["pin_hash"]
+
+    # Eski SHA-256 profilleri geçiş sırasında çalışmaya devam etmeli.
+    import hashlib
+    legacy = {"pin_hash": hashlib.sha256(b"2468").hexdigest()}
+    assert profiles.verify_pin(legacy, "2468") is True
+    assert profiles.verify_pin(legacy, "0000") is False
 
     # PIN kaldırma
     profiles.set_pin(active3, None)
