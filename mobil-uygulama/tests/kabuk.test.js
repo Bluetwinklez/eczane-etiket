@@ -15,6 +15,8 @@ test('bundle ID Capacitor, Xcode ve TestFlight iş akışında aynı', () => {
   const cap = JSON.parse(oku('mobil-uygulama', 'capacitor.config.json'));
   assert.equal(cap.appId, BUNDLE);
   assert.equal(cap.appName, 'Eczam');
+  assert.deepEqual(cap.server.allowNavigation, []);
+  assert.equal(cap.ios.appendUserAgent, 'EczamApp/1.0');
   const pbx = oku('mobil-uygulama', 'ios', 'App', 'App.xcodeproj', 'project.pbxproj');
   const kimlikler = [...pbx.matchAll(/PRODUCT_BUNDLE_IDENTIFIER = ([^;]+);/g)].map((m) => m[1]);
   assert.ok(kimlikler.length >= 2);
@@ -85,6 +87,8 @@ test('bağlantı ekranı: adres doğrulama kuralları', () => {
   assert.match(adresiHazirla('').hata, /yazın/);
   assert.ok(adresiHazirla('ftp://x.com').hata);
   assert.ok(adresiHazirla('javascript:alert(1)').hata);
+  assert.ok(adresiHazirla('https://user:pass@eczam.ornek.com').hata);
+  assert.ok(adresiHazirla('http://0.0.0.0:3000').hata);
 });
 
 test('mağaza metni sınırları (docs/STORE_LISTING.md)', () => {
