@@ -47,12 +47,17 @@ jobs:
           ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
           ASC_API_PRIVATE_KEY_BASE64: ${{ secrets.ASC_API_PRIVATE_KEY_BASE64 }}
         run: |
+          # Ilk eksikte durmadan hepsini yazar; boylece tek calistirmada tam liste gorulur.
+          eksik=0
           for name in IOS_APPSTORE_P12_BASE64 IOS_APPSTORE_P12_PASSWORD IOS_BUNDLE_ID IOS_TEAM_ID ASC_API_KEY_ID ASC_API_ISSUER_ID ASC_API_PRIVATE_KEY_BASE64; do
             if [[ -z "${!name}" ]]; then
               echo "::error::Eksik repo secret'ı: $name"
-              exit 1
+              eksik=1
+            else
+              echo "Tamam: $name"
             fi
           done
+          [[ "$eksik" == 0 ]] || exit 1
           # Xcode projesindeki bundle ID ile secret aynı olmalı.
           [[ "$IOS_BUNDLE_ID" == "$BUNDLE_ID" ]] || { echo "::error::IOS_BUNDLE_ID Xcode projesindeki ($BUNDLE_ID) ile aynı değil"; exit 1; }
 
