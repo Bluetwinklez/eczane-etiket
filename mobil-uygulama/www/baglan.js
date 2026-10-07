@@ -53,6 +53,8 @@
       return { hata: 'Adres geçersiz görünüyor.' };
     }
     if (url.protocol !== 'https:' && url.protocol !== 'http:') return { hata: 'Yalnızca http(s) adresleri kullanılabilir.' };
+    if (url.username || url.password) return { hata: 'Sunucu adresinde kullanıcı adı veya parola kullanılamaz.' };
+    if (!url.hostname || url.hostname === '0.0.0.0' || url.hostname === '[::]') return { hata: 'Geçerli bir sunucu adresi yazın.' };
     if (url.protocol === 'http:' && !yerelAdresMi(url.hostname)) {
       return { hata: 'Güvenlik için internet üzerindeki adresler HTTPS ile başlamalıdır.' };
     }
@@ -66,7 +68,13 @@
     const kontrol = new AbortController();
     const zaman = setTimeout(() => kontrol.abort(), 8000);
     try {
-      const r = await fetch(adres + '/api/health', { signal: kontrol.signal, cache: 'no-store' });
+      const r = await fetch(adres + '/api/health', {
+        signal: kontrol.signal,
+        cache: 'no-store',
+        credentials: 'omit',
+        redirect: 'error',
+        headers: { 'Accept': 'application/json' },
+      });
       const j = await r.json().catch(() => null);
       return r.ok && j && j.ok === true;
     } catch (e) {
