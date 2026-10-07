@@ -7,12 +7,10 @@
     "contentInset": "never",
     "allowsLinkPreview": false,
     "limitsNavigationsToAppBoundDomains": false,
-    "appendUserAgent": "EczanemApp/1.0"
+    "appendUserAgent": "EczamApp/1.0"
   },
   "server": {
     "iosScheme": "capacitor",
-    "allowNavigation": [
-      "*"
-    ]
+    "allowNavigation": []
   }
 }
