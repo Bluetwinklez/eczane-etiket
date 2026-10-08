@@ -5,6 +5,7 @@ const session = require('express-session');
 
 const { requireLogin, requireRole } = require('./auth');
 const { db, ayarOku, ayarYaz } = require('./db');
+const demo = require('./demo');
 const SqliteOturumDeposu = require('./oturumDeposu');
 const { partileriEsitle } = require('./partiler');
 const { islemKaydiMiddleware } = require('./islemKaydi');
@@ -146,7 +147,10 @@ app.use('/api/oneriler', requireLogin, onerilerRoutes);
 app.get('/api/health', (req, res) => {
   res.set('Access-Control-Allow-Origin', '*');
   const sube = db.prepare('SELECT ad FROM subeler ORDER BY id LIMIT 1').get();
-  res.json({ ok: true, uygulama: 'eczam', ad: sube ? sube.ad : null });
+  const govde = { ok: true, uygulama: 'eczam', ad: sube ? sube.ad : null };
+  // Demo sunucusunda giris ekranlari "Demo hesabiyla gir" dugmesini gosterir (veriler sahtedir)
+  if (demo.demoAcikMi()) govde.demo = demo.demoHesabi();
+  res.json(govde);
 });
 
 // Gizlilik politikasi (App Store zorunlu): iletisim e-postasi ECZANEM_GIZLILIK_EPOSTA ile verilir
