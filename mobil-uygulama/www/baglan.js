@@ -1,12 +1,33 @@
-// Eczam Mobil kabugu: sunucu adresini alir, dogrular, kaydeder ve uygulamayi ona acar.
-// Her eczanenin kendi sunucusu vardir; adres cihazda saklanir (localStorage).
+// Eczam Mobil kabugu: eczanedeki Eczam sunucusunu yerel agda kendisi bulur, dogrular, kaydeder
+// ve uygulamayi ona acar. Bulamazsa (ya da internetteki bir sunucu icin) adres elle girilir.
+// Adres cihazda saklanir (localStorage).
 (() => {
   'use strict';
   const ANAHTAR = 'eczanem:sunucu';
+  const PORT = 3000;
+  // Turkiye'deki modemlerin yaygin yerel aglari; en yaygin olan once taranir
+  const AGLAR = [
+    '192.168.1', '192.168.0', '192.168.2', '192.168.3', '192.168.4', '192.168.5',
+    '192.168.10', '192.168.11', '192.168.100', '192.168.88', '192.168.178',
+    '10.0.0', '10.0.1', '10.10.10', '172.16.0',
+  ];
+  const ESZAMANLI = 64;
+  const YOKLAMA_MS = 1200;
+
   const $ = (s) => document.querySelector(s);
   const hataKutu = $('#hata');
   const adresInput = $('#adres');
   const dugme = $('#baglan');
+  const form = $('#form');
+  const arama = $('#arama');
+  const aramaMetin = $('#arama-metin');
+  const aramaAyrinti = $('#arama-ayrinti');
+  const aramaCubuk = $('#arama-cubuk');
+  const bulunanlar = $('#bulunanlar');
+  const bulunanListe = $('#bulunan-liste');
+  const tekrarDugme = $('#tekrar-ara');
+  const elleDugme = $('#elle');
+  const aciklama = $('#aciklama');
 
   const oku = () => {
     try {
@@ -58,15 +79,22 @@
     if (url.protocol === 'http:' && !yerelAdresMi(url.hostname)) {
       return { hata: 'Güvenlik için internet üzerindeki adresler HTTPS ile başlamalıdır.' };
     }
+    // Yerel adreste port yazilmadiysa Eczam'in varsayilan portu kullanilir
+    if (url.protocol === 'http:' && !url.port && /^[\d.]+$/.test(url.hostname)) url.port = String(PORT);
     return { adres: url.origin };
   }
 
-  // Testler için dışa açılır (tarayıcıda zararsız)
-  window.EczamBaglan = { adresiHazirla, yerelAdresMi };
+  // Taranacak adresler: verilen agin 1-254 arasi, Eczam portunda
+  function agAdresleri(onek) {
+    const liste = [];
+    for (let i = 1; i <= 254; i++) liste.push(`http://${onek}.${i}:${PORT}`);
+    return liste;
+  }
 
-  async function dogrula(adres) {
+  // Adreste Eczam varsa { adres, ad } doner; yoksa null
+  async function yokla(adres, ms) {
     const kontrol = new AbortController();
-    const zaman = setTimeout(() => kontrol.abort(), 8000);
+    const zaman = setTimeout(() => kontrol.abort(), ms);
     try {
       const r = await fetch(adres + '/api/health', {
         signal: kontrol.signal,
@@ -76,19 +104,114 @@
         headers: { 'Accept': 'application/json' },
       });
       const j = await r.json().catch(() => null);
-      return r.ok && j && j.ok === true;
+      if (!r.ok || !j || j.ok !== true) return null;
+      // Eski sunucular yalnizca { ok: true } doner; yeni sunucular kendini tanitir
+      if (j.uygulama && j.uygulama !== 'eczam') return null;
+      return { adres, ad: typeof j.ad === 'string' ? j.ad : '' };
     } catch (e) {
-      return false;
+      return null;
     } finally {
       clearTimeout(zaman);
     }
   }
+  const dogrula = async (adres) => Boolean(await yokla(adres, 8000));
+
+  // Ag(lar)i tarar; bir agda Eczam bulununca o agi bitirip durur
+  async function agiTara({ aglar = AGLAR, eszamanli = ESZAMANLI, ms = YOKLAMA_MS, ilerleme = () => {}, iptal = () => false, yoklayici = yokla } = {}) {
+    const bulunan = [];
+    for (let a = 0; a < aglar.length; a++) {
+      const adresler = agAdresleri(aglar[a]);
+      let sira = 0;
+      const isci = async () => {
+        while (sira < adresler.length && !iptal()) {
+          const adres = adresler[sira++];
+          const sonuc = await yoklayici(adres, ms);
+          if (sonuc) bulunan.push(sonuc);
+        }
+      };
+      ilerleme({ ag: aglar[a], sira: a, toplam: aglar.length });
+      await Promise.all(Array.from({ length: Math.min(eszamanli, adresler.length) }, isci));
+      if (iptal() || bulunan.length) break;
+    }
+    return bulunan;
+  }
+
+  // Testler için dışa açılır (tarayıcıda zararsız)
+  window.EczamBaglan = { adresiHazirla, yerelAdresMi, agAdresleri, agiTara, AGLAR };
 
   function ac(adres) {
     window.location.replace(adres + '/mobil/');
   }
+  function kaydetVeAc(adres) {
+    yaz(adres);
+    ac(adres);
+  }
 
-  $('#form').addEventListener('submit', async (e) => {
+  let aramaIptal = false;
+  function elleGirisGoster(deger) {
+    aramaIptal = true;
+    arama.hidden = true;
+    elleDugme.hidden = true;
+    form.hidden = false;
+    aciklama.textContent = 'Eczanenizin Eczam sunucu adresini yazın. Adresi eczane bilgisayarındaki Eczam ekranında ya da yöneticinizden öğrenebilirsiniz.';
+    if (deger) adresInput.value = deger;
+  }
+
+  async function aramayiBaslat({ yeniden = 0 } = {}) {
+    aramaIptal = false;
+    hata('');
+    form.hidden = true;
+    bulunanlar.hidden = true;
+    tekrarDugme.hidden = true;
+    elleDugme.hidden = false;
+    arama.hidden = false;
+    aramaMetin.textContent = 'Eczanedeki Eczam aranıyor…';
+    const basla = Date.now();
+    const sonuclar = await agiTara({
+      iptal: () => aramaIptal,
+      ilerleme: ({ ag, sira, toplam }) => {
+        aramaAyrinti.textContent = `${ag}.x ağı taranıyor`;
+        aramaCubuk.style.width = `${Math.round(((sira + 1) / toplam) * 100)}%`;
+      },
+    });
+    if (aramaIptal) return;
+    arama.hidden = true;
+    // Ayni sunucu birden cok kez donmesin
+    const tekil = [...new Map(sonuclar.map((s) => [s.adres, s])).values()];
+    if (tekil.length === 1) {
+      aramaMetin.textContent = 'Bulundu';
+      return kaydetVeAc(tekil[0].adres);
+    }
+    if (tekil.length > 1) {
+      elleDugme.hidden = false;
+      bulunanlar.hidden = false;
+      bulunanListe.textContent = '';
+      for (const s of tekil) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'ikincil';
+        b.textContent = `${s.ad || 'Eczam'} · ${s.adres.replace(/^https?:\/\//, '')}`;
+        b.addEventListener('click', () => kaydetVeAc(s.adres));
+        bulunanListe.appendChild(b);
+      }
+      return;
+    }
+    // Hic yanit yok ve tarama cok kisa surduyse iOS "Yerel Ag" izni henuz verilmemistir: biraz bekleyip yeniden dene
+    if (Date.now() - basla < 4000 && yeniden < 3) {
+      aramaMetin.textContent = 'Yerel ağ izni bekleniyor…';
+      arama.hidden = false;
+      setTimeout(() => !aramaIptal && aramayiBaslat({ yeniden: yeniden + 1 }), 3000);
+      return;
+    }
+    hata('Eczanedeki Eczam bulunamadı. Telefonun eczanenin Wi-Fi ağına bağlı olduğundan, Eczam\'ın bilgisayarda açık olduğundan ve "Yerel Ağ" iznini verdiğinizden emin olun (Ayarlar › Eczam › Yerel Ağ).');
+    tekrarDugme.hidden = false;
+    elleDugme.hidden = false;
+  }
+
+  elleDugme.addEventListener('click', () => elleGirisGoster(''));
+  tekrarDugme.addEventListener('click', () => aramayiBaslat());
+
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     hata('');
     const s = adresiHazirla(adresInput.value);
@@ -99,8 +222,7 @@
     dugme.disabled = false;
     dugme.textContent = 'Bağlan';
     if (!tamam) return hata('Bu adreste bir Eczam sunucusu bulunamadı. Adresi ve internet bağlantınızı kontrol edin.');
-    yaz(s.adres);
-    ac(s.adres);
+    kaydetVeAc(s.adres);
   });
 
   // Kayitli sunucu varsa dogrudan ac; "?degistir=1" ile adres ekrani gosterilir
@@ -108,22 +230,32 @@
   const kayitli = oku();
   if (parametre.get('degistir') === '1') {
     yaz('');
-    adresInput.value = parametre.get('onceki') || kayitli;
+    aramayiBaslat();
   } else if (kayitli) {
-    adresInput.value = kayitli;
+    aciklama.textContent = 'Eczanenizin sunucusuna bağlanılıyor…';
     dogrula(kayitli).then((tamam) => {
-      if (tamam) ac(kayitli);
-      else {
+      if (tamam) return ac(kayitli);
+      let host = '';
+      try {
+        host = new URL(kayitli).hostname;
+      } catch (e) {}
+      // Yerel sunucunun adresi degismis olabilir (modem yeni IP vermis): agda yeniden ara
+      if (yerelAdresMi(host)) {
+        aramayiBaslat();
+      } else {
+        elleGirisGoster(kayitli);
         hata('Kayıtlı sunucuya ulaşılamıyor. İnternet bağlantınızı kontrol edin ya da adresi değiştirin.');
-        // Cevrimdisiyken de uygulama onbellekten acilabilsin: kullanici "Yine de ac" diyebilir
-        const yine = document.createElement('button');
-        yine.type = 'button';
-        yine.className = 'ikincil';
-        yine.textContent = 'Yine de aç (çevrimdışı)';
-        yine.addEventListener('click', () => ac(kayitli));
-        $('#form').appendChild(yine);
       }
+      // Cevrimdisiyken de uygulama onbellekten acilabilsin
+      const yine = document.createElement('button');
+      yine.type = 'button';
+      yine.className = 'ikincil';
+      yine.textContent = 'Yine de aç (çevrimdışı)';
+      yine.addEventListener('click', () => ac(kayitli));
+      $('#kutu').appendChild(yine);
     });
+  } else {
+    aramayiBaslat();
   }
 
   const gizlilik = $('#gizlilik');
