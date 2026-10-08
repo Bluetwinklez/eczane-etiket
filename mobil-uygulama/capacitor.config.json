@@ -11,6 +11,8 @@
   },
   "server": {
     "iosScheme": "capacitor",
-    "allowNavigation": []
+    "allowNavigation": [
+      "*"
+    ]
   }
 }

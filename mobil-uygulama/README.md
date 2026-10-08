@@ -1,6 +1,6 @@
 # Eczam Mobil — iOS kabuğu (Capacitor)
 
-Bu klasör, `/mobil` adresindeki Eczam Mobil uygulamasını (PWA) **App Store'a gönderilebilir iOS uygulamasına** saran ince kabuktur. Uygulamanın kendisi sunucudan yüklenir; kabuk yalnızca sunucu adresini sorar, doğrular (`/api/health`) ve WebView'ı `<sunucu>/mobil/` adresine yönlendirir.
+Bu klasör, `/mobil` adresindeki Eczam Mobil uygulamasını (PWA) **App Store'a gönderilebilir iOS uygulamasına** saran ince kabuktur. Uygulamanın kendisi sunucudan yüklenir. İlk açılışta kabuk eczanedeki Eczam'ı yerel ağda kendisi arar (yaygın 192.168.x / 10.x ağlarında 3000 portunda `/api/health` yoklanır); bulunca adresi kaydeder ve WebView'ı `<sunucu>/mobil/` adresine yönlendirir. Bulamazsa ya da sunucu internetteyse adres elle girilir. Kayıtlı yerel sunucuya ulaşılamazsa (modem yeni IP vermişse) yeniden aranır.
 
 ```
 www/            Yerel bağlantı ekranı (baglan.html/js/css, logo, yazı tipleri)
@@ -19,7 +19,8 @@ npm run ios:ac    # Xcode'u açar (Mac gerekir)
 Yayın adımlarının tamamı: **[docs/APP_STORE_RELEASE.md](../docs/APP_STORE_RELEASE.md)**
 
 Notlar:
-- Kullanıcı agent'ı `EczanemApp/1.0` içerir; mobil arayüz bunu görünce Profil'de "Sunucuyu değiştir" düğmesini gösterir.
+- `server.allowNavigation` `["*"]` olmalı: her eczanenin sunucu adresi farklıdır; boş liste olursa Capacitor sunucu sayfasını uygulama yerine Safari'de açar.
+- Kullanıcı agent'ı `EczamApp/1.0` içerir; mobil arayüz bunu görünce Profil'de "Sunucuyu değiştir" düğmesini gösterir.
 - Internet adresleri HTTPS gerektirir; yalnızca yerel ağ adresleri (localhost, 10.x, 192.168.x, 172.16–31.x, *.local) HTTP ile açılabilir.
 - Bu proje Linux'ta üretildi; imzasız derleme GitHub Actions macOS çalıştırıcısında başarılı (BUILD SUCCEEDED). İmzalama, TestFlight ve gerçek cihaz denemesi henüz yapılmadı.
 

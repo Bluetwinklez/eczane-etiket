@@ -764,7 +764,7 @@
         <div class="cipler" role="group" aria-label="Dil"><button class="hap ${window.EczamDil && EczamDil.dil === 'tr' ? 'secili' : ''}" data-dil="tr">Türkçe</button><button class="hap ${window.EczamDil && EczamDil.dil === 'en' ? 'secili' : ''}" data-dil="en">English</button></div>
         <a class="hap" style="text-align:center;text-decoration:none" href="/gizlilik.html">Gizlilik politikası</a>
         <button class="hap" id="p-sifre">Şifremi değiştir</button>
-        ${/EczanemApp\//.test(navigator.userAgent) ? '<button class="hap" id="p-sunucu">Sunucuyu değiştir</button>' : ''}
+        ${/Ecza(nem|m)App\//.test(navigator.userAgent) ? '<button class="hap" id="p-sunucu">Sunucuyu değiştir</button>' : ''}
         <button class="hap siyah" id="p-cikis">Çıkış yap</button>
         <button class="hap" id="p-sil" style="background:var(--mercan)">Hesabım ve veri silme</button>
       </div>`,

@@ -15,7 +15,9 @@ test('bundle ID Capacitor, Xcode ve TestFlight iş akışında aynı', () => {
   const cap = JSON.parse(oku('mobil-uygulama', 'capacitor.config.json'));
   assert.equal(cap.appId, BUNDLE);
   assert.equal(cap.appName, 'Eczam');
-  assert.deepEqual(cap.server.allowNavigation, []);
+  // Her eczanenin sunucu adresi farkli: kayitli sunucuya gecis uygulama icinde kalmali.
+  // Bos liste olursa Capacitor sunucu sayfasini Safari'de acar (WebViewDelegationHandler).
+  assert.deepEqual(cap.server.allowNavigation, ['*']);
   assert.equal(cap.ios.appendUserAgent, 'EczamApp/1.0');
   const pbx = oku('mobil-uygulama', 'ios', 'App', 'App.xcodeproj', 'project.pbxproj');
   const kimlikler = [...pbx.matchAll(/PRODUCT_BUNDLE_IDENTIFIER = ([^;]+);/g)].map((m) => m[1]);
@@ -67,7 +69,8 @@ function baglanYukle() {
     window: pencere,
     document: { querySelector: kutu, createElement: kutu },
     location: { search: '', replace() {} },
-    localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
+    // Kayitli internet sunucusu: yuklemede ag taramasi baslamasin (testte gereksiz zamanlayicilar)
+    localStorage: { getItem: () => 'https://eczam.ornek.com', setItem() {}, removeItem() {} },
     fetch: async () => ({ ok: false }),
     URL, URLSearchParams, AbortController, setTimeout, clearTimeout,
   };
@@ -83,12 +86,45 @@ test('bağlantı ekranı: adres doğrulama kuralları', () => {
   assert.equal(adresiHazirla('192.168.1.20:3000').adres, 'http://192.168.1.20:3000');
   assert.equal(adresiHazirla('http://localhost:3000').adres, 'http://localhost:3000');
   assert.equal(adresiHazirla('eczane.local').adres, 'http://eczane.local');
+  assert.equal(adresiHazirla('192.168.1.20').adres, 'http://192.168.1.20:3000', 'yerel IP icin varsayilan Eczam portu');
   assert.match(adresiHazirla('http://eczam.ornek.com').hata, /HTTPS/);
   assert.match(adresiHazirla('').hata, /yazın/);
   assert.ok(adresiHazirla('ftp://x.com').hata);
   assert.ok(adresiHazirla('javascript:alert(1)').hata);
   assert.ok(adresiHazirla('https://user:pass@eczam.ornek.com').hata);
   assert.ok(adresiHazirla('http://0.0.0.0:3000').hata);
+});
+
+test('ilk açılış: yerel ağda Eczam aranır, bulunca ağ biter ve tarama durur', async () => {
+  const { agAdresleri, agiTara, AGLAR } = baglanYukle();
+  const liste = agAdresleri('192.168.1');
+  assert.equal(liste.length, 254);
+  assert.equal(liste[0], 'http://192.168.1.1:3000');
+  assert.equal(liste[253], 'http://192.168.1.254:3000');
+  assert.equal(AGLAR[0], '192.168.1');
+
+  const sorulan = [];
+  const yoklayici = async (adres) => {
+    sorulan.push(adres);
+    return adres === 'http://192.168.0.37:3000' ? { adres, ad: 'Merkez' } : null;
+  };
+  const bulunan = await agiTara({ aglar: ['192.168.1', '192.168.0', '10.0.0'], eszamanli: 16, yoklayici });
+  assert.deepEqual(JSON.parse(JSON.stringify(bulunan)), [{ adres: 'http://192.168.0.37:3000', ad: 'Merkez' }]);
+  assert.equal(sorulan.length, 254 * 2, 'bulunan ağdan sonraki ağ taranmaz');
+
+  let say = 0;
+  const iptalli = await agiTara({ aglar: ['192.168.1'], eszamanli: 4, iptal: () => say >= 10, yoklayici: async () => (say++, null) });
+  assert.equal(iptalli.length, 0);
+  assert.ok(say < 20, 'iptal edilince tarama durur');
+});
+
+test('ilk açılış ekranı adres sormadan aramayla başlar', () => {
+  const html = oku('mobil-uygulama', 'www', 'index.html');
+  assert.match(html, /<form id="form" novalidate hidden>/);
+  assert.match(html, /id="elle"/);
+  assert.match(html, /id="arama"/);
+  const js = oku('mobil-uygulama', 'www', 'baglan.js');
+  assert.match(js, /\} else \{\n    aramayiBaslat\(\);\n  \}/);
 });
 
 test('mağaza metni sınırları (docs/STORE_LISTING.md)', () => {

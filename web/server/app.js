@@ -141,7 +141,13 @@ app.use('/api/sistem', requireLogin, sistemRoutes);
 app.use('/api/mobil', requireLogin, mobilRoutes);
 app.use('/api/oneriler', requireLogin, onerilerRoutes);
 
-app.get('/api/health', (req, res) => res.json({ ok: true }));
+// Saglik kontrolu; Eczam Mobil (iOS) yerel agda sunucuyu bunu yoklayarak bulur.
+// Kimlik bilgisi tasimadigi icin her kaynaktan okunabilir (capacitor://localhost dahil).
+app.get('/api/health', (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  const sube = db.prepare('SELECT ad FROM subeler ORDER BY id LIMIT 1').get();
+  res.json({ ok: true, uygulama: 'eczam', ad: sube ? sube.ad : null });
+});
 
 // Gizlilik politikasi (App Store zorunlu): iletisim e-postasi ECZANEM_GIZLILIK_EPOSTA ile verilir
 app.get('/gizlilik.html', (req, res) => {
