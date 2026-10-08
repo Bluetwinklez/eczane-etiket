@@ -56,8 +56,10 @@ def summarize(api, bundle_id):
     attrs = app["attributes"]
     lines.append(f"Uygulama: {attrs.get('name')} ({bundle_id})")
 
-    builds = api.call("GET", f"/apps/{app['id']}/builds",
-                      query={"limit": "5", "sort": "-uploadedDate"})
+    # /apps/{id}/builds siralama kabul etmez (400); ust duzey /builds filtrelenir
+    builds = api.call("GET", "/builds",
+                      query={"filter[app]": app["id"], "limit": "5",
+                             "sort": "-uploadedDate"})
     lines.append("Son derlemeler:")
     items = builds.get("data", [])
     if not items:
@@ -90,6 +92,9 @@ def main():
               env["ASC_API_PRIVATE_KEY_PATH"])
     lines = summarize(api, env.get("IOS_BUNDLE_ID", "com.bluetwinklez.eczam"))
     print("\n".join(lines))
+    if env.get("GITHUB_ACTIONS"):
+        # Tek bir notice: is ozeti acilmadan kontrol listesinde de okunur
+        print("::notice title=App Store durumu::" + "%0A".join(lines))
     summary = env.get("GITHUB_STEP_SUMMARY")
     if summary:
         with open(summary, "a", encoding="utf-8") as f:

@@ -11,14 +11,29 @@
   <main class="kutu" id="kutu">
     <div class="logo"><img src="logo-isaret.svg" alt="" /></div>
     <h1>Eczam<br />Mobil</h1>
-    <p class="alt">Eczanenizin sunucusuna bağlanın. Adresi eczane yöneticinizden öğrenebilirsiniz.</p>
+    <p class="alt" id="aciklama">Eczanenizdeki Eczam'ı arıyoruz. Telefonun eczanenin Wi-Fi ağına bağlı olması yeterli.</p>
     <div id="hata" class="hata" role="alert" hidden></div>
-    <form id="form" novalidate>
+
+    <section id="arama" class="arama" hidden>
+      <div class="durum"><span class="donen" aria-hidden="true"></span><span id="arama-metin">Eczanedeki Eczam aranıyor…</span></div>
+      <div class="ilerleme"><div id="arama-cubuk"></div></div>
+      <p class="ipucu" id="arama-ayrinti"></p>
+    </section>
+
+    <section id="bulunanlar" hidden>
+      <p class="alt">Birden fazla Eczam bulundu. Bağlanmak istediğinizi seçin:</p>
+      <div id="bulunan-liste" class="liste"></div>
+    </section>
+
+    <form id="form" novalidate hidden>
       <label for="adres">Sunucu adresi</label>
-      <input id="adres" inputmode="url" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="eczam.ornekeczane.com" autocomplete="url" />
+      <input id="adres" inputmode="url" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="192.168.1.20:3000 veya eczam.ornekeczane.com" autocomplete="url" />
       <button id="baglan" type="submit">Bağlan</button>
+      <p class="ipucu">İnternet üzerindeki adresler HTTPS gerektirir. Yerel ağ adresleri (ör. 192.168.1.20:3000) HTTP ile de kullanılabilir.</p>
     </form>
-    <p class="ipucu">Güvenli bağlantı (HTTPS) gerekir. Yerel ağdaki adresler (ör. 192.168.1.20:3000) HTTP ile de kullanılabilir.</p>
+
+    <button id="tekrar-ara" class="ikincil" type="button" hidden>Tekrar ara</button>
+    <button id="elle" class="metin-dugme" type="button" hidden>Adresi elle gir</button>
     <a class="baglanti" href="#" id="gizlilik" hidden>Gizlilik politikası</a>
   </main>
   <script src="baglan.js"></script>
