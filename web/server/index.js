@@ -16,6 +16,10 @@ process.on('unhandledRejection', (err) => {
   hataKaydet('sunucu-promise', err && err.message ? err.message : String(err), { yigin: String((err && err.stack) || '').split('\n').slice(0, 6).join(' | ') });
 });
 
+// ECZAM_DEMO=1: herkese acik demo sunucusu (ornek veri, sabit demo hesabi)
+const demo = require('./demo').demoHazirla();
+if (demo) console.log(`Demo modu acik (${demo.satis} ornek satis eklendi)`);
+
 otomatikYedeklemeyiBaslat();
 gunSonuZamanlayiciBaslat();
 

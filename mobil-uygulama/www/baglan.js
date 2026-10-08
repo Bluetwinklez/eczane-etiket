@@ -11,6 +11,8 @@
     '192.168.10', '192.168.11', '192.168.100', '192.168.88', '192.168.178',
     '10.0.0', '10.0.1', '10.10.10', '172.16.0',
   ];
+  // Herkese acik demo sunucusu (ornek veriler); render.yaml ile kurulur
+  const DEMO_ADRES = 'https://eczam-demo.onrender.com';
   const ESZAMANLI = 64;
   const YOKLAMA_MS = 1200;
 
@@ -28,6 +30,7 @@
   const tekrarDugme = $('#tekrar-ara');
   const elleDugme = $('#elle');
   const aciklama = $('#aciklama');
+  const demoDugme = $('#demo');
 
   const oku = () => {
     try {
@@ -137,7 +140,7 @@
   }
 
   // Testler için dışa açılır (tarayıcıda zararsız)
-  window.EczamBaglan = { adresiHazirla, yerelAdresMi, agAdresleri, agiTara, AGLAR };
+  window.EczamBaglan = { adresiHazirla, yerelAdresMi, agAdresleri, agiTara, AGLAR, DEMO_ADRES };
 
   function ac(adres) {
     window.location.replace(adres + '/mobil/');
@@ -209,6 +212,27 @@
   }
 
   elleDugme.addEventListener('click', () => elleGirisGoster(''));
+
+  // Demo: adres yazmadan ornek verili sunucuya baglanir. Ucretsiz sunucu uykudaysa uyanmasi ~1 dk surer.
+  demoDugme.addEventListener('click', async () => {
+    aramaIptal = true;
+    hata('');
+    form.hidden = true;
+    bulunanlar.hidden = true;
+    tekrarDugme.hidden = true;
+    demoDugme.disabled = true;
+    arama.hidden = false;
+    aramaMetin.textContent = 'Demo açılıyor…';
+    aramaAyrinti.textContent = 'Demo sunucusu uykudaysa açılması bir dakika kadar sürebilir.';
+    aramaCubuk.style.width = '100%';
+    const tamam = await yokla(DEMO_ADRES, 75000);
+    demoDugme.disabled = false;
+    if (tamam) return kaydetVeAc(DEMO_ADRES);
+    arama.hidden = true;
+    hata('Demo sunucusuna ulaşılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.');
+    tekrarDugme.hidden = false;
+    elleDugme.hidden = false;
+  });
   tekrarDugme.addEventListener('click', () => aramayiBaslat());
 
   form.addEventListener('submit', async (e) => {

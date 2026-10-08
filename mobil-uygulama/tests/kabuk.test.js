@@ -123,6 +123,11 @@ test('ilk açılış ekranı adres sormadan aramayla başlar', () => {
   assert.match(html, /<form id="form" novalidate hidden>/);
   assert.match(html, /id="elle"/);
   assert.match(html, /id="arama"/);
+  assert.match(html, /id="demo"[^>]*>Demo ile dene</);
+  const { DEMO_ADRES } = baglanYukle();
+  assert.match(DEMO_ADRES, /^https:\/\//, 'demo sunucusu HTTPS olmalı');
+  assert.match(oku('render.yaml'), new RegExp(`name: ${new URL(DEMO_ADRES).hostname.split('.')[0]}\\n`), 'render.yaml servis adı demo adresiyle aynı');
+  assert.match(oku('render.yaml'), /ECZAM_DEMO\n\s+value: "1"/);
   const js = oku('mobil-uygulama', 'www', 'baglan.js');
   assert.match(js, /\} else \{\n    aramayiBaslat\(\);\n  \}/);
 });

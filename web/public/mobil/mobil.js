@@ -264,7 +264,20 @@
         <label class="etiket" for="kad">Kullanıcı adı</label><input class="alan" id="kad" autocomplete="username" autocapitalize="none" required />
         <label class="etiket" for="sif" style="margin-top:12px">Şifre</label><input class="alan" id="sif" type="password" autocomplete="current-password" required />
         <button class="hap siyah" style="margin-top:18px" type="submit">Giriş Yap</button>
-      </form></div>`;
+      </form><div id="giris-demo"></div></div>`;
+    // Demo sunucusu: tek dokunusla demo hesabiyla giris (veriler sahtedir)
+    fetch('/api/health', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((h) => {
+        if (!h || !h.demo || !$('#giris-demo')) return;
+        $('#giris-demo').innerHTML = `<button class="hap" style="margin-top:12px;width:100%" type="button" id="demo-gir">Demo hesabıyla gir</button><p class="alt-yazi" style="margin-top:8px">${esc(h.demo.kullanici)} / ${esc(h.demo.sifre)} · örnek verilerle</p>`;
+        $('#demo-gir').onclick = () => {
+          $('#kad').value = h.demo.kullanici;
+          $('#sif').value = h.demo.sifre;
+          $('#giris-form').requestSubmit();
+        };
+      })
+      .catch(() => {});
     $('#giris-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const dugme = e.target.querySelector('button');
