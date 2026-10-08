@@ -415,7 +415,7 @@ window.EczamEklenti = (M) => {
       const [m, v] = await Promise.all([get('/api/musteriler/' + id, { onbellek: true }), get('/api/veresiye/' + id, { onbellek: true }).catch(() => null)]);
       const saglik = [m.kronik_hastaliklar && 'Kronik: ' + m.kronik_hastaliklar, m.alerjiler && 'Alerji: ' + m.alerjiler, m.gebelik_durumu && m.gebelik_durumu !== 'yok' && 'Gebelik/emzirme'].filter(Boolean);
       const bakiye = v ? v.bakiye : 0;
-      $('.sayfa', perde).innerHTML = `<div class="tutamak"></div>
+      $('.sayfa', perde).innerHTML = `<div class="tutamak"></div><button type="button" class="sayfa-kapat" aria-label="Kapat">×</button>
         <h2 style="font-family:var(--font-baslik);font-size:26px;margin:0 0 4px">${esc(m.ad_soyad)}</h2>
         <p class="alt-yazi" style="margin-bottom:12px">${m.telefon ? `<a href="tel:${esc(m.telefon)}" style="color:inherit;font-weight:700">${esc(m.telefon)}</a>` : 'Telefon yok'}</p>
         ${saglik.length ? `<div class="hata-kutu" style="background:var(--sari)">⚠ ${saglik.map(esc).join(' · ')}</div>` : ''}
@@ -504,7 +504,7 @@ window.EczamEklenti = (M) => {
       const s = await get('/api/siparisler/' + id);
       const d = SIPARIS_DURUM[s.durum] || [s.durum, ''];
       const acik = ['beklemede', 'gonderildi'].includes(s.durum);
-      $('.sayfa', perde).innerHTML = `<div class="tutamak"></div>
+      $('.sayfa', perde).innerHTML = `<div class="tutamak"></div><button type="button" class="sayfa-kapat" aria-label="Kapat">×</button>
         <h2 style="font-family:var(--font-baslik);font-size:24px;margin:0 0 6px">Sipariş #${s.id}</h2>
         <p class="alt-yazi" style="margin-bottom:10px"><span class="rozet ${d[1]}">${d[0]}</span> ${tarihKisa(s.olusturma_tarihi)}${s.notlar ? ' · ' + esc(s.notlar) : ''}</p>
         ${s.kalemler.map((k) => `<div class="satir"><div class="ad">${esc(k.ilac_adi)}<small>${tl(k.tahmini_birim_fiyat)}</small></div><span class="rozet">${k.istenen_adet} adet</span></div>`).join('')}
@@ -809,7 +809,7 @@ window.EczamEklenti = (M) => {
       const secim = new Map(); // kalem id -> iade adedi
       const ciz = () => {
         const toplam = sat.kalemler.reduce((t, k) => t + (secim.get(k.id) || 0) * k.birim_iade_tutari, 0);
-        $('.sayfa', perde).innerHTML = `<div class="tutamak"></div>
+        $('.sayfa', perde).innerHTML = `<div class="tutamak"></div><button type="button" class="sayfa-kapat" aria-label="Kapat">×</button>
           <h2 style="font-family:var(--font-baslik);font-size:24px;margin:0 0 4px">Satış #${sat.id} iadesi</h2>
           <p class="alt-yazi" style="margin-bottom:8px">${tl(sat.toplam_tutar)} · ${esc(ODEME_ADI[sat.odeme_tipi] || sat.odeme_tipi)}${sat.musteri_adi ? ' · ' + esc(sat.musteri_adi) : ''}</p>
           ${sat.kalemler

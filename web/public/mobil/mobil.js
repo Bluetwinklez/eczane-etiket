@@ -175,11 +175,45 @@
     clearTimeout(toastZ);
     toastZ = setTimeout(() => (t.hidden = true), 2600);
   }
+  // Alt sayfa en ustteyken asagi cekilince kapanir (iOS'taki gibi)
+  function asagiKaydirinKapat(perde, sayfa) {
+    let bas = null;
+    let fark = 0;
+    sayfa.addEventListener('touchstart', (e) => {
+      bas = sayfa.scrollTop <= 0 ? e.touches[0].clientY : null;
+      fark = 0;
+      sayfa.style.transition = 'none';
+    }, { passive: true });
+    sayfa.addEventListener('touchmove', (e) => {
+      if (bas === null) return;
+      fark = e.touches[0].clientY - bas;
+      if (fark <= 0 || sayfa.scrollTop > 0) {
+        fark = 0;
+        sayfa.style.transform = '';
+        return;
+      }
+      e.preventDefault();
+      sayfa.style.transform = `translateY(${fark}px)`;
+    }, { passive: false });
+    sayfa.addEventListener('touchend', () => {
+      if (bas === null) return;
+      bas = null;
+      sayfa.style.transition = 'transform 200ms ease';
+      if (fark > 110) {
+        sayfa.style.transform = 'translateY(100%)';
+        setTimeout(() => perde.remove(), 190);
+      } else sayfa.style.transform = '';
+    });
+  }
+
   function sayfaAc(html) {
     const perde = document.createElement('div');
     perde.className = 'perde';
-    perde.innerHTML = `<div class="sayfa" role="dialog" aria-modal="true"><div class="tutamak"></div>${html}</div>`;
+    perde.innerHTML = `<div class="sayfa" role="dialog" aria-modal="true"><div class="tutamak"></div><button type="button" class="sayfa-kapat" aria-label="Kapat">×</button>${html}</div>`;
     perde.addEventListener('click', (e) => e.target === perde && perde.remove());
+    // Icerik sonradan degisse de kapat dugmesi calisir
+    perde.addEventListener('click', (e) => e.target.closest('.sayfa-kapat') && perde.remove());
+    asagiKaydirinKapat(perde, perde.querySelector('.sayfa'));
     document.body.appendChild(perde);
     return perde;
   }
@@ -450,7 +484,7 @@
         <small style="color:var(--gri);font-weight:600">Son 4 hafta (eskiden yeniye)</small>`;
     };
     const stokRenk = ilac.stok <= 0 ? 'kirmizi' : ilac.stok <= ilac.kritik_stok ? 'sari' : 'yesil';
-    $('.sayfa', perde).innerHTML = `<div class="tutamak"></div>
+    $('.sayfa', perde).innerHTML = `<div class="tutamak"></div><button type="button" class="sayfa-kapat" aria-label="Kapat">×</button>
       <h2 style="font-family:var(--font-baslik);font-size:26px;margin:0 0 6px;letter-spacing:-.02em">${esc(ilac.ad)}</h2>
       <p class="alt-yazi" style="margin-bottom:12px">${esc(ilac.etken_madde || ilac.kategori || '')}</p>
       <div class="kart-ikili" style="margin-bottom:14px">
