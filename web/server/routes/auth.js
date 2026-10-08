@@ -2,6 +2,7 @@ const express = require('express');
 const { db, hashPassword, verifyPassword } = require('../db');
 const { login, toPublicUser, requireOturum, sifreKuraliHatasi } = require('../auth');
 const sinirlayici = require('../girisSinirlayici');
+const { demoHesabiMi } = require('../demo');
 
 const router = express.Router();
 
@@ -61,6 +62,7 @@ router.post('/kilit-ac', requireOturum, (req, res) => {
 });
 
 router.post('/sifre-degistir', requireOturum, (req, res) => {
+  if (demoHesabiMi(req.user)) return res.status(403).json({ error: 'Demo hesabının şifresi değiştirilemez' });
   const { mevcut_sifre, yeni_sifre } = req.body;
   if (!mevcut_sifre || !verifyPassword(mevcut_sifre, req.user.sifre_salt, req.user.sifre_hash)) {
     return res.status(400).json({ error: 'Mevcut şifre hatalı' });

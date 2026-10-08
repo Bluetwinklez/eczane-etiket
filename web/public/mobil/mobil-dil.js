@@ -22,7 +22,7 @@
     'Geri': 'Back', 'Eczam ana sayfa': 'Eczam home', 'Yükleniyor…': 'Loading…', 'Eczam Mobil': 'Eczam Mobile', 'Eczam Mobil 1.0': 'Eczam Mobile 1.0',
     'Eczam Mobil için JavaScript gerekir.': 'Eczam Mobile needs JavaScript.',
     // Giris
-    'Eczanenizi cebinizden izleyin.': 'Keep an eye on your pharmacy from your pocket.', 'Kullanıcı adı': 'Username', 'Şifre': 'Password', 'Giriş Yap': 'Sign in',
+    'Eczanenizi cebinizden izleyin.': 'Keep an eye on your pharmacy from your pocket.', 'Kullanıcı adı': 'Username', 'Şifre': 'Password', 'Giriş Yap': 'Sign in', 'Demo hesabıyla gir': 'Sign in with the demo account',
     'Yeni şifre belirleyin': 'Set a new password', 'Mevcut şifre': 'Current password', 'Yeni şifre': 'New password', 'Şifreyi Değiştir': 'Change password',
     'Güvenliğiniz için devam etmeden şifrenizi değiştirmelisiniz (en az 8 karakter, harf ve rakam).': 'For your security you must change your password before continuing (at least 8 characters, letters and digits).',
     'Şifre değiştirildi': 'Password changed', 'Şifre değiştir': 'Change password', 'Şifremi değiştir': 'Change my password',

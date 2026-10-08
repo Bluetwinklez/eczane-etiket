@@ -1,0 +1,35 @@
+# Render Blueprint: Eczam herkese acik demo sunucusu (App Store incelemesi ve "Demo ile dene").
+# Render panelinde: New + → Blueprint → bu depoyu secin. Veriler sahtedir; sunucu her yeniden
+# baslatildiginda ornek veriyle sifirdan acilir (ucretsiz planda kalici disk yok).
+services:
+  - type: web
+    name: eczam-demo
+    runtime: node
+    plan: free
+    rootDir: web
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: ECZAM_DEMO
+        value: "1"
+      - key: ECZAM_DEMO_KULLANICI
+        value: demo
+      - key: ECZAM_DEMO_SIFRE
+        value: demo1234
+      # Yonetici sifresini Render uretir; panelde Environment altinda gorunur
+      - key: ECZAM_ADMIN_SIFRE
+        generateValue: true
+      - key: TRUST_PROXY
+        value: "1"
+      - key: COOKIE_SECURE
+        value: "1"
+      - key: ECZANEM_OTOMATIK_YEDEK
+        value: "0"
+      - key: ECZANEM_GUN_SONU
+        value: "0"
+      - key: ECZANEM_GIZLILIK_EPOSTA
+        value: doflerim@gmail.com
