@@ -109,7 +109,7 @@ def test_durum_ozeti_uygulama_yoksa_yonlendirir():
 def test_durum_ozeti_derleme_ve_surum_durumlari():
     api = FakeApi({
         ("GET", "/apps"): {"data": [{"id": "A1", "attributes": {"bundleId": "com.bluetwinklez.eczam", "name": "Eczam"}}]},
-        ("GET", "/apps/A1/builds"): {"data": [
+        ("GET", "/builds"): {"data": [
             {"attributes": {"version": "7", "processingState": "VALID", "uploadedDate": "2026-10-04T10:00:00+03:00"}},
             {"attributes": {"version": "6", "processingState": "PROCESSING", "expired": True, "uploadedDate": "2026-10-03T09:00:00+03:00"}}]},
         ("GET", "/apps/A1/appStoreVersions"): {"data": [

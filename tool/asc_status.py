@@ -56,8 +56,10 @@ def summarize(api, bundle_id):
     attrs = app["attributes"]
     lines.append(f"Uygulama: {attrs.get('name')} ({bundle_id})")
 
-    builds = api.call("GET", f"/apps/{app['id']}/builds",
-                      query={"limit": "5", "sort": "-uploadedDate"})
+    # /apps/{id}/builds siralama kabul etmez (400); ust duzey /builds filtrelenir
+    builds = api.call("GET", "/builds",
+                      query={"filter[app]": app["id"], "limit": "5",
+                             "sort": "-uploadedDate"})
     lines.append("Son derlemeler:")
     items = builds.get("data", [])
     if not items:
