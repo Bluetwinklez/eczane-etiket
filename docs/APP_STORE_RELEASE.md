@@ -119,7 +119,8 @@ so the app asks for a server address on first launch. A public demo server with 
 (non-real) data is provided for review.
 
 HOW TO TEST:
-1. Open the app. In "Server address" enter:  demo.example.com   (replace with the real demo host)
+1. Open the app. It first searches the local Wi-Fi for a pharmacy server; tap "Adresi elle gir"
+   (Enter address manually) and in "Server address" enter:  demo.example.com   (replace with the real demo host)
 2. Sign in with username: apple-demo   password: <demo password>
 3. Browse the Summary, Sales, Products and Notifications tabs.
 4. On the Scan tab the app asks for camera permission (used only to scan barcodes; images are
