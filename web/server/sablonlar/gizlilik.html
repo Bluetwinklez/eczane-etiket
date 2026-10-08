@@ -2,20 +2,23 @@
 <html lang="tr">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Gizlilik Politikası — Eczam</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <style>
     :root { color-scheme: light dark; }
-    body { font: 16px/1.65 system-ui, -apple-system, 'Segoe UI', sans-serif; max-width: 760px; margin: 0 auto; padding: 24px 18px 60px; color: #121310; background: #f2f3ec; }
+    body { font: 16px/1.65 system-ui, -apple-system, 'Segoe UI', sans-serif; max-width: 760px; margin: 0 auto; padding: calc(12px + env(safe-area-inset-top)) 18px calc(60px + env(safe-area-inset-bottom)); color: #121310; background: #f2f3ec; }
     @media (prefers-color-scheme: dark) { body { color: #ecede6; background: #121310; } a { color: #c6ef4e; } }
     h1 { font-size: 28px; margin: 12px 0 4px; } h2 { font-size: 19px; margin: 28px 0 6px; }
     .not { font-size: 14px; opacity: .75; } li { margin: 4px 0; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     header img { height: 44px; }
+    .geri { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 999px; border: 2px solid currentColor; font-weight: 700; text-decoration: none; color: inherit; }
+    .alt-geri { display: flex; justify-content: center; margin-top: 32px; }
   </style>
 </head>
 <body>
-  <header><img src="/img/logo-isaret.svg" alt="" /></header>
+  <header><a class="geri" href="/mobil/" data-geri>‹ Geri</a><img src="/img/logo-isaret.svg" alt="" /></header>
   <h1>Gizlilik Politikası</h1>
   <p class="not">Eczam Programı ve Eczam Mobil · Son güncelleme: {{GUNCELLEME}}</p>
 
@@ -56,5 +59,14 @@
   <h2>9. İletişim</h2>
   <p>{{ILETISIM}}</p>
   <p class="not">Bu politika güncellendiğinde bu sayfada yayımlanır.</p>
+  <div class="alt-geri"><a class="geri" href="/mobil/" data-geri>‹ Geri dön</a></div>
+  <script>
+    // Uygulama icinde tarayici cubugu yok: geldigi sayfaya don, gecmis yoksa Eczam Mobil'e git
+    document.querySelectorAll('[data-geri]').forEach(function (a) {
+      a.addEventListener('click', function (e) {
+        if (history.length > 1) { e.preventDefault(); history.back(); }
+      });
+    });
+  </script>
 </body>
 </html>

@@ -93,6 +93,9 @@ test('gizlilik politikası: kamera ve veri sorumlusu bilgisi var, iletişim yap�
   assert.match(html, /veri sorumlusu/);
   assert.match(html, /eczane yöneticinize başvurun/);
   assert.ok(!html.includes('{{'), 'doldurulmamış yer tutucu kalmamalı');
+  // Uygulama icinde tarayici cubugu yok: sayfadan geri donulebilmeli
+  assert.equal((html.match(/data-geri/g) || []).length >= 2, true);
+  assert.match(html, /history\.back\(\)/);
   assert.equal((await fetch(sunucu.base + '/gizlilik.template.html')).status, 404);
 
   process.env.ECZANEM_GIZLILIK_EPOSTA = 'gizlilik@ornek-eczane.com';
