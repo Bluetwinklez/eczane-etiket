@@ -159,7 +159,9 @@ label.etiket { display: block; font-weight: 700; margin: 0 0 6px 6px; }
   width: min(520px, 100%); max-height: 86vh; overflow-y: auto; background: var(--krem); border: var(--k); border-bottom: none;
   border-radius: 30px 30px 0 0; padding: 14px 18px calc(24px + env(safe-area-inset-bottom)); animation: yukari 260ms cubic-bezier(.2,.8,.2,1);
 }
+.sayfa { position: relative; overscroll-behavior: contain; }
 .sayfa .tutamak { width: 54px; height: 6px; border-radius: 999px; background: var(--cizgi); margin: 0 auto 14px; }
+.sayfa-kapat { position: absolute; top: 10px; right: 12px; width: 40px; height: 40px; border-radius: 50%; border: var(--k); background: var(--beyaz); font-size: 24px; line-height: 1; font-weight: 800; color: var(--murekkep, #111); display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; z-index: 2; }
 @keyframes yukari { from { transform: translateY(40%); opacity: 0; } }
 
 /* ---- Bos durum / maskot ---- */
@@ -184,3 +186,4 @@ label.etiket { display: block; font-weight: 700; margin: 0 0 6px 6px; }
 }
 
 .bolum-baslik { font-family: var(--font-baslik); font-size: 22px; letter-spacing: -0.02em; margin: 22px 0 10px; }
+.sayfa > h2:first-of-type, .sayfa > .urun-baslik { padding-right: 44px; }
