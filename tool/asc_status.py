@@ -90,6 +90,9 @@ def main():
               env["ASC_API_PRIVATE_KEY_PATH"])
     lines = summarize(api, env.get("IOS_BUNDLE_ID", "com.bluetwinklez.eczam"))
     print("\n".join(lines))
+    if env.get("GITHUB_ACTIONS"):
+        # Tek bir notice: is ozeti acilmadan kontrol listesinde de okunur
+        print("::notice title=App Store durumu::" + "%0A".join(lines))
     summary = env.get("GITHUB_STEP_SUMMARY")
     if summary:
         with open(summary, "a", encoding="utf-8") as f:
