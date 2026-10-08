@@ -86,6 +86,30 @@
       document.getElementById(mevcutSifre ? 'yeni_sifre' : 'mevcut_sifre').focus();
     }
 
+    // Demo sunucusu: sabit demo hesabi gosterilir ve tek tikla girilir (veriler sahtedir)
+    fetch('api/health', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((h) => {
+        if (!h || !h.demo) return;
+        const ipucu = document.getElementById('demo-hints');
+        ipucu.textContent = '';
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'secondary';
+        b.id = 'demo-gir';
+        b.textContent = 'Demo hesabıyla gir';
+        const not = document.createElement('div');
+        not.style.marginTop = '8px';
+        not.textContent = `Demo: ${h.demo.kullanici} / ${h.demo.sifre} · örnek verilerle (gerçek veri değildir)`;
+        ipucu.append(b, not);
+        b.addEventListener('click', () => {
+          document.getElementById('kullanici_adi').value = h.demo.kullanici;
+          document.getElementById('sifre').value = h.demo.sifre;
+          loginForm.requestSubmit();
+        });
+      })
+      .catch(() => {});
+
     (async function init() {
       try {
         const { user } = await Api.get('/api/auth/me');

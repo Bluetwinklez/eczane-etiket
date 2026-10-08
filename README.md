@@ -29,6 +29,49 @@ Bu depoda birbirinden bağımsız çalışan iki eczane uygulaması bulunur:
 
 Masaüstü programının gösterge paneli artık haftalık kıyas (ciro/etiket), en yoğun saat tahmini, otomatik öngörü cümleleri en çok basılan ilaçlar listesi ve "Dikkat Gerektiren Stoklar" tablosunu (SKT'si geçen, yaklaşan, düşük stok) de gösterir ([ekran görüntüsü](docs/masaustu-gosterge.png)).
 
+## 📸 Ekran Görüntüleri
+
+### Eczam Programı (bilgisayar)
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/ekran/web-anasayfa.png" alt="Ana sayfa: günün cirosu, son satışlar, kategori dağılımı" /><br /><sub><b>Ana sayfa</b>: günün cirosu, son satışlar, kategori dağılımı, hızlı işlemler</sub></td>
+    <td width="50%"><img src="docs/ekran/web-satis.png" alt="Satış (POS) ekranı" /><br /><sub><b>Satış (POS)</b>: barkod/isimle arama, hızlı tuşlar, sepet, reçete okuma</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/ekran/web-ilaclar.png" alt="İlaçlar ve stok listesi" /><br /><sub><b>İlaçlar</b>: stok, SKT, fiyat ve ürün tipi</sub></td>
+    <td><img src="docs/ekran/web-muhasebe.png" alt="Muhasebe özeti" /><br /><sub><b>Muhasebe</b>: hasılat, maliyet, brüt ve net kâr</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/ekran/web-siparisler.png" alt="Siparişler ve akıllı sipariş önerisi" /><br /><sub><b>Siparişler</b>: akıllı ve mevsimsel öneri, depoya CSV/e-posta</sub></td>
+    <td><img src="docs/ekran/web-raporlar.png" alt="Raporlar" /><br /><sub><b>Raporlar</b>: satış, en çok satanlar, kâr-zarar, CSV/PDF</sub></td>
+  </tr>
+</table>
+
+### Eczane Etiket (masaüstü programı)
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshot-hizli-etiket.png" alt="Eczane Etiket hızlı etiket ekranı" /><br /><sub><b>Hızlı etiket</b>: reçeteden ilaç etiketi ve kullanım çizelgesi</sub></td>
+    <td width="50%"><img src="docs/masaustu-gosterge.png" alt="Masaüstü gösterge paneli" /><br /><sub><b>Gösterge paneli</b>: haftalık kıyas, yoğun saat, dikkat gerektiren stoklar</sub></td>
+  </tr>
+</table>
+
+### Eczam Mobil (telefon)
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/magaza/1-ozet.png" alt="Eczane özeti" width="150" /><br /><sub>Özet</sub></td>
+    <td align="center"><img src="docs/magaza/2-satis.png" alt="Satış grafiği" width="150" /><br /><sub>Satışlar</sub></td>
+    <td align="center"><img src="docs/magaza/3-urunler.png" alt="Ürün listesi" width="150" /><br /><sub>Ürünler</sub></td>
+    <td align="center"><img src="docs/magaza/4-urun-karti.png" alt="Ürün kartı" width="150" /><br /><sub>Ürün kartı</sub></td>
+    <td align="center"><img src="docs/magaza/5-tara-sonuc.png" alt="Barkod okuma sonucu" width="150" /><br /><sub>Barkod okuma</sub></td>
+    <td align="center"><img src="docs/magaza/6-bildirim.png" alt="Bildirimler" width="150" /><br /><sub>Bildirimler</sub></td>
+  </tr>
+</table>
+
+Ekran görüntülerindeki veriler örnek (demo) verilerdir.
+
 Web uygulamasını Windows bilgisayara tek komutla kurmak için: **[Eczam Programını Bilgisayara Kurma](#-eczam-programını-bilgisayara-kurma-windows)**. Özellikler ve geliştirici kurulumu: **[web/README.md](web/README.md)**. Bu sayfanın geri kalanı masaüstü Eczane Etiket uygulamasını anlatır.
 
 ---

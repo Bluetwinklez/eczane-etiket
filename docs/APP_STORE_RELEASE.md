@@ -111,17 +111,18 @@ Sayfanın sağ üstünde **İncelemeye Ekle → İncelemeye Gönder**. Genelde 2
 
 ## 5. İnceleme notu (App Review Information → Notes)
 
-İnceleme ekibi İngilizce okuduğu için not İngilizce. Demo bilgilerinizi doldurun:
+İnceleme ekibi İngilizce okuduğu için not İngilizce. **Oturum açma gerekli** alanına `demo` / `demo1234` yazın.
 
 ```
-Eczam is a business app for pharmacy staff. Each pharmacy runs its own Eczam server,
-so the app asks for a server address on first launch. A public demo server with sample
-(non-real) data is provided for review.
+Eczam is a business app for pharmacy staff. Each pharmacy runs its own Eczam server on its
+local network, and the app finds it automatically on the pharmacy Wi-Fi. For review, a public
+demo server with sample (non-real) data is built in.
 
 HOW TO TEST:
-1. Open the app. It first searches the local Wi-Fi for a pharmacy server; tap "Adresi elle gir"
-   (Enter address manually) and in "Server address" enter:  demo.example.com   (replace with the real demo host)
-2. Sign in with username: apple-demo   password: <demo password>
+1. Open the app and tap "Demo ile dene" (Try demo). If the demo server was idle, the first
+   start can take up to a minute.
+2. On the sign-in screen tap "Demo hesabıyla gir" (Sign in with the demo account), or enter
+   username: demo   password: demo1234
 3. Browse the Summary, Sales, Products and Notifications tabs.
 4. On the Scan tab the app asks for camera permission (used only to scan barcodes; images are
    never saved or sent). Without a camera, type this barcode in the box and tap search: 8699504010029
@@ -132,17 +133,23 @@ created and deleted by the pharmacy administrator (users cannot self-register); 
 screen explains how data deletion works.
 ```
 
-## 6. Demo sunucu (inceleme için zorunlu)
+## 6. Demo sunucu (inceleme ve "Demo ile dene" için)
 
-```bash
-cd web && npm ci
-PORT=3000 TRUST_PROXY=1 COOKIE_SECURE=1 ECZANEM_GIZLILIK_EPOSTA=doflerim@gmail.com npm start
-```
+Depodaki [`render.yaml`](../render.yaml) demo sunucuyu Render'da tek adımda kurar:
 
-- Önüne **Caddy** veya **nginx + Let's Encrypt** koyun (HTTPS zorunlu).
-- Web arayüzünde **Kullanıcılar → Yeni** ile `apple-demo` (rol: eczacı) oluşturun, **bir kez kendiniz giriş yapıp şifreyi değiştirin** (yönetici tarafından verilen şifreler ilk girişte değişmek zorunda; incelemeci bu ekranda takılmasın).
-- Demo veride gerçek hasta/ürün verisi olmasın. Sunucu inceleme süresince (birkaç gün) açık kalmalı.
-- Gizlilik sayfası sunucudan da yayınlanır: `https://<sunucu>/gizlilik.html`.
+1. <https://render.com> → GitHub hesabıyla kaydolun (kredi kartı gerekmez, ücretsiz plan).
+2. **New + → Blueprint** → `Bluetwinklez/eczane-etiket` deposunu seçin → **Apply**.
+3. Servis adı `eczam-demo` olmalı; adresi `https://eczam-demo.onrender.com` olur. Bu ad alınmışsa Render başka bir ad verir: o zaman adresi bana iletin, uygulamadaki `DEMO_ADRES` (`mobil-uygulama/www/baglan.js`) güncellenir.
+4. Birkaç dakika sonra `https://eczam-demo.onrender.com/api/health` açılınca `"demo":{"kullanici":"demo",...}` görünür.
+
+Demo modu (`ECZAM_DEMO=1`) şunları yapar:
+- Son 40 güne örnek satışlar ekler; sabit `demo` / `demo1234` hesabını (eczacı) açar. Bu hesabın şifresi değiştirilemez.
+- Varsayılan `admin`, `eczaci`, `kasiyer` şifrelerini rastgele yapar (herkese açık sunucu). Yönetici şifresi Render panelinde **Environment → ECZAM_ADMIN_SIFRE** altında görünür.
+- Giriş ekranlarında "Demo hesabıyla gir" düğmesini gösterir.
+
+Ücretsiz planda sunucu 15 dakika kullanılmayınca uyur; ilk açılış ~1 dakika sürer ve veriler sıfırlanır. İnceleme süresince beklemeyi önlemek için Render'da **Starter** (aylık ~7 $) plana geçebilirsiniz.
+
+Gizlilik sayfası sunucudan da yayınlanır: `https://eczam-demo.onrender.com/gizlilik.html`.
 
 ## 7. Telefonda deneme kontrol listesi (TestFlight)
 
