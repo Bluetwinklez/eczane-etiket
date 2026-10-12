@@ -1,7 +1,7 @@
 // Kullanim araclari: gorunum ayarlari (tema, yazi boyutu), ekran kilidi,
 // baglanti koptu bandi ve klavye kisayollari yardim penceresi.
 const SistemAraclari = (() => {
-  const ANAHTAR = { tema: 'eczanem-tema', yazi: 'eczanem-yazi', kilit: 'eczanem-kilit-dk', kilitli: 'eczanem-kilitli' };
+  const ANAHTAR = { tema: 'eczanem-tema', yazi: 'eczanem-yazi', kilit: 'eczanem-kilit-dk', kilitli: 'eczanem-kilitli', tasarim: 'eczanem-tasarim', kenar: 'eczanem-kenar' };
   const oku = (k, v) => {
     try {
       return localStorage.getItem(k) ?? v;
@@ -26,6 +26,29 @@ const SistemAraclari = (() => {
   }
   if (sistemKoyu && sistemKoyu.addEventListener) sistemKoyu.addEventListener('change', temaUygula);
 
+  // Tasarim: cam (varsayilan) / klasik; cam tasarimda yan menu daraltilabilir
+  function tasarimUygula() {
+    if (oku(ANAHTAR.tasarim, 'cam') === 'klasik') document.documentElement.removeAttribute('data-tasarim');
+    else document.documentElement.setAttribute('data-tasarim', 'cam');
+    if (oku(ANAHTAR.kenar, 'genis') === 'dar') document.documentElement.setAttribute('data-kenar', 'dar');
+    else document.documentElement.removeAttribute('data-kenar');
+    const btn = document.getElementById('kenar-btn');
+    if (btn) {
+      const dar = oku(ANAHTAR.kenar, 'genis') === 'dar';
+      btn.setAttribute('aria-label', dar ? 'Menüyü genişlet' : 'Menüyü daralt');
+      btn.setAttribute('aria-expanded', String(!dar));
+      const yazi = btn.querySelector('span');
+      if (yazi) yazi.textContent = dar ? 'Genişlet' : 'Daralt';
+    }
+  }
+  function kenarDegistir() {
+    yaz(ANAHTAR.kenar, oku(ANAHTAR.kenar, 'genis') === 'dar' ? 'genis' : 'dar');
+    tasarimUygula();
+    // Kayan secim hapinin yeri yeni genislige gore yeniden hesaplansin
+    window.dispatchEvent(new Event('resize'));
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 340);
+  }
+
   function yaziUygula() {
     const boyut = oku(ANAHTAR.yazi, 'normal');
     if (boyut === 'normal') document.documentElement.removeAttribute('data-yazi');
@@ -34,6 +57,7 @@ const SistemAraclari = (() => {
 
   function gorunumAc() {
     const tema = oku(ANAHTAR.tema, 'light');
+    const tasarim = oku(ANAHTAR.tasarim, 'cam');
     const yazi = oku(ANAHTAR.yazi, 'normal');
     const kilit = oku(ANAHTAR.kilit, '15');
     const secenek = (ad, deger, secili, etiket) =>
@@ -41,7 +65,9 @@ const SistemAraclari = (() => {
     const modal = UI.openModal(`
       <h3>Görünüm Ayarları</h3>
       <form id="gorunum-form">
-        <label>Tema</label>
+        <label>Tasarım</label>
+        <div class="secim-grup">${secenek('tasarim', 'cam', tasarim, '✦ Cam (yeni)')}${secenek('tasarim', 'klasik', tasarim, '▦ Klasik')}</div>
+        <label style="margin-top:14px">Tema</label>
         <div class="secim-grup">${secenek('tema', 'light', tema, '☀️ Aydınlık')}${secenek('tema', 'dark', tema, '🌙 Karanlık')}${secenek('tema', 'sistem', tema, '💻 Sistem')}</div>
         <label style="margin-top:14px">Yazı boyutu</label>
         <div class="secim-grup">${secenek('yazi', 'kucuk', yazi, '<small>Aa</small> Küçük')}${secenek('yazi', 'normal', yazi, 'Aa Normal')}${secenek('yazi', 'buyuk', yazi, '<b>Aa</b> Büyük')}</div>
@@ -57,6 +83,8 @@ const SistemAraclari = (() => {
     const form = modal.querySelector('#gorunum-form');
     form.addEventListener('change', () => {
       yaz(ANAHTAR.tema, form.tema.value);
+      yaz(ANAHTAR.tasarim, form.tasarim.value);
+      tasarimUygula();
       yaz(ANAHTAR.yazi, form.yazi.value);
       yaz(ANAHTAR.kilit, form.kilit.value);
       temaUygula();
@@ -197,6 +225,9 @@ const SistemAraclari = (() => {
     kullanici = user;
     temaUygula();
     yaziUygula();
+    tasarimUygula();
+    const kenarBtn = document.getElementById('kenar-btn');
+    if (kenarBtn) kenarBtn.addEventListener('click', kenarDegistir);
     window.addEventListener('eczanem:baglanti', (e) => baglantiDurumu(e.detail.var));
     window.addEventListener('offline', () => baglantiDurumu(false));
     ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach((t) => document.addEventListener(t, () => !kilitliMi() && bostaSayaciniKur(), { passive: true }));
@@ -216,5 +247,5 @@ const SistemAraclari = (() => {
     else bostaSayaciniKur();
   }
 
-  return { baslat, gorunumAc, kilitle, kisayollariGoster, temaUygula };
+  return { baslat, gorunumAc, kilitle, kisayollariGoster, temaUygula, tasarimUygula, kenarDegistir };
 })();

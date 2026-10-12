@@ -6,6 +6,7 @@
   <title>Eczam Programı - Giriş</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/cam.css" />
   <script>
     (function () {
       try {
@@ -14,6 +15,7 @@
         if (tema === 'dark' || (tema === 'sistem' && sistemKoyu)) {
           document.documentElement.setAttribute('data-theme', 'dark');
         }
+        if (localStorage.getItem('eczanem-tasarim') !== 'klasik') document.documentElement.setAttribute('data-tasarim', 'cam');
         var yazi = localStorage.getItem('eczanem-yazi');
         if (yazi === 'kucuk' || yazi === 'buyuk') document.documentElement.setAttribute('data-yazi', yazi);
       } catch (e) {}
