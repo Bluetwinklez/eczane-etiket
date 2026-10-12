@@ -1,0 +1,162 @@
+/* "Cam" tasarim (varsayilan): koyu, bulanik zemin; buzlu cam yan menu ve ust cubuk; acik kartlar; turuncu vurgu.
+   html[data-tasarim="cam"] ile acilir; Gorunum Ayarlari'ndan "Klasik" secilince eski gorunume donulur.
+   Kartlar ve pencereler kendi rengini tasir; zemin uzerindeki yazilar acik renk olur. */
+:root[data-tasarim="cam"] {
+  --cam-zemin: #1b1714;
+  --cam-yazi: #f4f1ec;
+  --cam-soluk: rgba(244, 241, 236, 0.62);
+  --cam: rgba(255, 255, 255, 0.07);
+  --cam-hover: rgba(255, 255, 255, 0.12);
+  --cam-kenar: rgba(255, 255, 255, 0.12);
+  --turuncu: #f26b1d;
+  --turuncu-acik: #ff9a5c;
+  --focus-ring: 0 0 0 3px rgba(242, 107, 29, 0.45);
+  --radius-lg: 22px;
+  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.18);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.38), 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* ---- Zemin: sabit, yavasca kayan sicak isiklar ---- */
+:root[data-tasarim="cam"] body { background: var(--cam-zemin); }
+:root[data-tasarim="cam"] body::before {
+  content: ''; position: fixed; inset: -20vmax; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(38vmax 38vmax at 12% 8%, rgba(160, 82, 36, 0.62), transparent 70%),
+    radial-gradient(34vmax 34vmax at 88% 46%, rgba(58, 78, 72, 0.7), transparent 70%),
+    radial-gradient(30vmax 30vmax at 48% 108%, rgba(120, 62, 28, 0.55), transparent 70%),
+    linear-gradient(160deg, #241d18, #141110 60%, #1b1714);
+  filter: blur(10px);
+  animation: cam-zemin 26s ease-in-out infinite alternate;
+}
+@keyframes cam-zemin { to { transform: translate3d(4vmax, 3vmax, 0) scale(1.06); } }
+:root[data-tasarim="cam"] .app-shell { gap: 0; }
+:root[data-tasarim="cam"] .main { background: transparent; }
+:root[data-tasarim="cam"] .content { background-image: none; color: var(--cam-yazi); padding: 18px 26px 40px; }
+
+/* Acik yuzeyler kendi yazi rengini tasir (zemindeki acik yazi icerilere sizmasin) */
+:root[data-tasarim="cam"] :is(.card, .stat-tile, .modal, .kullanici-menu, .zil-panel, .duyuru-pano, .oneri-ozet, .gun-sonu > div,
+  table, .toast, .cp-kutu, .cp-panel, .empty-state.card, .pos-layout > *, .sekme, .segment-cip, .secim-kart, .bekleyen-liste, .tablo-kaydir) { color: var(--text); }
+:root[data-tasarim="cam"] .card {
+  border: 1px solid rgba(255, 255, 255, 0.5); border-radius: var(--radius-lg);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.22);
+  animation: cam-gir 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+:root[data-tasarim="cam"][data-theme="dark"] .card { border-color: rgba(255, 255, 255, 0.08); background: rgba(27, 28, 25, 0.82); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+:root[data-tasarim="cam"] .content > *:nth-child(2) { animation-delay: 50ms; }
+:root[data-tasarim="cam"] .content > *:nth-child(3) { animation-delay: 100ms; }
+:root[data-tasarim="cam"] .content > *:nth-child(4) { animation-delay: 150ms; }
+:root[data-tasarim="cam"] .content > *:nth-child(n + 5) { animation-delay: 200ms; }
+@keyframes cam-gir { from { opacity: 0; transform: translateY(10px); } }
+:root[data-tasarim="cam"] .stat-tile { transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 220ms; }
+:root[data-tasarim="cam"] .stat-tile:hover { transform: translateY(-4px); box-shadow: 0 16px 36px rgba(0, 0, 0, 0.26); }
+
+/* Zemin uzerindeki yardimci yazilar */
+:root[data-tasarim="cam"] .content > :is(p, h2, h3, h4, label, small, .form-ipucu),
+:root[data-tasarim="cam"] .content > :not(.card) > :is(.form-ipucu, small, label) { color: var(--cam-soluk); }
+:root[data-tasarim="cam"] .content > .empty-state { color: var(--cam-soluk); }
+:root[data-tasarim="cam"] .content a:not(.card a):not([class]) { color: var(--turuncu-acik); }
+
+/* ---- Yan menu: buzlu cam, yuvarlak, kenardan bosluklu ---- */
+:root[data-tasarim="cam"] .sidebar {
+  margin: 14px 0 14px 14px; height: calc(100vh - 28px); top: 14px; border-radius: 28px;
+  background: rgba(20, 17, 15, 0.42); border: 1px solid var(--cam-kenar);
+  backdrop-filter: blur(22px) saturate(1.15); -webkit-backdrop-filter: blur(22px) saturate(1.15);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35); overflow: hidden;
+  transition: width 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+:root[data-tasarim="cam"] .sidebar nav { scrollbar-color: rgba(255, 255, 255, 0.18) transparent; }
+:root[data-tasarim="cam"] .cp-ac { background: rgba(0, 0, 0, 0.25); border-color: var(--cam-kenar); }
+:root[data-tasarim="cam"] .sidebar a { color: rgba(255, 255, 255, 0.7); transition: background 160ms, color 160ms, transform 160ms; }
+:root[data-tasarim="cam"] .sidebar a:hover { background: var(--cam-hover); color: #fff; transform: translateX(2px); }
+:root[data-tasarim="cam"] .sidebar a.active { background: var(--turuncu); color: #fff; }
+:root[data-tasarim="cam"] .sidebar a.active svg { color: #fff; }
+@media (min-width: 801px) {
+  :root[data-tasarim="cam"] .nav-gosterge {
+    background: linear-gradient(120deg, #ff9a5c 0%, #f26b1d 55%, #e2551a 100%);
+    box-shadow: 0 8px 24px rgba(242, 107, 29, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  }
+  :root[data-tasarim="cam"] .sidebar a.active, :root[data-tasarim="cam"] .sidebar a.active:hover { background: transparent; color: #fff; transform: none; }
+  :root[data-tasarim="cam"] .sidebar a.active svg { color: #fff; }
+}
+
+/* Daraltma dugmesi (yalnizca cam tasarimda, masaustunde) */
+.kenar-btn { display: none; }
+@media (min-width: 801px) {
+  :root[data-tasarim="cam"] .kenar-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px; margin: 8px 14px 14px; padding: 9px 12px;
+    border-radius: 999px; border: 1px solid var(--cam-kenar); background: rgba(0, 0, 0, 0.22); color: rgba(255, 255, 255, 0.75);
+    font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; box-shadow: none; width: auto;
+  }
+  :root[data-tasarim="cam"] .kenar-btn:hover { background: var(--cam-hover); color: #fff; }
+  :root[data-tasarim="cam"] .kenar-btn svg { width: 16px; height: 16px; transition: transform 300ms; }
+
+  /* Dar menu: yalnizca simgeler (referanstaki gibi), ustune gelince ad gorunur */
+  :root[data-tasarim="cam"][data-kenar="dar"] .sidebar { width: 78px; }
+  :root[data-tasarim="cam"][data-kenar="dar"] .sidebar-marka { justify-content: center; padding: 20px 0 14px; }
+  :root[data-tasarim="cam"][data-kenar="dar"] .sidebar-marka h2,
+  :root[data-tasarim="cam"][data-kenar="dar"] .nav-grup,
+  :root[data-tasarim="cam"][data-kenar="dar"] .sidebar a span,
+  :root[data-tasarim="cam"][data-kenar="dar"] .cp-ac > :not(#cp-ikon),
+  :root[data-tasarim="cam"][data-kenar="dar"] .kenar-btn span { display: none; }
+  :root[data-tasarim="cam"][data-kenar="dar"] .cp-ac { margin: 0 14px 10px; padding: 10px; justify-content: center; font-size: 0; }
+  :root[data-tasarim="cam"][data-kenar="dar"] .sidebar nav { padding: 4px 10px 12px; }
+  :root[data-tasarim="cam"][data-kenar="dar"] .sidebar a { justify-content: center; padding: 11px 0; }
+  :root[data-tasarim="cam"][data-kenar="dar"] .sidebar a svg { width: 20px; height: 20px; }
+  :root[data-tasarim="cam"][data-kenar="dar"] .nav-gosterge { left: 10px; right: 10px; }
+  :root[data-tasarim="cam"][data-kenar="dar"] .kenar-btn { margin: 8px 14px 14px; padding: 10px; }
+  :root[data-tasarim="cam"][data-kenar="dar"] .kenar-btn svg { transform: rotate(180deg); }
+}
+
+/* ---- Ust cubuk: seffaf, acik yazili ---- */
+:root[data-tasarim="cam"] .topbar { background: transparent; border-bottom: 0; backdrop-filter: none; padding: 22px 26px 8px; }
+:root[data-tasarim="cam"] .topbar h1 { color: var(--cam-yazi); letter-spacing: -0.02em; }
+:root[data-tasarim="cam"] .topbar .ikon-btn { background: var(--cam); color: var(--cam-yazi); border-color: var(--cam-kenar); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+:root[data-tasarim="cam"] .topbar .ikon-btn:hover { background: var(--cam-hover); }
+:root[data-tasarim="cam"] .kullanici-cip { color: var(--cam-yazi); }
+:root[data-tasarim="cam"] .kullanici-cip .rol { color: var(--cam-soluk); }
+:root[data-tasarim="cam"] .kullanici-cip:hover { background: var(--cam); border-color: var(--cam-kenar); }
+:root[data-tasarim="cam"] .avatar { background: linear-gradient(135deg, var(--turuncu-acik), var(--turuncu)); color: #fff; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25); }
+
+/* ---- Pencereler ve aciklir paneller ---- */
+:root[data-tasarim="cam"] .modal-backdrop { background: rgba(12, 10, 9, 0.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+:root[data-tasarim="cam"] .modal { border-radius: 24px; animation: cam-pencere 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes cam-pencere { from { opacity: 0; transform: translateY(12px) scale(0.98); } }
+
+/* ---- Gosterge (ana sayfa) cam tasarimda zeminle butunlesir ---- */
+:root[data-tasarim="cam"] .gst { background: transparent; padding: 0; min-height: 0; overflow: visible; border-radius: 0; }
+:root[data-tasarim="cam"] .gst-zemin { display: none; }
+
+/* ---- Telefon: cekmece menu ve alt cubuk camdan ---- */
+@media (max-width: 800px) {
+  :root[data-tasarim="cam"] .sidebar { margin: 0; top: 0; height: auto; border-radius: 0 26px 26px 0; background: rgba(20, 17, 15, 0.86); }
+  :root[data-tasarim="cam"] .topbar { padding: 12px 14px 6px; }
+  :root[data-tasarim="cam"] .content { padding: 10px 12px 104px; }
+  :root[data-tasarim="cam"] .alt-cubuk { background: rgba(20, 17, 15, 0.72); border: 1px solid var(--cam-kenar); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+  :root[data-tasarim="cam"] .alt-cubuk a, :root[data-tasarim="cam"] .alt-cubuk button { background: rgba(255, 255, 255, 0.1); }
+  :root[data-tasarim="cam"] .alt-cubuk a.aktif { background: var(--turuncu); color: #fff; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-tasarim="cam"] body::before, :root[data-tasarim="cam"] .card, :root[data-tasarim="cam"] .modal { animation: none; }
+}
+@media print {
+  :root[data-tasarim="cam"] body { background: #fff; }
+  :root[data-tasarim="cam"] body::before { display: none; }
+}
+
+/* ---- Giris ekrani ---- */
+:root[data-tasarim="cam"] .login-wrap { background: transparent; }
+:root[data-tasarim="cam"] .login-card {
+  border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 28px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+  animation: cam-pencere 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+:root[data-tasarim="cam"][data-theme="dark"] .login-card { border-color: rgba(255, 255, 255, 0.1); background: rgba(27, 28, 25, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+
+/* Kart disinda kalan bos durum yazilari ve etiketler zeminde okunur kalsin */
+:root[data-tasarim="cam"] .content .empty-state,
+:root[data-tasarim="cam"] .content label { color: var(--cam-soluk); }
+:root[data-tasarim="cam"] :is(.card, .modal, .stat-tile, .pos-layout > *) :is(.empty-state, label) { color: var(--text-muted); }
+:root[data-tasarim="cam"] :is(.card, .modal, .pos-layout > *) label { color: var(--text); }
+
+/* Genis tablolar kartin icinde yatay kaysin (kart disina tasmasin) */
+:root[data-tasarim="cam"] .card:has(> table) { overflow-x: auto; }
