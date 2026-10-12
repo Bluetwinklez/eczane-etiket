@@ -425,7 +425,50 @@ router.get('/panel-ozet', (req, res) => {
     )
     .all(subeId);
 
-  res.json({ gunluk, kategoriler, son_satislar: sonSatislar });
+  // Gosterge paneli: bugunun saatlik cirosu (yerel saat), son 12 ay ve son 7 gunun en cok satani
+  const saatHaritasi = Object.fromEntries(
+    db
+      .prepare(
+        `SELECT CAST(strftime('%H', tarih, ?) AS INTEGER) AS saat, SUM(toplam_tutar) AS toplam, COUNT(*) AS adet
+         FROM satislar WHERE sube_id = ? AND date(tarih, ?) = ? GROUP BY saat`
+      )
+      .all(fark, subeId, fark, yerelGun(0))
+      .map((r) => [r.saat, r])
+  );
+  const saatlik = [];
+  for (let saat = 8; saat <= 22; saat++) {
+    const r = saatHaritasi[saat];
+    saatlik.push({ saat, toplam: r ? Math.round(r.toplam * 100) / 100 : 0, adet: r ? r.adet : 0 });
+  }
+
+  const simdi = yerelSimdi();
+  const ayBaslangic = new Date(Date.UTC(simdi.getUTCFullYear(), simdi.getUTCMonth() - 11, 1)).toISOString().slice(0, 10);
+  const ayHaritasi = Object.fromEntries(
+    db
+      .prepare(
+        `SELECT strftime('%Y-%m', tarih, ?) AS ay, SUM(toplam_tutar) AS toplam, COUNT(*) AS adet
+         FROM satislar WHERE sube_id = ? AND date(tarih, ?) >= ? GROUP BY ay`
+      )
+      .all(fark, subeId, fark, ayBaslangic)
+      .map((r) => [r.ay, r])
+  );
+  const aylik = [];
+  for (let i = 11; i >= 0; i--) {
+    const ay = new Date(Date.UTC(simdi.getUTCFullYear(), simdi.getUTCMonth() - i, 1)).toISOString().slice(0, 7);
+    const r = ayHaritasi[ay];
+    aylik.push({ ay, toplam: r ? Math.round(r.toplam * 100) / 100 : 0, adet: r ? r.adet : 0 });
+  }
+
+  const yildiz =
+    db
+      .prepare(
+        `SELECT sk.ilac_id, MAX(sk.ilac_adi) AS ad, i.kategori, SUM(sk.adet) AS adet, ROUND(SUM(sk.ara_toplam), 2) AS ciro
+         FROM satis_kalemleri sk JOIN satislar sa ON sa.id = sk.satis_id LEFT JOIN ilaclar i ON i.id = sk.ilac_id
+         WHERE sa.sube_id = ? AND date(sa.tarih, ?) >= ? GROUP BY sk.ilac_id ORDER BY adet DESC, ciro DESC LIMIT 1`
+      )
+      .get(subeId, fark, yerelGun(6)) || null;
+
+  res.json({ gunluk, kategoriler, son_satislar: sonSatislar, saatlik, aylik, yildiz });
 });
 
 // Kutuya yapistirilacak kullanim etiketleri icin satis bilgisi (eczane, hasta, kalem kullanimlari)

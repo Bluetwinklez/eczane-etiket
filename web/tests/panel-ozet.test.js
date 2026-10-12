@@ -44,3 +44,16 @@ test('panel ozeti: 14 gunluk seri, kategori dagilimi ve son satislar', async () 
   assert.equal(k.onceki_30, Math.round(beklenenOnceki * 100) / 100);
   assert.ok(r.kategoriler.length <= 6);
 });
+
+test('panel ozeti: gosterge icin saatlik, 12 aylik seri ve haftanin yildizi', async () => {
+  const r = (await kasiyer.get('/api/satislar/panel-ozet')).data;
+  assert.equal(r.saatlik.length, 15);
+  assert.equal(r.saatlik[0].saat, 8);
+  assert.equal(r.aylik.length, 12);
+  const buAy = r.aylik[r.aylik.length - 1];
+  const bugun = r.gunluk[r.gunluk.length - 1];
+  assert.ok(buAy.toplam >= bugun.toplam);
+  const saatToplami = Math.round(r.saatlik.reduce((t, s) => t + s.toplam, 0) * 100) / 100;
+  assert.ok(saatToplami <= bugun.toplam + 0.01);
+  assert.ok(r.yildiz && r.yildiz.adet > 0 && r.yildiz.ad);
+});

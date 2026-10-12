@@ -292,7 +292,7 @@ const AnaSayfaView = (() => {
     </section>`;
   }
 
-  async function render(container) {
+  async function klasikRender(container) {
     container.innerHTML = '<div class="empty-state">Yükleniyor...</div>';
     const buAy = new Date().toISOString().slice(0, 7);
     const yoneticiMi = CURRENT_USER.rol === 'admin' || CURRENT_USER.rol === 'eczaci';
@@ -509,6 +509,39 @@ const AnaSayfaView = (() => {
       try { sessionStorage.setItem('eczanem-arama-seed', deger); } catch (err) {}
       location.hash = '#ilaclar';
     });
+  }
+
+  // Gorunum: yeni Gosterge (varsayilan) ya da Klasik; secim bu tarayicida hatirlanir
+  const GORUNUM_ANAHTARI = 'eczam:anasayfa-gorunum';
+  function gorunum() {
+    try {
+      return localStorage.getItem(GORUNUM_ANAHTARI) === 'klasik' ? 'klasik' : 'gosterge';
+    } catch (e) {
+      return 'gosterge';
+    }
+  }
+  function gorunumCubugu(container, aktif) {
+    const cubuk = document.createElement('div');
+    cubuk.className = 'gorunum-cubugu';
+    cubuk.innerHTML = `<div role="group" aria-label="Ana sayfa görünümü"><small>Görünüm</small>
+      <button type="button" data-g="gosterge" class="${aktif === 'gosterge' ? 'aktif' : ''}" aria-pressed="${aktif === 'gosterge'}">✦ Gösterge</button>
+      <button type="button" data-g="klasik" class="${aktif === 'klasik' ? 'aktif' : ''}" aria-pressed="${aktif === 'klasik'}">▦ Klasik</button></div>`;
+    cubuk.querySelectorAll('button').forEach((b) =>
+      b.addEventListener('click', () => {
+        if (b.dataset.g === aktif) return;
+        try {
+          localStorage.setItem(GORUNUM_ANAHTARI, b.dataset.g);
+        } catch (e) {}
+        render(container);
+      })
+    );
+    container.appendChild(cubuk);
+  }
+  async function render(container) {
+    const g = gorunum();
+    if (g === 'gosterge' && window.EczamGosterge) await window.EczamGosterge.render(container);
+    else await klasikRender(container);
+    gorunumCubugu(container, window.EczamGosterge ? g : 'klasik');
   }
 
   return { render, basHarfler };
