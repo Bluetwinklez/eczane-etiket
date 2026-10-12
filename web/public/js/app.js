@@ -108,7 +108,7 @@ function navOlustur() {
     .map((item) => {
       const baslik = item.grup && item.grup !== sonGrup ? `<div class="nav-grup">${item.grup}</div>` : '';
       sonGrup = item.grup;
-      return `${baslik}<a href="#${item.key}" data-key="${item.key}">${Ikon.svg(item.key)}<span>${item.label}</span></a>`;
+      return `${baslik}<a href="#${item.key}" data-key="${item.key}" title="${item.label}">${Ikon.svg(item.key)}<span>${item.label}</span></a>`;
     })
     .join('');
 }
