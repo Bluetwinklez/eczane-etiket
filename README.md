@@ -35,7 +35,7 @@ Masaüstü programının gösterge paneli artık haftalık kıyas (ciro/etiket),
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/ekran/web-anasayfa.png" alt="Ana sayfa: günün cirosu, son satışlar, kategori dağılımı" /><br /><sub><b>Ana sayfa</b>: günün cirosu, son satışlar, kategori dağılımı, hızlı işlemler</sub></td>
+    <td width="50%"><img src="docs/ekran/web-anasayfa.png" alt="Ana sayfa: günün cirosu, son satışlar, kategori dağılımı" /><br /><sub><b>Ana sayfa (Gösterge)</b>: animasyonlu kartlar, satış takibi, haftanın yıldızı, takvim ve yapılacaklar</sub></td>
     <td width="50%"><img src="docs/ekran/web-satis.png" alt="Satış (POS) ekranı" /><br /><sub><b>Satış (POS)</b>: barkod/isimle arama, hızlı tuşlar, sepet, reçete okuma</sub></td>
   </tr>
   <tr>
