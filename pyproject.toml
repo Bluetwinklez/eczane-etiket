@@ -40,7 +40,7 @@ py-modules = ["run_app"]
 include = ["eczane_etiket", "eczane_etiket.*"]
 
 [tool.setuptools.package-data]
-eczane_etiket = ["**/*.json", "**/*.csv", "**/*.ttf", "**/*.png", "**/*.ico", "*.js"]
+eczane_etiket = ["**/*.json", "**/*.csv", "**/*.ttf", "**/*.png", "**/*.ico", "*.js", "fonts/LICENSE.txt"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"
