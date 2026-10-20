@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "eczane-etiket"
 version = "1.9.0"
-description = "Türkiye'deki eczaneler için modern, hızlı ve %100 çevrimdışı termal ilaç etiketi basım sistemi"
+description = "Local desktop pharmacy label printing and patient schedules"
 readme = "README.md"
 license = { text = "MIT" }
 authors = [
@@ -32,6 +32,15 @@ Issues = "https://github.com/Bluetwinklez/eczane-etiket/issues"
 
 [project.scripts]
 eczane-etiket = "run_app:main"
+
+[tool.setuptools]
+py-modules = ["run_app"]
+
+[tool.setuptools.packages.find]
+include = ["eczane_etiket", "eczane_etiket.*"]
+
+[tool.setuptools.package-data]
+eczane_etiket = ["**/*.json", "**/*.csv", "**/*.ttf", "**/*.png", "**/*.ico", "*.js"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"

@@ -1,36 +1,30 @@
-# Eczam Mobil — iOS kabuğu (Capacitor)
+# Eczam Mobile — Capacitor iOS Shell
 
-Bu klasör, `/mobil` adresindeki Eczam Mobil uygulamasını (PWA) **App Store'a gönderilebilir iOS uygulamasına** saran ince kabuktur. Uygulamanın kendisi sunucudan yüklenir. İlk açılışta kabuk eczanedeki Eczam'ı yerel ağda kendisi arar (yaygın 192.168.x / 10.x ağlarında 3000 portunda `/api/health` yoklanır); bulunca adresi kaydeder ve WebView'ı `<sunucu>/mobil/` adresine yönlendirir. Bulamazsa ya da sunucu internetteyse adres elle girilir. Kayıtlı yerel sunucuya ulaşılamazsa (modem yeni IP vermişse) yeniden aranır.
+A thin native shell around the Eczam mobile web application served at `/mobil/`. It needs a running Eczam server; installing the shell does not install a pharmacy database or server.
 
-```
-www/            Yerel bağlantı ekranı (baglan.html/js/css, logo, yazı tipleri)
-scripts/        hazirla.js — logo ve yazı tiplerini web/public'ten kopyalar
-ios/            Xcode projesi (Swift Package Manager; CocoaPods gerekmez)
-capacitor.config.json
-```
+## Development
+
+Use Node 22 or newer. iOS compilation, signing and local Xcode use require macOS and an appropriate Apple development environment.
 
 ```bash
 npm ci
-npm test         # kabuk testleri
-npm run senkron   # www'yi hazırlar ve iOS projesine kopyalar
-npm run ios:ac    # Xcode'u açar (Mac gerekir)
+npm test
+npm run senkron
+npm run ios:ac
 ```
 
-Yayın adımlarının tamamı: **[docs/APP_STORE_RELEASE.md](../docs/APP_STORE_RELEASE.md)**
+`senkron` prepares `www/` and synchronizes the iOS project. `ios:ac` opens Xcode. The project uses Swift Package Manager. `www/` contains the connection screen; `scripts/hazirla.js` copies shared assets from `web/public/`.
 
-Notlar:
-- `server.allowNavigation` `["*"]` olmalı: her eczanenin sunucu adresi farklıdır; boş liste olursa Capacitor sunucu sayfasını uygulama yerine Safari'de açar.
-- Kullanıcı agent'ı `EczamApp/1.0` içerir; mobil arayüz bunu görünce Profil'de "Sunucuyu değiştir" düğmesini gösterir.
-- Internet adresleri HTTPS gerektirir; yalnızca yerel ağ adresleri (localhost, 10.x, 192.168.x, 172.16–31.x, *.local) HTTP ile açılabilir.
-- Bu proje Linux'ta üretildi; imzasız derleme GitHub Actions macOS çalıştırıcısında başarılı (BUILD SUCCEEDED). İmzalama, TestFlight ve gerçek cihaz denemesi henüz yapılmadı.
+## Connecting
 
-## GitHub Actions
+On first launch the shell looks for an Eczam server on common private network ranges at port 3000 using `/api/health`. It saves a discovered server address and loads its `/mobil/` page. You can enter an address manually, including when discovery cannot find the server. An unreachable saved local address triggers rediscovery.
 
-| İş akışı | Ne yapar |
-|---|---|
-| `mobil-ci.yml` | Linux: kabuk testleri, Capacitor eşitleme, Python araç testleri |
-| `ios-compile.yml` | macOS: imzasız iOS derleme kontrolü |
-| `testflight.yml` | macOS: imzala + TestFlight'a yükle (modlar: yükle / yalnızca imzala / yalnızca kimlik kurulumu) |
-| `app-store-durumu.yml` | App Store Connect durumunu özetler (salt okunur) |
+Internet addresses require HTTPS. HTTP is allowed only for supported private/local addresses. Keep phones and the pharmacy server on a trusted network. The broad Capacitor navigation setting supports different pharmacies' server addresses; only connect to a server you trust.
 
-Secret listesi ve adımlar: [APP_STORE_RELEASE.md](../docs/APP_STORE_RELEASE.md).
+The user agent includes `EczamApp/1.0`, enabling the mobile interface's server-switch control.
+
+## Release and verification
+
+The shell, synchronization and unsigned compilation are covered by separate workflows. Signed TestFlight/App Store submission needs configured Apple credentials and provisioning. Automated compilation does not certify real-device networking, camera behavior, signing or store approval.
+
+[Release and secret configuration](../docs/APP_STORE_RELEASE.md) · [Previous detailed guide (Turkish)](README.tr.md) · [Repository overview](../README.md).
