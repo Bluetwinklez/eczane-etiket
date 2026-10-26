@@ -17,6 +17,8 @@ on:
         type: boolean
         default: false
   push:
+    branches:
+      - 'releases/testflight-*'
     tags:
       - 'ios-v*'
 
