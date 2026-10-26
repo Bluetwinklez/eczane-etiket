@@ -17,6 +17,8 @@ npm run ios:ac
 
 ## Connecting
 
+Temporary TestFlight mode (`DOGRUDAN_DEMO` in `www/baglan.js`) opens the public demo directly, without discovery or address entry. The `?demo=1` launch automatically signs into the public sample account only when the server advertises demo mode. Internet is required; sample data is shared. Saved pharmacy addresses are preserved. Profile → change server (`?degistir=1`) still opens the connection tools. Set the flag to `false` to restore normal startup.
+
 On first launch the shell looks for an Eczam server on common private network ranges at port 3000 using `/api/health`. It saves a discovered server address and loads its `/mobil/` page. You can enter an address manually, including when discovery cannot find the server. An unreachable saved local address triggers rediscovery.
 
 Internet addresses require HTTPS. HTTP is allowed only for supported private/local addresses. Keep phones and the pharmacy server on a trusted network. The broad Capacitor navigation setting supports different pharmacies' server addresses; only connect to a server you trust.

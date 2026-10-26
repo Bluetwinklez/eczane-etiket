@@ -5,6 +5,8 @@
   'use strict';
   const ANAHTAR = 'eczanem:sunucu';
   const PORT = 3000;
+  // Temporary TestFlight mode. Set false to restore normal saved-server startup.
+  const DOGRUDAN_DEMO = true;
   // Turkiye'deki modemlerin yaygin yerel aglari; en yaygin olan once taranir
   const AGLAR = [
     '192.168.1', '192.168.0', '192.168.2', '192.168.3', '192.168.4', '192.168.5',
@@ -270,6 +272,9 @@
   if (parametre.get('degistir') === '1') {
     yaz('');
     aramayiBaslat();
+  } else if (DOGRUDAN_DEMO) {
+    // Do not overwrite the pharmacy address or wait for LAN/health checks.
+    window.location.replace(DEMO_ADRES + '/mobil/?demo=1');
   } else if (kayitli) {
     const kimlik = yeniIslem();
     elleDugme.hidden = false;
