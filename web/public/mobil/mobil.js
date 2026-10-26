@@ -299,17 +299,23 @@
         <label class="etiket" for="sif" style="margin-top:12px">Şifre</label><input class="alan" id="sif" type="password" autocomplete="current-password" required />
         <button class="hap siyah" style="margin-top:18px" type="submit">Giriş Yap</button>
       </form><div id="giris-demo"></div></div>`;
-    // Demo sunucusu: tek dokunusla demo hesabiyla giris (veriler sahtedir)
+    // Only the explicit demo launch signs in automatically, using public demo credentials.
+    const otomatikDemo = new URLSearchParams(location.search).get('demo') === '1';
     fetch('/api/health', { cache: 'no-store' })
       .then((r) => r.json())
       .then((h) => {
         if (!h || !h.demo || !$('#giris-demo')) return;
         $('#giris-demo').innerHTML = `<button class="hap" style="margin-top:12px;width:100%" type="button" id="demo-gir">Demo hesabıyla gir</button><p class="alt-yazi" style="margin-top:8px">${esc(h.demo.kullanici)} / ${esc(h.demo.sifre)} · örnek verilerle</p>`;
+        const demoForm = $('#giris-form');
         $('#demo-gir').onclick = () => {
           $('#kad').value = h.demo.kullanici;
           $('#sif').value = h.demo.sifre;
-          $('#giris-form').requestSubmit();
+          demoForm.requestSubmit();
         };
+        if (otomatikDemo && !mesaj) {
+          demoForm.hidden = true;
+          $('#demo-gir').click();
+        }
       })
       .catch(() => {});
     $('#giris-form').addEventListener('submit', async (e) => {
@@ -322,6 +328,7 @@
         if (r.user.sifre_degistirilmeli) return girisEkrani(null, true);
         location.hash = '#/ozet';
       } catch (err) {
+        $('#giris-form').hidden = false;
         $('#giris-hata').innerHTML = hataKutusu(err);
         dugme.disabled = false;
       }
