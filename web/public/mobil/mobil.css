@@ -187,3 +187,5 @@ label.etiket { display: block; font-weight: 700; margin: 0 0 6px 6px; }
 
 .bolum-baslik { font-family: var(--font-baslik); font-size: 22px; letter-spacing: -0.02em; margin: 22px 0 10px; }
 .sayfa > h2:first-of-type, .sayfa > .urun-baslik { padding-right: 44px; }
+
+.kamera-araclar{position:absolute;bottom:12px;left:12px;right:12px;display:flex;gap:12px;align-items:center;z-index:2}.kamera-araclar label{background:#fff;color:#111;padding:8px;border-radius:12px}.kamera-araclar input{max-width:130px}
