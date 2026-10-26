@@ -5,6 +5,7 @@ const { db, ayarOku, ayarYaz } = require('./db');
 const TABLO_SIRASI = [
   'subeler',
   'kullanicilar',
+  'mobil_istekler',
   'ilaclar',
   'musteriler',
   'tedarikciler',

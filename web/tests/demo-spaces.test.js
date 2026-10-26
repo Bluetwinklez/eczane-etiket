@@ -1,0 +1,22 @@
+process.env.ECZAM_DEMO = '1';
+const { test, before, after } = require('node:test');
+const assert = require('node:assert/strict');
+const { sunucuBaslat, istemci } = require('./helpers');
+require('../server/demo').demoHazirla();
+let server;
+before(async () => { server = await sunucuBaslat(); });
+after(() => server.kapat());
+test('separate demo sessions never see each other’s writes, login regeneration preserves space', async () => {
+ const baseDb = require('../server/db').baseDb;
+ const initialAudit = baseDb.prepare('SELECT COUNT(*) AS n FROM islem_kayitlari').get().n;
+ const a = istemci(server.base), b = istemci(server.base);
+ assert.equal((await a.girisYap('demo', 'demo1234')).status, 200);
+ assert.equal((await b.girisYap('demo', 'demo1234')).status, 200);
+ const r = await a.post('/api/istekler', { urun_adi: 'Private sample', musteri_adi: 'A only' });
+ assert.equal(r.status, 201);
+ assert.equal((await a.get('/api/istekler')).data.some(x => x.urun_adi === 'Private sample'), true);
+ assert.equal((await b.get('/api/istekler')).data.some(x => x.urun_adi === 'Private sample'), false);
+ assert.equal(baseDb.prepare('SELECT COUNT(*) AS n FROM islem_kayitlari').get().n, initialAudit);
+ assert.equal((await a.girisYap('demo', 'demo1234')).status, 200);
+ assert.equal((await a.get('/api/istekler')).data.some(x => x.urun_adi === 'Private sample'), true);
+});

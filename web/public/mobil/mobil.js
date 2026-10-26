@@ -62,13 +62,17 @@
   const oturum = { kullanici: null };
   let cevrimiciMi = navigator.onLine;
 
-  async function api(yontem, url, govde, { onbellek = false } = {}) {
+  async function api(yontem, url, govde, { onbellek = false, istekId } = {}) {
     const secenek = { method: yontem, headers: {}, credentials: 'same-origin' };
+    if (istekId) secenek.headers['Idempotency-Key'] = istekId;
     if (govde !== undefined) {
       secenek.headers['Content-Type'] = 'application/json';
       secenek.body = JSON.stringify(govde);
     }
     let res;
+    const kontrol = new AbortController();
+    secenek.signal = kontrol.signal;
+    const zaman = setTimeout(() => kontrol.abort(), 15000);
     try {
       res = await fetch(url, secenek);
     } catch (e) {
@@ -88,14 +92,14 @@
       const hata = new Error('Sunucuya ulaşılamıyor');
       hata.cevrimdisi = true;
       throw hata;
-    }
+    } finally { clearTimeout(zaman); }
     cevrimiciMi = true;
     const tur = res.headers.get('content-type') || '';
     const veri = res.status === 204 ? null : tur.includes('json') ? await res.json() : await res.text();
     if (res.status === 401 && !url.includes('/api/auth/login')) {
       oturum.kullanici = null;
       if (location.hash !== '#/giris') location.hash = '#/giris';
-      throw new Error('Oturum sona erdi');
+      const hata = new Error('Oturum sona erdi'); hata.durum = 401; throw hata;
     }
     if (!res.ok) {
       const h = new Error((veri && veri.error) || 'Bir hata oluştu');
@@ -113,36 +117,49 @@
   // ---------- Cevrimdisi kuyruk (sayim, istek, sicaklik) ----------
   const KUYRUK = 'eczanem:kuyruk';
   const kuyrukOku = () => yerel(KUYRUK, []);
-  async function kuyruklaGonder(yontem, url, govde, aciklama) {
-    try {
-      return await api(yontem, url, govde);
-    } catch (e) {
-      if (!e.cevrimdisi) throw e;
-      const k = kuyrukOku();
-      k.push({ id: Date.now() + Math.random(), yontem, url, govde, aciklama, zaman: Date.now() });
-      yerelYaz(KUYRUK, k);
-      toast('Bağlantı yok: kayıt sıraya alındı');
-      kuyrukRozeti();
-      return { kuyrukta: true };
-    }
+  let kuyrukIslemi = null;
+  function kuyrukKaydet(k) {
+    // Never report success if device storage is full/unavailable.
+    localStorage.setItem(KUYRUK, JSON.stringify(k));
   }
-  async function kuyruguBosalt() {
-    const k = kuyrukOku();
-    if (!k.length || !cevrimiciMi) return;
-    const kalan = [];
-    let gonderilen = 0;
-    for (const oge of k) {
-      try {
-        await api(oge.yontem, oge.url, oge.govde);
-        gonderilen += 1;
-      } catch (e) {
-        if (e.cevrimdisi) kalan.push(oge);
-        // Sunucu reddettiyse (4xx) kayit atilir: tekrar denemek ise yaramaz
+  async function kuyruklaGonder(yontem, url, govde, aciklama) {
+    const id = crypto.randomUUID();
+    const oge = { id, yontem, url, govde, aciklama, zaman: Date.now(), kullaniciId: oturum.kullanici.id };
+    kuyrukKaydet([...kuyrukOku(), oge]);
+    await kuyruguBosalt();
+    const kalan = kuyrukOku().find((x) => x.id === id);
+    if (kalan) toast(kalan.hata || 'Kayıt cihazda saklandı; bağlantı geldiğinde tekrar gönderilecek');
+    return kalan ? { kuyrukta: true } : {};
+  }
+  function kuyruguBosalt() {
+    if (kuyrukIslemi) return kuyrukIslemi;
+    if (!oturum.kullanici || !cevrimiciMi) return Promise.resolve();
+    kuyrukIslemi = (async () => {
+      let gonderilen = 0;
+      for (const oge of kuyrukOku()) {
+        // Unowned legacy records need review rather than being sent as another user.
+        if (oge.kullaniciId !== oturum.kullanici.id) continue;
+        try {
+          await api(oge.yontem, oge.url, oge.govde, { istekId: String(oge.id) });
+          kuyrukKaydet(kuyrukOku().filter((x) => x.id !== oge.id));
+          gonderilen++;
+        } catch (e) {
+          const k = kuyrukOku();
+          const kayit = k.find((x) => x.id === oge.id);
+          if (kayit) { kayit.hata = e.message; kayit.sonDeneme = Date.now(); }
+          kuyrukKaydet(k);
+          if (e.cevrimdisi || !oturum.kullanici || e.durum === 429 || e.durum >= 500) break;
+        }
       }
+      if (gonderilen) toast(`${gonderilen} bekleyen kayıt gönderildi`);
+      kuyrukRozeti();
+    })().finally(() => { kuyrukIslemi = null; });
+    return kuyrukIslemi;
+  }
+  function cihazVerileriniTemizle() {
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith('onb:') || key.startsWith('eczanem:') && !['eczanem:dil', 'eczanem:sunucu'].includes(key)) localStorage.removeItem(key);
     }
-    yerelYaz(KUYRUK, kalan);
-    if (gonderilen) toast(`${gonderilen} bekleyen kayıt gönderildi`);
-    kuyrukRozeti();
   }
   function kuyrukRozeti() {
     const r = $('#kuyruk-rozet');
@@ -557,9 +574,11 @@
       <div class="cipler" style="margin-top:12px">${[['', 'Tümü'], ['kritik', 'Kritik stok'], ['skt', 'SKT yakın']]
         .map(([k, a]) => `<button class="hap ${filtre === k ? 'secili' : ''}" data-filtre="${k}">${a}</button>`)
         .join('')}</div>
-      <section class="kart" id="u-liste" style="padding:8px 18px"><div class="yukleniyor">Yükleniyor…</div></section>`);
+      <p id="u-durum" role="status"></p><section class="kart" id="u-liste" style="padding:8px 18px"><div class="yukleniyor">Yükleniyor…</div></section><button class="hap" id="u-daha" hidden>Daha fazla göster</button>`);
     let liste = [];
     let uyari = null;
+    let yuklemeHatasi = '';
+    let limit = 80;
     try {
       const veri = await get('/api/ilaclar', { onbellek: true });
       liste = Array.isArray(veri) ? veri : [];
@@ -570,6 +589,7 @@
         const k = yerel('onb:/api/ilaclar', null);
         if (k) liste = k.veri;
       } catch (e2) {}
+      yuklemeHatasi = e.message;
     }
     const sktIdler = uyari ? new Set((uyari.skt_yaklasan || []).map((x) => x.ilac_id || x.id)) : null;
     const turkceKucuk = (m) => String(m || '').toLocaleLowerCase('tr-TR');
@@ -579,19 +599,22 @@
       if (filtre === 'kritik') r = r.filter((i) => i.stok <= i.kritik_stok);
       if (filtre === 'skt' && sktIdler) r = r.filter((i) => sktIdler.has(i.id));
       if (q) r = r.filter((i) => turkceKucuk(i.ad).includes(q) || (i.barkod || '').includes(q) || turkceKucuk(i.etken_madde).includes(q) || turkceKucuk(i.kategori).includes(q));
+      $('#u-durum').textContent = yuklemeHatasi ? `Veriler güncellenemedi: ${yuklemeHatasi}` : `${r.length} ürün · ${Math.min(limit, r.length)} gösteriliyor`;
+      $('#u-daha').hidden = r.length <= limit;
       $('#u-liste').innerHTML = r.length
         ? r
-            .slice(0, 80)
+            .slice(0, limit)
             .map(
               (i) => `<button class="satir" data-id="${i.id}" style="width:100%;background:none;border:none;border-top:2px dashed rgba(17,17,17,.25);text-align:left;cursor:pointer;font-size:inherit">
                 <div class="ad">${esc(i.ad)}<small>${tl(i.satis_fiyati)}${i.raf_konumu ? ' · ' + esc(i.raf_konumu) : ''}</small></div>
                 <span class="rozet ${i.stok <= 0 ? 'kirmizi' : i.stok <= i.kritik_stok ? 'sari' : 'yesil'}">${i.stok}</span></button>`
             )
             .join('')
-        : `<div class="bos">${MASKOT}<p>Sonuç bulunamadı</p></div>`;
+        : yuklemeHatasi ? hataKutusu({ message: yuklemeHatasi }) : `<div class="bos">${MASKOT}<p>Sonuç bulunamadı</p></div>`;
     };
     ciz();
-    $('#u-ara').addEventListener('input', ciz);
+    $('#u-ara').addEventListener('input', () => { limit = 80; ciz(); });
+    $('#u-daha').onclick = () => { limit += 80; ciz(); };
     uyg.querySelectorAll('[data-filtre]').forEach((b) => b.addEventListener('click', () => (location.hash = '#/urunler' + (b.dataset.filtre ? '?filtre=' + b.dataset.filtre : ''))));
     $('#u-liste').addEventListener('click', (e) => {
       const b = e.target.closest('[data-id]');
@@ -696,7 +719,7 @@
       'Tara',
       'tara',
       `<div class="cipler"><button class="hap secili" data-mod="notlar">Notlar</button><button class="hap" data-mod="sorgu">Sorgu</button>${yonetici ? '<button class="hap" data-mod="sayim">Sayım</button>' : ''}</div>
-      <div id="sayim-bilgi"></div>
+      <div id="sayim-bilgi"></div><button class="hap" id="qr-toplu">Toplu okumayı aç</button><button class="hap" id="qr-liste" hidden>Okunan kodlar (0)</button>
       <div class="kamera kapali" id="kamera"><div>Kamera hazırlanıyor…</div></div>
       <form id="elle-form" style="display:flex;gap:10px">
         <input class="alan" id="elle" inputmode="search" placeholder="Barkod yazın veya karekod yapıştırın" aria-label="Barkod" autocomplete="off" />
@@ -741,18 +764,21 @@
     );
 
     modGuncelle();
+    let toplu = false;
+    const kodlar = new Set();
+    $('#qr-toplu').onclick = () => { toplu = !toplu; $('#qr-toplu').textContent = toplu ? 'Tekli okumaya geç' : 'Toplu okumayı aç'; };
+    $('#qr-liste').onclick = () => notlariGoster([...kodlar].join('\n'));
     let notAcik = false;
-    const okundu = async (metin) => {
-      if (notAcik) return;
-      if (mod === 'notlar') {
+    const notlariGoster = (metin) => {
         notAcik = true;
-        const perde = sayfaAc(`<h2>Okunan kod</h2><textarea class="alan" id="qr-metin" readonly></textarea>
-          <p>Paylaşım menüsünden Notlar’ı seçin.</p><button class="hap siyah" id="qr-paylas">Notlar’a gönder</button>
-          <button class="hap" id="qr-kopyala">Kopyala</button><button class="hap" id="qr-devam">Yeni kod oku</button>`);
+        const perde = sayfaAc(`<h2>Okunan kodlar</h2><textarea class="alan" id="qr-metin" readonly></textarea>
+          <p>Paylaşım menüsünden Notlar’ı seçin. Kodlar yalnızca bu ekranda tutulur.</p><button class="hap siyah" id="qr-paylas">Notlar’a gönder</button>
+          <button class="hap" id="qr-kopyala">Kopyala</button><button class="hap" id="qr-devam">Yeni kod oku</button><button class="hap" id="qr-temizle">Listeyi temizle</button>`);
         $('#qr-metin', perde).value = metin;
         const observer = new MutationObserver(() => { if (!perde.isConnected) { notAcik = false; observer.disconnect(); } });
         observer.observe(document.body, { childList: true });
         $('#qr-devam', perde).onclick = () => { perde.remove(); notAcik = false; };
+        $('#qr-temizle', perde).onclick = () => { kodlar.clear(); $('#qr-liste').hidden = true; perde.remove(); notAcik = false; };
         $('#qr-paylas', perde).onclick = async () => {
           try {
             if (!navigator.share) return toast('Paylaşım desteklenmiyor. Kodu kopyalayıp Notlar’a yapıştırın.');
@@ -763,6 +789,18 @@
           try { await navigator.clipboard.writeText(metin); toast('Kod kopyalandı'); }
           catch (e) { $('#qr-metin', perde).select(); toast('Seçili metni kopyalayın'); }
         };
+    };
+    const okundu = async (metin) => {
+      if (notAcik) return;
+      if (mod === 'notlar') {
+        if (toplu) {
+          if (kodlar.has(metin)) return;
+          if (kodlar.size >= 500) return toast('500 kod sınırına ulaşıldı. Listeyi paylaşın ve temizleyin.');
+          kodlar.add(metin);
+          $('#qr-liste').hidden = false;
+          $('#qr-liste').textContent = `Okunan kodlar (${kodlar.size})`;
+          if (navigator.vibrate) navigator.vibrate(40);
+        } else notlariGoster(metin);
         return;
       }
       const simdi = Date.now();
@@ -878,7 +916,7 @@
         <div class="satir"><div class="ad">Sürüm<small>Eczam Mobil 1.0</small></div></div>
       </section>
       <div style="display:grid;gap:12px">
-        ${bekleyen.length ? '<button class="hap" id="p-gonder">Bekleyenleri şimdi gönder</button>' : ''}
+        ${bekleyen.length ? '<button class="hap" id="p-gonder">Bekleyenleri şimdi gönder</button><button class="hap" id="p-bekleyen">Bekleyen kayıtları incele</button>' : ''}
         <div class="cipler" role="group" aria-label="Dil"><button class="hap ${window.EczamDil && EczamDil.dil === 'tr' ? 'secili' : ''}" data-dil="tr">Türkçe</button><button class="hap ${window.EczamDil && EczamDil.dil === 'en' ? 'secili' : ''}" data-dil="en">English</button></div>
         <a class="hap" style="text-align:center;text-decoration:none" href="/gizlilik.html">Gizlilik politikası</a>
         <button class="hap" id="p-sifre">Şifremi değiştir</button>
@@ -891,11 +929,24 @@
     uyg.querySelectorAll('[data-dil]').forEach((b) => (b.onclick = () => window.EczamDil && EczamDil.ayarla(b.dataset.dil)));
     const g = $('#p-gonder');
     if (g) g.onclick = async () => { await kuyruguBosalt(); profilEkrani(); };
+    const incele = $('#p-bekleyen');
+    if (incele) incele.onclick = () => {
+      const perde = sayfaAc(`<h2>Bekleyen kayıtlar</h2>${kuyrukOku().map((x) => `<div class="kart"><strong>${esc(x.aciklama)}</strong><p>${esc(x.hata || 'Gönderim bekliyor')}</p><small>${x.kullaniciId === u.id ? 'Bu hesabın kaydı' : 'Eski veya farklı hesaba ait; otomatik gönderilmez'}</small><button class="hap" data-kayit-sil="${esc(x.id)}">Cihazdan sil</button></div>`).join('')}`);
+      perde.querySelectorAll('[data-kayit-sil]').forEach((b) => b.onclick = async () => {
+        if (!window.confirm('Bu bekleyen kayıt cihazdan kalıcı olarak silinsin mi?')) return;
+        if (kuyrukIslemi) await kuyrukIslemi;
+        kuyrukKaydet(kuyrukOku().filter((x) => String(x.id) !== b.dataset.kayitSil));
+        perde.remove(); profilEkrani();
+      });
+    };
     $('#p-cikis').onclick = async () => {
+      if (kuyrukOku().length && !window.confirm('Gönderilmemiş kayıtlar var. Çıkış yaparsanız bu cihazdaki bekleyen kayıtlar silinecek. Devam edilsin mi?')) return;
+      if (kuyrukIslemi) await kuyrukIslemi;
       taramayiDurdur();
       try { await post('/api/auth/logout'); } catch (e) {}
+      cihazVerileriniTemizle();
       oturum.kullanici = null;
-      location.hash = '#/giris';
+      window.location.replace(location.pathname + '#/giris');
     };
     const sunucuDugme = $('#p-sunucu');
     if (sunucuDugme) {
@@ -936,7 +987,7 @@
         button.disabled = true;
         try {
           await post('/api/auth/hesabi-sil', { sifre: $('#sil-sifre', perde).value });
-          localStorage.clear();
+          cihazVerileriniTemizle();
           oturum.kullanici = null;
           perde.remove();
           location.hash = '#/giris';
