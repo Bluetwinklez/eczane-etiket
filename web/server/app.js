@@ -4,7 +4,7 @@ const express = require('express');
 const session = require('express-session');
 
 const { requireLogin, requireRole } = require('./auth');
-const { db, ayarOku, ayarYaz } = require('./db');
+const { db, baseDb, ayarOku, ayarYaz } = require('./db');
 const demo = require('./demo');
 const SqliteOturumDeposu = require('./oturumDeposu');
 const { partileriEsitle } = require('./partiler');
@@ -79,7 +79,7 @@ app.use(
   session({
     name: 'eczanem.sid',
     secret: oturumAnahtari(),
-    store: new SqliteOturumDeposu(db),
+    store: new SqliteOturumDeposu(baseDb),
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -91,6 +91,8 @@ app.use(
   })
 );
 
+app.use(require('./demoSpaces'));
+app.use(require('./mobileIdempotency'));
 app.use('/api', islemKaydiMiddleware);
 app.use('/api/auth', authRoutes);
 app.use('/api/ilaclar', requireLogin, ilaclarRoutes);
