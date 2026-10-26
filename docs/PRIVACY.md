@@ -13,7 +13,7 @@ _Son güncelleme / Last updated: 2026-10-04_
 - **Cihazda saklananlar:** çevrimdışı çalışmak için son görüntülenen liste ve özetler cihazın yerel depolamasında tutulur; bağlantı yokken yaptığınız kayıtlar bağlantı gelince gönderilmek üzere bekler. Çıkış yaptığınızda oturum sona erer.
 - **Reklam, takip ve analiz yok.** Üçüncü taraf analiz, reklam veya izleme kitaplığı kullanılmaz. Yazı tipleri ve barkod okuma kodu uygulamanın içindedir; harici sunucudan yüklenmez.
 - **Güvenlik:** HTTPS bağlantısı (internet adresleri için zorunlu), giriş denemesi sınırı, rol bazlı yetki, işlem kaydı.
-- **Silme ve haklarınız:** Hesabınızın veya kişisel verilerinizin silinmesini eczane yöneticinizden isteyin; yönetici hesabı Kullanıcılar sayfasından siler. Müşteri iseniz KVKK madde 11 kapsamındaki haklarınız (bilgi alma, düzeltme, silme, itiraz) için eczanenize başvurabilirsiniz.
+- **Silme ve haklarınız:** Mobil Profil → Hesabım ve veri silme ekranında mevcut şifrenizle hesabınızı silebilirsiniz. Son aktif yönetici önce başka bir yönetici oluşturmalıdır. İşletme kayıtları korunur, kullanıcı bağlantıları kaldırılır. Diğer kişisel veri talepleriniz için eczane yöneticinize başvurun. Müşteri iseniz KVKK madde 11 kapsamındaki haklarınız (bilgi alma, düzeltme, silme, itiraz) için eczanenize başvurabilirsiniz.
 - **Çocuklar:** Uygulama eczane çalışanlarına yöneliktir; 18 yaş altına hitap etmez.
 
 Sorular için: doflerim@gmail.com
@@ -29,7 +29,7 @@ Sorular için: doflerim@gmail.com
 - **Stored on the device:** to work offline, the last viewed lists and summaries are kept in the device's local storage; entries made offline wait and are sent when the connection returns. Signing out ends the session.
 - **No ads, tracking or analytics.** No third-party analytics, advertising or tracking SDKs. Fonts and the barcode reader are bundled in the app.
 - **Security:** HTTPS connection (required for internet addresses), sign-in attempt limits, role-based permissions, activity log.
-- **Deletion and your rights:** ask your pharmacy administrator to delete your account or personal data. Customers can contact their pharmacy for their rights under KVKK Article 11 (access, correction, deletion, objection).
+- **Deletion and your rights:** delete your account from Mobile Profile → Account and data deletion using your current password. The last active administrator must first create another administrator. Business records remain with user references removed. Contact your pharmacy administrator for other personal-data requests. Customers can contact their pharmacy for their rights under KVKK Article 11 (access, correction, deletion, objection).
 - **Children:** The app is intended for pharmacy staff and is not directed at anyone under 18.
 
 Contact: doflerim@gmail.com
