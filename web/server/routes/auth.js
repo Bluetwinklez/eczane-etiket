@@ -29,8 +29,10 @@ router.post('/login', (req, res) => {
 
   sinirlayici.sifirla(ip, kullanici_adi);
   // Oturum sabitleme (session fixation) saldirisina karsi yeni oturum kimligi
+  const demoSpace = req.session.demoSpace;
   req.session.regenerate((err) => {
     if (err) return res.status(500).json({ error: 'Oturum oluşturulamadı' });
+    if (demoSpace) req.session.demoSpace = demoSpace;
     req.session.userId = user.id;
     res.json({ user: toPublicUser(user) });
   });
