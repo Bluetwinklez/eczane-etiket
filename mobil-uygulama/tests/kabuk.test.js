@@ -205,7 +205,7 @@ test('TestFlight iş akışı: üç mod ve gerekli secret adları', () => {
 });
 
 // Exercise delayed network responses against real connection-screen event handlers.
-function connectionScreen(saved = 'https://saved.example.com') {
+function connectionScreen(saved = 'https://saved.example.com', { direct = false, search = '' } = {}) {
   const elements = new Map();
   const element = () => ({
     events: {}, children: [], hidden: false, disabled: false, value: '', style: {},
@@ -221,14 +221,14 @@ function connectionScreen(saved = 'https://saved.example.com') {
   const writes = [];
   const context = {
     document: { querySelector: get, createElement: element },
-    location: { search: '', replace: (url) => navigations.push(url) },
+    location: { search, replace: (url) => navigations.push(url) },
     localStorage: { getItem: () => saved, setItem: (k, v) => writes.push(v), removeItem() {} },
     fetch: (url) => new Promise((resolve) => pending.push({ url, resolve })),
     URL, URLSearchParams, AbortController,
     setTimeout: () => 1, clearTimeout() {},
   };
   context.window = context;
-  vm.runInNewContext(oku('mobil-uygulama', 'www', 'baglan.js'), context);
+  vm.runInNewContext(oku('mobil-uygulama', 'www', 'baglan.js').replace('const DOGRUDAN_DEMO = true;', `const DOGRUDAN_DEMO = ${direct};`), context);
   const reply = (request) => request.resolve({ ok: true, json: async () => ({ ok: true, uygulama: 'eczam' }) });
   return { get, pending, navigations, writes, reply };
 }
@@ -314,4 +314,18 @@ test('cancelled network scan cannot navigate after switching to manual entry', a
   await flushConnection();
   assert.deepEqual(s.navigations, []);
   assert.equal(s.get('#form').hidden, false);
+});
+
+for (const saved of ['', 'https://saved.example.com', 'http://192.168.1.20:3000']) {
+  test(`temporary direct startup bypasses connection checks: ${saved || 'new install'}`, () => {
+    const s = connectionScreen(saved, { direct: true });
+    assert.deepEqual(s.navigations, ['https://eczam-demo.onrender.com/mobil/?demo=1']);
+    assert.equal(s.pending.length, 0);
+    assert.deepEqual(s.writes, []);
+  });
+}
+test('explicit server switch keeps connection tools available in temporary mode', () => {
+  const s = connectionScreen('', { direct: true, search: '?degistir=1' });
+  assert.deepEqual(s.navigations, []);
+  assert.ok(s.pending.length > 0);
 });
