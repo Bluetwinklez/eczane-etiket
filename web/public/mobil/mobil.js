@@ -648,7 +648,7 @@
     cerceve(
       'Tara',
       'tara',
-      `<div class="cipler"><button class="hap secili" data-mod="sorgu">Sorgu</button>${yonetici ? '<button class="hap" data-mod="sayim">Sayım</button>' : ''}</div>
+      `<div class="cipler"><button class="hap secili" data-mod="notlar">Notlar</button><button class="hap" data-mod="sorgu">Sorgu</button>${yonetici ? '<button class="hap" data-mod="sayim">Sayım</button>' : ''}</div>
       <div id="sayim-bilgi"></div>
       <div class="kamera kapali" id="kamera"><div>Kamera hazırlanıyor…</div></div>
       <form id="elle-form" style="display:flex;gap:10px">
@@ -656,7 +656,7 @@
         <button class="yuvarlak" style="background:var(--yesil);width:56px;height:56px" type="submit" aria-label="Ara">${svg('ara')}</button>
       </form>`
     );
-    let mod = 'sorgu';
+    let mod = 'notlar';
     let sonOkunan = '';
     let sonZaman = 0;
 
@@ -665,7 +665,7 @@
       const kutu = $('#sayim-bilgi');
       if (mod !== 'sayim') {
         sayimModu = null;
-        kutu.innerHTML = '';
+        kutu.innerHTML = mod === 'notlar' ? '<p>Okunan kodu Notlar’a göndermek için paylaşım menüsünden Notlar’ı seçin. Kod Eczam’a kaydedilmez.</p>' : '';
         return;
       }
       try {
@@ -693,7 +693,31 @@
       })
     );
 
+    modGuncelle();
+    let notAcik = false;
     const okundu = async (metin) => {
+      if (notAcik) return;
+      if (mod === 'notlar') {
+        notAcik = true;
+        const perde = sayfaAc(`<h2>Okunan kod</h2><textarea class="alan" id="qr-metin" readonly></textarea>
+          <p>Paylaşım menüsünden Notlar’ı seçin.</p><button class="hap siyah" id="qr-paylas">Notlar’a gönder</button>
+          <button class="hap" id="qr-kopyala">Kopyala</button><button class="hap" id="qr-devam">Yeni kod oku</button>`);
+        $('#qr-metin', perde).value = metin;
+        const observer = new MutationObserver(() => { if (!perde.isConnected) { notAcik = false; observer.disconnect(); } });
+        observer.observe(document.body, { childList: true });
+        $('#qr-devam', perde).onclick = () => { perde.remove(); notAcik = false; };
+        $('#qr-paylas', perde).onclick = async () => {
+          try {
+            if (!navigator.share) return toast('Paylaşım desteklenmiyor. Kodu kopyalayıp Notlar’a yapıştırın.');
+            await navigator.share({ text: metin });
+          } catch (e) { if (e.name !== 'AbortError') toast('Paylaşılamadı. Kodu kopyalayabilirsiniz.'); }
+        };
+        $('#qr-kopyala', perde).onclick = async () => {
+          try { await navigator.clipboard.writeText(metin); toast('Kod kopyalandı'); }
+          catch (e) { $('#qr-metin', perde).select(); toast('Seçili metni kopyalayın'); }
+        };
+        return;
+      }
       const simdi = Date.now();
       if (metin === sonOkunan && simdi - sonZaman < 2500) return;
       sonOkunan = metin;
@@ -852,9 +876,26 @@
       });
     };
     $('#p-sil').onclick = () => {
-      sayfaAc(`<h2 style="font-family:var(--font-baslik);margin:0 0 10px">Hesap ve veri silme</h2>
-        <p style="font-weight:600;line-height:1.5">Eczam Mobil, hesabınızı eczanenizin yöneticisi yönetir. Hesabınızın ve kişisel verilerinizin silinmesi için eczane yöneticinize başvurun (Web uygulaması → Kullanıcılar). Yönetici hesabı siler; satış kayıtları yasal saklama süresi boyunca anonim biçimde tutulur.</p>
-        <a class="hap siyah" style="display:block;text-align:center;text-decoration:none" href="/gizlilik.html">Gizlilik politikasını oku</a>`);
+      const perde = sayfaAc(`<h2>Hesap ve veri silme</h2>
+        <p>Hesabınız ve giriş bilgileriniz kalıcı olarak silinir, tüm cihazlardaki oturumlar kapanır. İşletmenin satış ve stok kayıtları korunur; hesabınıza olan kullanıcı bağlantıları kaldırılır. Son yöneticiyseniz önce başka bir yönetici oluşturmalısınız.</p>
+        <form id="sil-form"><label for="sil-sifre">Mevcut şifre</label>
+        <input class="alan" id="sil-sifre" type="password" autocomplete="current-password" required />
+        <button class="hap siyah" type="submit">Hesabımı kalıcı olarak sil</button></form>
+        <a href="/gizlilik.html">Gizlilik politikasını oku</a>`);
+      $('#sil-form', perde).onsubmit = async (e) => {
+        e.preventDefault();
+        if (!window.confirm('Hesabınız kalıcı olarak silinsin mi? Bu işlem geri alınamaz.')) return;
+        const button = $('button[type="submit"]', perde);
+        button.disabled = true;
+        try {
+          await post('/api/auth/hesabi-sil', { sifre: $('#sil-sifre', perde).value });
+          localStorage.clear();
+          oturum.kullanici = null;
+          perde.remove();
+          location.hash = '#/giris';
+          toast('Hesabınız silindi');
+        } catch (err) { toast(err.message); button.disabled = false; }
+      };
     };
   }
 
