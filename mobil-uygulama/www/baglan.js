@@ -52,14 +52,14 @@
 
   // Yerel ag: localhost, 10.x, 172.16-31.x, 192.168.x, *.local
   function yerelAdresMi(host) {
-    return (
-      host === 'localhost' ||
-      /\.local$/i.test(host) ||
-      /^127\./.test(host) ||
-      /^10\./.test(host) ||
-      /^192\.168\./.test(host) ||
-      /^172\.(1[6-9]|2\d|3[01])\./.test(host)
-    );
+    if (host === 'localhost' || /\.local$/i.test(host)) return true;
+    // Match complete IPv4 addresses, never public names such as 192.168.example.com.
+    if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return false;
+    const ip = host.split('.').map(Number);
+    if (ip.some((n) => n > 255)) return false;
+    return ip[0] === 127 || ip[0] === 10 ||
+      (ip[0] === 192 && ip[1] === 168) ||
+      (ip[0] === 172 && ip[1] >= 16 && ip[1] <= 31);
   }
 
   // Kullanicinin yazdigini guvenli bir kok adrese cevirir; gecersizse null + mesaj
@@ -150,10 +150,19 @@
     ac(adres);
   }
 
-  let aramaIptal = false;
+  let islem = 0;
+  function yeniIslem() {
+    islem += 1;
+    dugme.disabled = false;
+    dugme.textContent = 'Bağlan';
+    demoDugme.disabled = false;
+    return islem;
+  }
   function elleGirisGoster(deger) {
-    aramaIptal = true;
+    yeniIslem();
     arama.hidden = true;
+    bulunanlar.hidden = true;
+    tekrarDugme.hidden = true;
     elleDugme.hidden = true;
     form.hidden = false;
     aciklama.textContent = 'Eczanenizin Eczam sunucu adresini yazın. Adresi eczane bilgisayarındaki Eczam ekranında ya da yöneticinizden öğrenebilirsiniz.';
@@ -161,7 +170,7 @@
   }
 
   async function aramayiBaslat({ yeniden = 0 } = {}) {
-    aramaIptal = false;
+    const kimlik = yeniIslem();
     hata('');
     form.hidden = true;
     bulunanlar.hidden = true;
@@ -171,13 +180,13 @@
     aramaMetin.textContent = 'Eczanedeki Eczam aranıyor…';
     const basla = Date.now();
     const sonuclar = await agiTara({
-      iptal: () => aramaIptal,
+      iptal: () => kimlik !== islem,
       ilerleme: ({ ag, sira, toplam }) => {
         aramaAyrinti.textContent = `${ag}.x ağı taranıyor`;
         aramaCubuk.style.width = `${Math.round(((sira + 1) / toplam) * 100)}%`;
       },
     });
-    if (aramaIptal) return;
+    if (kimlik !== islem) return;
     arama.hidden = true;
     // Ayni sunucu birden cok kez donmesin
     const tekil = [...new Map(sonuclar.map((s) => [s.adres, s])).values()];
@@ -203,7 +212,7 @@
     if (Date.now() - basla < 4000 && yeniden < 3) {
       aramaMetin.textContent = 'Yerel ağ izni bekleniyor…';
       arama.hidden = false;
-      setTimeout(() => !aramaIptal && aramayiBaslat({ yeniden: yeniden + 1 }), 3000);
+      setTimeout(() => kimlik === islem && aramayiBaslat({ yeniden: yeniden + 1 }), 3000);
       return;
     }
     hata('Eczanedeki Eczam bulunamadı. Telefonun eczanenin Wi-Fi ağına bağlı olduğundan, Eczam\'ın bilgisayarda açık olduğundan ve "Yerel Ağ" iznini verdiğinizden emin olun (Ayarlar › Eczam › Yerel Ağ).');
@@ -215,17 +224,19 @@
 
   // Demo: adres yazmadan ornek verili sunucuya baglanir. Ucretsiz sunucu uykudaysa uyanmasi ~1 dk surer.
   demoDugme.addEventListener('click', async () => {
-    aramaIptal = true;
+    const kimlik = yeniIslem();
     hata('');
     form.hidden = true;
     bulunanlar.hidden = true;
     tekrarDugme.hidden = true;
     demoDugme.disabled = true;
     arama.hidden = false;
+    elleDugme.hidden = false;
     aramaMetin.textContent = 'Demo açılıyor…';
     aramaAyrinti.textContent = 'Demo sunucusu uykudaysa açılması bir dakika kadar sürebilir.';
     aramaCubuk.style.width = '100%';
     const tamam = await yokla(DEMO_ADRES, 75000);
+    if (kimlik !== islem) return;
     demoDugme.disabled = false;
     if (tamam) return kaydetVeAc(DEMO_ADRES);
     arama.hidden = true;
@@ -240,9 +251,11 @@
     hata('');
     const s = adresiHazirla(adresInput.value);
     if (s.hata) return hata(s.hata);
+    const kimlik = yeniIslem();
     dugme.disabled = true;
     dugme.textContent = 'Bağlanılıyor…';
     const tamam = await dogrula(s.adres);
+    if (kimlik !== islem) return;
     dugme.disabled = false;
     dugme.textContent = 'Bağlan';
     if (!tamam) return hata('Bu adreste bir Eczam sunucusu bulunamadı. Adresi ve internet bağlantınızı kontrol edin.');
@@ -251,13 +264,18 @@
 
   // Kayitli sunucu varsa dogrudan ac; "?degistir=1" ile adres ekrani gosterilir
   const parametre = new URLSearchParams(location.search);
-  const kayitli = oku();
+  const hamKayit = oku();
+  const kayitli = hamKayit ? adresiHazirla(hamKayit).adres || '' : '';
+  if (hamKayit && !kayitli) yaz('');
   if (parametre.get('degistir') === '1') {
     yaz('');
     aramayiBaslat();
   } else if (kayitli) {
+    const kimlik = yeniIslem();
+    elleDugme.hidden = false;
     aciklama.textContent = 'Eczanenizin sunucusuna bağlanılıyor…';
     dogrula(kayitli).then((tamam) => {
+      if (kimlik !== islem) return;
       if (tamam) return ac(kayitli);
       let host = '';
       try {
@@ -275,7 +293,7 @@
       yine.type = 'button';
       yine.className = 'ikincil';
       yine.textContent = 'Yine de aç (çevrimdışı)';
-      yine.addEventListener('click', () => ac(kayitli));
+      yine.addEventListener('click', () => { yeniIslem(); ac(kayitli); });
       $('#kutu').appendChild(yine);
     });
   } else {
