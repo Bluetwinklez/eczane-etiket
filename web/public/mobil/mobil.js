@@ -599,19 +599,59 @@
       kamera.innerHTML = '<div>Bu cihazda kamera kullanılamıyor. Barkodu elle yazabilirsiniz.</div>';
       return null;
     }
+    let okuyucu;
+    let observer;
+    let stopped = false;
+    const durdur = () => {
+      stopped = true;
+      if (observer) observer.disconnect();
+      if (okuyucu) okuyucu.reset();
+    };
     try {
       const ipuclari = new Map();
       ipuclari.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8, ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.QR_CODE, ZXing.BarcodeFormat.DATA_MATRIX]);
       ipuclari.set(ZXing.DecodeHintType.TRY_HARDER, true);
-      const okuyucu = new ZXing.BrowserMultiFormatReader(ipuclari, 300);
+      okuyucu = new ZXing.BrowserMultiFormatReader(ipuclari, 200);
       kamera.className = 'kamera';
-      kamera.innerHTML = '<video playsinline muted></video><div class="cerceve"></div><div class="tarama-cizgi"></div><div class="kamera-mesaj">Barkodu çerçeveye getirin</div>';
+      kamera.innerHTML = '<video playsinline muted></video><div class="cerceve"></div><div class="tarama-cizgi"></div><div class="kamera-mesaj">Kodu sabit tutun; küçük kodlar için yakınlaştırın.</div><div class="kamera-araclar"><button type="button" class="hap" data-flash hidden>Fener aç</button><label hidden>Yakınlaştır <input type="range" data-zoom aria-label="Kamera yakınlaştırma" /></label></div>';
       const video = $('video', kamera);
-      await okuyucu.decodeFromConstraints({ video: { facingMode: { ideal: 'environment' } }, audio: false }, video, (sonuc) => {
-        if (sonuc) okundu(sonuc.getText());
+      // Stop even if navigation happens while the permission dialog is still open.
+      observer = new MutationObserver(() => { if (!kamera.isConnected) durdur(); });
+      observer.observe(document.body, { childList: true, subtree: true });
+      let previous = '', last = 0;
+      await okuyucu.decodeFromConstraints({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false }, video, (sonuc) => {
+        if (stopped || !kamera.isConnected || !sonuc) return;
+        const text = sonuc.getText();
+        if (!text || (text === previous && Date.now() - last < 2500)) return;
+        previous = text; last = Date.now();
+        Promise.resolve(okundu(text)).catch((err) => toast(err.message));
       });
-      return () => okuyucu.reset();
+      if (stopped || !kamera.isConnected) { durdur(); return null; }
+      const track = video.srcObject && video.srcObject.getVideoTracks()[0];
+      const caps = track && track.getCapabilities ? track.getCapabilities() : {};
+      const flash = $('[data-flash]', kamera);
+      let lit = false;
+      if (caps.torch && track.applyConstraints) {
+        flash.hidden = false;
+        flash.onclick = async () => {
+          try { await track.applyConstraints({ advanced: [{ torch: !lit }] }); lit = !lit; flash.textContent = lit ? 'Fener kapat' : 'Fener aç'; }
+          catch (e) { toast('Fener bu kamerada kullanılamıyor'); }
+        };
+      }
+      const zoom = $('[data-zoom]', kamera);
+      if (caps.zoom && caps.zoom.max > caps.zoom.min && track.applyConstraints) {
+        zoom.parentElement.hidden = false;
+        zoom.min = caps.zoom.min; zoom.max = caps.zoom.max; zoom.step = caps.zoom.step || 0.1;
+        zoom.value = track.getSettings().zoom || caps.zoom.min;
+        zoom.onchange = async () => {
+          try { await track.applyConstraints({ advanced: [{ zoom: Number(zoom.value) }] }); }
+          catch (e) { toast('Yakınlaştırma uygulanamadı'); }
+        };
+      }
+      return durdur;
     } catch (e) {
+      durdur();
+      if (!kamera.isConnected) return null;
       kamera.className = 'kamera kapali';
       kamera.innerHTML = `<div>Kamera açılamadı (${esc(e.name === 'NotAllowedError' ? 'izin verilmedi' : e.message)}). Barkodu elle yazabilirsiniz.</div>`;
       return null;
