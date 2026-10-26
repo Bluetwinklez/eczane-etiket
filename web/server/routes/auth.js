@@ -36,6 +36,39 @@ router.post('/login', (req, res) => {
   });
 });
 
+// Self-service deletion requires the current password and preserves business records.
+router.post('/hesabi-sil', requireOturum, (req, res, next) => {
+  if (demoHesabiMi(req.user)) return res.status(403).json({ error: 'Demo hesabı silinemez' });
+  if (typeof req.body.sifre !== 'string' || !verifyPassword(req.body.sifre, req.user.sifre_salt, req.user.sifre_hash)) {
+    return res.status(400).json({ error: 'Mevcut şifre hatalı' });
+  }
+  if (req.user.rol === 'admin' && db.prepare("SELECT COUNT(*) AS n FROM kullanicilar WHERE rol='admin' AND aktif=1 AND id != ?").get(req.user.id).n === 0) {
+    return res.status(409).json({ error: 'Önce başka bir aktif yönetici oluşturun; son yönetici silinemez.' });
+  }
+  db.exec('BEGIN');
+  try {
+    const quote = (v) => '"' + v.replace(/"/g, '""') + '"';
+    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all();
+    for (const { name } of tables) {
+      for (const fk of db.prepare(`PRAGMA foreign_key_list(${quote(name)})`).all()) {
+        if (fk.table !== 'kullanicilar' || fk.on_delete === 'CASCADE') continue;
+        db.prepare(`UPDATE ${quote(name)} SET ${quote(fk.from)} = NULL WHERE ${quote(fk.from)} = ?`).run(req.user.id);
+      }
+    }
+    db.prepare('DELETE FROM kullanicilar WHERE id = ?').run(req.user.id);
+    req.sessionStore.kullaniciOturumlariniSil(req.user.id);
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    return next(err);
+  }
+  req.session.destroy((err) => {
+    if (err) return next(err);
+    res.clearCookie('eczanem.sid');
+    res.status(204).end();
+  });
+});
+
 router.post('/logout', (req, res) => {
   req.session.destroy(() => {
     res.clearCookie('eczanem.sid');
