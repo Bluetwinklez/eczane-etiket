@@ -37,18 +37,19 @@ function kaynakVeKayit(yol) {
   return { kaynak, kayitId };
 }
 
-const insert = db.prepare(
-  `INSERT INTO islem_kayitlari
-   (kullanici_id, kullanici_adi, sube_id, yontem, yol, kaynak, kayit_id, durum_kodu, detay, ip)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-);
-const kullaniciBul = db.prepare('SELECT id, kullanici_adi, sube_id FROM kullanicilar WHERE id = ?');
 
 function islemKaydiMiddleware(req, res, next) {
   if (!DEGISTIREN_YONTEMLER.has(req.method)) return next();
   // Musteri ekrani her sepet degisiminde durum gonderir; veri degistirmez, kayda girmez
   if (req.originalUrl.startsWith('/api/musteri-ekrani')) return next();
 
+  // Statements must belong to the current private demo database.
+  const insert = db.prepare(
+    `INSERT INTO islem_kayitlari
+     (kullanici_id, kullanici_adi, sube_id, yontem, yol, kaynak, kayit_id, durum_kodu, detay, ip)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  );
+  const kullaniciBul = db.prepare('SELECT id, kullanici_adi, sube_id FROM kullanicilar WHERE id = ?');
   const yol = req.originalUrl;
   // Detay, route govdeyi degistirmeden once alinir.
   const detay = detayOzetle(yol, req.body);

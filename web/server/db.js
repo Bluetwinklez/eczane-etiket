@@ -6,7 +6,14 @@ const fs = require('node:fs');
 
 const dbPath = process.env.ECZANEM_DB_PATH || path.join(__dirname, '..', 'data', 'eczane.db');
 if (dbPath !== ':memory:') fs.mkdirSync(path.dirname(dbPath), { recursive: true });
-const db = new DatabaseSync(dbPath);
+const baseDb = new DatabaseSync(dbPath);
+const { AsyncLocalStorage } = require('node:async_hooks');
+const dbContext = new AsyncLocalStorage();
+const db = new Proxy(baseDb, { get(target, key) {
+  const current = dbContext.getStore() || target;
+  const value = current[key];
+  return typeof value === 'function' ? value.bind(current) : value;
+} });
 
 db.exec(`
   PRAGMA foreign_keys = ON;
@@ -1088,4 +1095,10 @@ ornekReceteTurleriniDoldur();
 demoMetinleriniDuzelt();
 ornekGuvenlikBilgileriniDoldur();
 
-module.exports = { db, hashPassword, verifyPassword, ayarOku, ayarYaz, demoMetinleriniDuzelt };
+db.exec(`CREATE TABLE IF NOT EXISTS mobil_istekler (
+  kullanici_id INTEGER NOT NULL REFERENCES kullanicilar(id) ON DELETE CASCADE,
+  anahtar TEXT NOT NULL, ozet TEXT NOT NULL, durum INTEGER NOT NULL, yanit TEXT NOT NULL,
+  PRIMARY KEY (kullanici_id, anahtar)
+)`);
+
+module.exports = { baseDb, dbContext, db, hashPassword, verifyPassword, ayarOku, ayarYaz, demoMetinleriniDuzelt };
