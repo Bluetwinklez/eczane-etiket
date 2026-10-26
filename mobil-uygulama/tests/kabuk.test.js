@@ -203,3 +203,115 @@ test('TestFlight iş akışı: üç mod ve gerekli secret adları', () => {
   }
   assert.ok(!/65S88D9LF5/.test(y), 'takım kimliği secret olarak okunmalı');
 });
+
+// Exercise delayed network responses against real connection-screen event handlers.
+function connectionScreen(saved = 'https://saved.example.com') {
+  const elements = new Map();
+  const element = () => ({
+    events: {}, children: [], hidden: false, disabled: false, value: '', style: {},
+    addEventListener(name, fn) { this.events[name] = fn; },
+    appendChild(child) { this.children.push(child); },
+  });
+  const get = (id) => {
+    if (!elements.has(id)) elements.set(id, element());
+    return elements.get(id);
+  };
+  const pending = [];
+  const navigations = [];
+  const writes = [];
+  const context = {
+    document: { querySelector: get, createElement: element },
+    location: { search: '', replace: (url) => navigations.push(url) },
+    localStorage: { getItem: () => saved, setItem: (k, v) => writes.push(v), removeItem() {} },
+    fetch: (url) => new Promise((resolve) => pending.push({ url, resolve })),
+    URL, URLSearchParams, AbortController,
+    setTimeout: () => 1, clearTimeout() {},
+  };
+  context.window = context;
+  vm.runInNewContext(oku('mobil-uygulama', 'www', 'baglan.js'), context);
+  const reply = (request) => request.resolve({ ok: true, json: async () => ({ ok: true, uygulama: 'eczam' }) });
+  return { get, pending, navigations, writes, reply };
+}
+const flushConnection = () => new Promise((resolve) => setImmediate(resolve));
+
+test('public hostnames cannot impersonate private IPv4 addresses', () => {
+  const { adresiHazirla, yerelAdresMi } = baglanYukle();
+  for (const host of ['192.168.example.com', '10.example.com', '127.example.com', '172.16.example.com', '192.168.1.999']) {
+    assert.equal(yerelAdresMi(host), false, host);
+    assert.ok(adresiHazirla('http://' + host).hata, host);
+  }
+  assert.equal(adresiHazirla('192.168.example.com').adres, 'https://192.168.example.com');
+  assert.equal(yerelAdresMi('172.31.255.254'), true);
+  assert.equal(yerelAdresMi('172.32.0.1'), false);
+});
+
+test('late saved-server response cannot override manual entry', async () => {
+  const s = connectionScreen();
+  s.get('#elle').events.click();
+  s.reply(s.pending[0]);
+  await flushConnection();
+  assert.deepEqual(s.navigations, []);
+  assert.equal(s.get('#form').hidden, false);
+});
+
+test('late demo response cannot override a newly selected server', async () => {
+  const s = connectionScreen();
+  const demo = s.get('#demo').events.click();
+  s.get('#elle').events.click();
+  s.get('#adres').value = 'https://pharmacy.example.com';
+  const manual = s.get('#form').events.submit({ preventDefault() {} });
+  s.reply(s.pending[2]);
+  await manual;
+  s.reply(s.pending[1]);
+  await demo;
+  s.reply(s.pending[0]);
+  await flushConnection();
+  assert.deepEqual(s.navigations, ['https://pharmacy.example.com/mobil/']);
+  assert.deepEqual(s.writes, ['https://pharmacy.example.com']);
+});
+
+test('new demo selection supersedes a pending manual connection', async () => {
+  const s = connectionScreen();
+  s.get('#elle').events.click();
+  s.get('#adres').value = 'https://pharmacy.example.com';
+  const manual = s.get('#form').events.submit({ preventDefault() {} });
+  const demo = s.get('#demo').events.click();
+  s.reply(s.pending[1]);
+  await manual;
+  assert.deepEqual(s.navigations, []);
+  s.reply(s.pending[2]);
+  await demo;
+  assert.deepEqual(s.navigations, ['https://eczam-demo.onrender.com/mobil/']);
+});
+
+test('stored address is normalized before health checks and navigation', async () => {
+  const s = connectionScreen('https://saved.example.com/mobil/?x=1');
+  assert.equal(s.pending[0].url, 'https://saved.example.com/api/health');
+  s.reply(s.pending[0]);
+  await flushConnection();
+  assert.deepEqual(s.navigations, ['https://saved.example.com/mobil/']);
+});
+
+test('manual entry stays available while saved or demo servers are pending', async () => {
+  const s = connectionScreen();
+  assert.equal(s.get('#elle').hidden, false);
+  s.get('#elle').events.click();
+  const demo = s.get('#demo').events.click();
+  assert.equal(s.get('#elle').hidden, false);
+  s.get('#elle').events.click();
+  s.reply(s.pending[1]);
+  await demo;
+  assert.deepEqual(s.navigations, []);
+  assert.equal(s.get('#form').hidden, false);
+  assert.equal(s.get('#demo').disabled, false);
+});
+
+test('cancelled network scan cannot navigate after switching to manual entry', async () => {
+  const s = connectionScreen('');
+  assert.ok(s.pending.length > 0);
+  s.get('#elle').events.click();
+  for (const request of s.pending) s.reply(request);
+  await flushConnection();
+  assert.deepEqual(s.navigations, []);
+  assert.equal(s.get('#form').hidden, false);
+});
