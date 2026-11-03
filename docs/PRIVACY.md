@@ -16,7 +16,7 @@ _Son güncelleme / Last updated: 2026-10-04_
 - **Silme ve haklarınız:** Mobil Profil → Hesabım ve veri silme ekranında mevcut şifrenizle hesabınızı silebilirsiniz. Son aktif yönetici önce başka bir yönetici oluşturmalıdır. İşletme kayıtları korunur, kullanıcı bağlantıları kaldırılır. Diğer kişisel veri talepleriniz için eczane yöneticinize başvurun. Müşteri iseniz KVKK madde 11 kapsamındaki haklarınız (bilgi alma, düzeltme, silme, itiraz) için eczanenize başvurabilirsiniz.
 - **Çocuklar:** Uygulama eczane çalışanlarına yöneliktir; 18 yaş altına hitap etmez.
 
-Sorular için: doflerim@gmail.com
+Sorular için: privacy@example.com
 
 ## English
 
@@ -32,4 +32,4 @@ Sorular için: doflerim@gmail.com
 - **Deletion and your rights:** delete your account from Mobile Profile → Account and data deletion using your current password. The last active administrator must first create another administrator. Business records remain with user references removed. Contact your pharmacy administrator for other personal-data requests. Customers can contact their pharmacy for their rights under KVKK Article 11 (access, correction, deletion, objection).
 - **Children:** The app is intended for pharmacy staff and is not directed at anyone under 18.
 
-Contact: doflerim@gmail.com
+Contact: privacy@example.com

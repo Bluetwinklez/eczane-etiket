@@ -177,7 +177,7 @@ test('uygulama simgesi 1024×1024 ve alfa kanalsız', () => {
 
 test('gizlilik politikası dosyası iletişim e-postasını içerir', () => {
   const metin = oku('docs', 'PRIVACY.md');
-  assert.match(metin, /doflerim@gmail\.com/);
+  assert.match(metin, /privacy@example\.com/);
   assert.match(metin, /Eczam/);
   assert.ok(!/Eczanem/.test(metin));
 });

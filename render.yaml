@@ -32,4 +32,4 @@ services:
       - key: ECZANEM_GUN_SONU
         value: "0"
       - key: ECZANEM_GIZLILIK_EPOSTA
-        value: doflerim@gmail.com
+        sync: false
