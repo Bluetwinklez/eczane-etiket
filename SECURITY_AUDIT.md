@@ -22,7 +22,7 @@ No working private credential was confirmed in this review. No credential values
 
 ## Validation
 
-145 existing desktop tests and two new portable-path tests passed with an isolated data directory and virtual display. All 287 web tests and all 10 mobile-shell tests passed. Python and web dependency audits report zero known vulnerabilities.
+145 existing desktop tests and two new portable-path tests passed with an isolated data directory and virtual display. All 287 web tests and all 10 mobile-shell tests passed. Python and web dependency audits report zero known vulnerabilities. The mobile Capacitor CLI retains four moderate transitive development-tool advisories (glob/minimatch/rimraf); the suggested automatic remediation would downgrade Capacitor across major versions and was not applied. Mobile shell tests and Capacitor iOS synchronization pass.
 
 GitHub Actions YAML was checked with Actionlint. Local log files are kept outside the repositories; do not confuse historical README test counts with new results.
 
