@@ -20,3 +20,5 @@
 ## 🚨 Güvenlik Açığı Bildirimi
 
 Kod tabanında bir güvenlik açığı tespit ederseniz, lütfen bunu herkese açık bir Issue açarak bildirmek yerine, doğrudan depo yöneticisine [GitHub Security Advisory](https://github.com/Bluetwinklez/eczane-etiket/security/advisories) veya e-posta yoluyla iletiniz. Bildiriminiz en kısa sürede incelenecek ve gerekli düzeltme yayınlanacaktır.
+
+See [the repository security audit](SECURITY_AUDIT.md) for current findings and verification limits.
