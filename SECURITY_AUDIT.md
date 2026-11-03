@@ -10,7 +10,7 @@ Fetched the repository and scanned all locally fetched Git refs/history with Git
 
 ## Changes
 
-Removed a personal contact address from four current files. Deployment contact email is now supplied privately at setup. Updated vulnerable web dependencies and added an explicit `ECZANE_ETIKET_DATA_DIR` option for portable/test storage.
+Removed a personal contact address from four documentation/configuration files and the mobile test regex that embedded it. Deployment contact email is now supplied privately at setup. Updated vulnerable web dependencies and added an explicit `ECZANE_ETIKET_DATA_DIR` option for portable/test storage.
 
 All maintained repositories receive an English security policy/audit entry point, a pinned and checksum-verified secret-scan workflow, credential ignore patterns and immutable action references. Existing publishing jobs retain their declared permissions. Known false positives, if any, are exempted only by exact historic finding fingerprints; no entire directory or credential rule is disabled.
 
@@ -22,7 +22,7 @@ No working private credential was confirmed in this review. No credential values
 
 ## Validation
 
-145 existing desktop tests and two new portable-path tests passed with an isolated data directory and virtual display. All 287 web tests passed. Python and web dependency audits report zero known vulnerabilities.
+145 existing desktop tests and two new portable-path tests passed with an isolated data directory and virtual display. All 287 web tests and all 10 mobile-shell tests passed. Python and web dependency audits report zero known vulnerabilities.
 
 GitHub Actions YAML was checked with Actionlint. Local log files are kept outside the repositories; do not confuse historical README test counts with new results.
 
