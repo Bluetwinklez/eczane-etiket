@@ -1,8 +1,11 @@
-"""Yerel veri klasörü ve dosya yolları."""
+"""Local application data directory and file paths."""
+
+import os
 
 from pathlib import Path
 
-DATA_DIR = Path.home() / ".eczane_etiket"
+# Keep the default local profile while allowing explicit portable/test storage.
+DATA_DIR = Path(os.environ["ECZANE_ETIKET_DATA_DIR"]).expanduser() if os.environ.get("ECZANE_ETIKET_DATA_DIR") else Path.home() / ".eczane_etiket"
 
 PROFILES_FILE = DATA_DIR / "profiles.json"
 DRUGS_FILE = DATA_DIR / "drugs.json"
