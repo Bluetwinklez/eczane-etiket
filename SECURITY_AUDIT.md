@@ -37,3 +37,7 @@ Main READMEs and new maintenance documents are English. Historical Turkish recor
 Pharmacy label printing, local inventory and POS management, and a mobile companion for Turkish workflows.
 
 The current GitHub integration rejected repository metadata edits with HTTP 403. This prepared description can be applied when repository administration access is available; it has not been represented as an applied settings change.
+
+## Dependency remediation follow-up
+
+Mobile tooling now pins glob 14.0.3, which brings the patched minimatch implementation. npm audit reports zero advisories. Mobile shell tests and iOS synchronization pass. Capacitor remains on major version 7.
