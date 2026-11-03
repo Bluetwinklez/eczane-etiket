@@ -39,7 +39,7 @@ Alternatively, install `requirements.txt` and run `python run_app.py`. Windows u
 - Patient history, stock tracking, themes, staff administration and local backups.
 - Rule-based duplicate-ingredient and interaction alerts. These alerts assist review and do not replace professional judgment or a complete clinical database.
 
-Desktop data lives in `~/.eczane_etiket`. Back it up before migration, upgrades or machine replacement. Printing depends on the installed printer driver, label dimensions and a real device test.
+Desktop data lives in `~/.eczane_etiket` by default. Set `ECZANE_ETIKET_DATA_DIR` before starting the app to choose an explicit portable or test data directory. Back it up before migration, upgrades or machine replacement. Printing depends on the installed printer driver, label dimensions and a real device test.
 
 ## Web and mobile quick start
 
@@ -73,3 +73,5 @@ Python CI covers Windows/Ubuntu and Python 3.10–3.12. The web suite is indepen
 Core records are stored locally. Optional import, translation, drug-data, update and external integration features can make network requests; review their configuration. Local storage alone is not a guarantee of regulatory compliance. Restrict access, use backups and avoid sharing patient data in issue reports.
 
 See [security guidance](SECURITY.md), [the changelog](CHANGELOG.md), [the MIT license](LICENSE), and [the detailed previous desktop guide (Turkish)](README.tr.md).
+
+[Security policy](SECURITY.md) · [Repository security audit](SECURITY_AUDIT.md)

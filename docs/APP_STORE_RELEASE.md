@@ -89,7 +89,7 @@ NFC Tag Master reposundan kopyalayın:
 - **Ekran görüntüleri:** *iPhone 6,9″ Ekran* alanına Türkçe sayfa için `docs/magaza/`, İngilizce sayfa için `docs/magaza/en/` içindeki 6 dosyayı sırayla yükleyin (1320×2868). Diğer iPhone boyutları otomatik türetilir. Uygulama yalnızca iPhone olduğu için iPad görüntüsü gerekmez.
 - **Tanıtım Metni, Açıklama, Anahtar Kelimeler, Destek URL'si, Bu Sürümdeki Yenilikler:** [STORE_LISTING.md](STORE_LISTING.md)'den kopyalayın. Telif Hakkı: `2026 Bluetwinklez`.
 - **Derleme (Build):** “Derleme Ekle” → TestFlight'a yüklediğiniz derlemeyi seçin.
-- **Uygulama İnceleme Bilgileri:** ad, soyad, telefon, e-posta `doflerim@gmail.com`; **Oturum açma gerekli** kutusunu işaretleyin ve demo kullanıcı adı/şifresini girin; **Notlar** alanına 5. bölümdeki metni yapıştırın.
+- **Uygulama İnceleme Bilgileri:** ad, soyad, telefon, e-posta `privacy@example.com`; **Oturum açma gerekli** kutusunu işaretleyin ve demo kullanıcı adı/şifresini girin; **Notlar** alanına 5. bölümdeki metni yapıştırın.
 - **Sürüm Yayın Seçeneği:** isterseniz “Elle yayınla” seçin.
 
 ### 3.8 Gönder

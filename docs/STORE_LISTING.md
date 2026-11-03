@@ -66,4 +66,4 @@ This app does not give medical advice or diagnose.
 - **Destek URL'si:** https://github.com/Bluetwinklez/eczane-etiket
 - **Gizlilik politikası URL'si:** https://github.com/Bluetwinklez/eczane-etiket/blob/main/docs/PRIVACY.md
 - **Pazarlama URL'si:** boş
-- **İletişim e-postası:** doflerim@gmail.com
+- **İletişim e-postası:** privacy@example.com
