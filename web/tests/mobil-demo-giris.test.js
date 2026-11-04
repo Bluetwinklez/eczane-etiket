@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const source = fs.readFileSync(require('node:path').join(__dirname, '../public/mobil/mobil.js'), 'utf8');
 const login = source.slice(source.indexOf('  function girisEkrani('), source.indexOf('  // ---------- Ekran: ozet'));
-async function run({ search = '?demo=1', demo = { kullanici: 'demo', sifre: 'demo1234' }, fail = false } = {}) {
+async function run({ search = '?demo=1', demo = { kullanici: 'demo', sifre: 'demo1234' }, fail = false, cikis = false } = {}) {
   const elements = new Map();
   const calls = [];
   const $ = (id) => {
@@ -12,6 +12,7 @@ async function run({ search = '?demo=1', demo = { kullanici: 'demo', sifre: 'dem
     return elements.get(id);
   };
   const context = { document: { documentElement: { style: { setProperty() {} } } }, $, uyg: {}, gezinme: {}, esc: String, hataKutusu: (e) => e.message, location: { search, hash: '#/giris' }, oturum: {}, URLSearchParams,
+    sessionStorage: { v: cikis ? { 'eczam:cikis': '1' } : {}, getItem(k) { return this.v[k] ?? null; }, removeItem(k) { delete this.v[k]; } },
     fetch: async () => ({ json: async () => ({ ok: true, demo }) }),
     post: async (url, body) => { calls.push({ url, body }); if (fail) throw new Error('Giriş başarısız'); return { user: { id: 1 } }; },
   };
@@ -31,9 +32,15 @@ test('regular pharmacy server never auto signs in', async () => {
   const s = await run({ demo: null });
   assert.equal(s.calls.length, 0);
 });
-test('normal web login stays manual', async () => {
+test('demo server signs in automatically even without ?demo=1', async () => {
   const s = await run({ search: '' });
+  assert.equal(s.calls.length, 1);
+  assert.equal(s.context.location.hash, '#/ozet');
+});
+test('after explicit logout the demo login form stays visible', async () => {
+  const s = await run({ search: '', cikis: true });
   assert.equal(s.calls.length, 0);
+  assert.equal(s.context.sessionStorage.getItem('eczam:cikis'), null);
 });
 test('failed automatic login exposes retry controls and error', async () => {
   const s = await run({ fail: true });

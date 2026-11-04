@@ -316,8 +316,14 @@
         <label class="etiket" for="sif" style="margin-top:12px">Şifre</label><input class="alan" id="sif" type="password" autocomplete="current-password" required />
         <button class="hap siyah" style="margin-top:18px" type="submit">Giriş Yap</button>
       </form><div id="giris-demo"></div></div>`;
-    // Only the explicit demo launch signs in automatically, using public demo credentials.
-    const otomatikDemo = new URLSearchParams(location.search).get('demo') === '1';
+    // Demo sunucusunda (herkese acik demo hesabi) giris ekrani atlanir; gercek eczane sunucularinda giris zorunludur.
+    // Kullanici az once "Cikis yap" dediyse formu goster (yeniden otomatik girmesin).
+    let cikisYapildi = false;
+    try {
+      cikisYapildi = sessionStorage.getItem('eczam:cikis') === '1';
+      sessionStorage.removeItem('eczam:cikis');
+    } catch (e) {}
+    const otomatikDemo = !cikisYapildi;
     fetch('/api/health', { cache: 'no-store' })
       .then((r) => r.json())
       .then((h) => {
@@ -946,6 +952,7 @@
       try { await post('/api/auth/logout'); } catch (e) {}
       cihazVerileriniTemizle();
       oturum.kullanici = null;
+      try { sessionStorage.setItem('eczam:cikis', '1'); } catch (e) {}
       window.location.replace(location.pathname + '#/giris');
     };
     const sunucuDugme = $('#p-sunucu');
