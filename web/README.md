@@ -11,7 +11,7 @@ npm ci
 npm start
 ```
 
-Open http://localhost:3000. The initial login is `admin` / `admin123`; complete the required password change before use. `PORT` changes the listening port. `npm run dev` enables the Node watcher. Local records live under `data/`; keep this directory outside version control and back it up independently.
+Open http://localhost:3000. The initial login is `admin` / `admin123`; complete the required password change before use. Until that change, the documented initial passwords are accepted only from the computer running the server; other devices on the network receive HTTP 403. `PORT` changes the listening port. `npm run dev` enables the Node watcher. Local records live under `data/`; keep this directory outside version control and back it up independently.
 
 ## Daily operation
 
