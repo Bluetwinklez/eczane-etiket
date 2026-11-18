@@ -98,7 +98,7 @@ irm https://raw.githubusercontent.com/Bluetwinklez/eczane-etiket/main/kurulum/ec
 powershell -ExecutionPolicy Bypass -File $env:TEMP\eczam-kur.ps1
 ```
 
-Betik şunları yapar: Node.js ve Git yoksa kurar (winget ile), programı `Kullanıcı klasörü\Eczam` altına indirir, gerekli paketleri kurar, masaüstüne **Eczam** ve **Eczam Güncelle** kısayollarını koyar ve bilgisayar açılınca sunucunun arka planda başlamasını ayarlar. İlk açılışta Windows Güvenlik Duvarı izin sorarsa **İzin ver** deyin (telefondan bağlanmak için gerekir). Varsayılan giriş: `admin / admin123` (ilk girişte şifre değiştirilir).
+Betik şunları yapar: Node.js ve Git yoksa kurar (winget ile), programı `Kullanıcı klasörü\Eczam` altına indirir, gerekli paketleri kurar, masaüstüne **Eczam** ve **Eczam Güncelle** kısayollarını koyar ve bilgisayar açılınca sunucunun arka planda başlamasını ayarlar. İlk açılışta Windows Güvenlik Duvarı izin sorarsa **İzin ver** deyin (telefondan bağlanmak için gerekir). Varsayılan giriş: `admin / admin123` (ilk girişte şifre değiştirilir). Varsayılan şifreyle ilk giriş yalnızca sunucunun kurulu olduğu bilgisayardan yapılabilir; telefondan bağlanmadan önce şifreyi o bilgisayarda değiştirin.
 
 | Kısayol / dosya | Ne yapar |
 |---|---|

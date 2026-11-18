@@ -6,6 +6,14 @@ const { demoHesabiMi } = require('../demo');
 
 const router = express.Router();
 
+// Ilk kurulumda olusturulan hesaplarin sifreleri belgelerde yazili oldugu icin herkesce bilinir.
+// Sunucu yerel agdaki tum cihazlara acik dinledigi icin, sifre degistirilene kadar bu sifrelerle
+// yalnizca sunucunun calistigi bilgisayardan giris yapilabilir.
+const VARSAYILAN_SIFRELER = { admin: 'admin123', eczaci: 'eczaci123', kasiyer: 'kasiyer123' };
+const YEREL_ADRESLER = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
+const varsayilanSifreyleUzaktanGiris = (req, user, sifre) =>
+  Boolean(user.sifre_degistirilmeli) && VARSAYILAN_SIFRELER[user.kullanici_adi] === sifre && !YEREL_ADRESLER.has(req.ip);
+
 router.post('/login', (req, res) => {
   const { kullanici_adi, sifre } = req.body;
   if (!kullanici_adi || !sifre) {
@@ -25,6 +33,12 @@ router.post('/login', (req, res) => {
   if (!user) {
     sinirlayici.basarisizKaydet(ip, kullanici_adi);
     return res.status(401).json({ error: 'Kullanıcı adı veya şifre hatalı' });
+  }
+
+  if (varsayilanSifreyleUzaktanGiris(req, user, sifre)) {
+    return res.status(403).json({
+      error: 'Varsayılan şifreyle ilk giriş yalnızca sunucunun çalıştığı bilgisayardan yapılabilir. Önce o bilgisayarda giriş yapıp şifreyi değiştirin.'
+    });
   }
 
   sinirlayici.sifirla(ip, kullanici_adi);
