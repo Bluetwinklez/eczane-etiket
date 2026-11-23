@@ -14,7 +14,7 @@
     "@capacitor/ios": "^7.0.0"
   },
   "devDependencies": {
-    "@capacitor/cli": "^7.0.0"
+    "@capacitor/cli": "^8.6.2"
   },
   "overrides": {
     "glob": "14.0.3"
